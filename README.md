@@ -16,7 +16,7 @@ https://hub.docker.com/r/scalecloudde/scalecloud.de-api
 [![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=scalecloud_scalecloud.de-api&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=scalecloud_scalecloud.de-api)
 [![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=scalecloud_scalecloud.de-api&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=scalecloud_scalecloud.de-api)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=scalecloud_scalecloud.de-api&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=scalecloud_scalecloud.de-api)
-[![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=scalecloud_scalecloud.de-api&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=scalecloud_scalecloud.de-api)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=scalecloud_scalecloud.de-api&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=scalecloud_scalecloud.de-api)
 [![Reliability Rating](https://sonarcloud.io/api/project_badges/measure?project=scalecloud_scalecloud.de-api&metric=reliability_rating)](https://sonarcloud.io/summary/new_code?id=scalecloud_scalecloud.de-api)
 [![Security Rating](https://sonarcloud.io/api/project_badges/measure?project=scalecloud_scalecloud.de-api&metric=security_rating)](https://sonarcloud.io/summary/new_code?id=scalecloud_scalecloud.de-api)
 [![Technical Debt](https://sonarcloud.io/api/project_badges/measure?project=scalecloud_scalecloud.de-api&metric=sqale_index)](https://sonarcloud.io/summary/new_code?id=scalecloud_scalecloud.de-api)
