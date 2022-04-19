@@ -18,14 +18,14 @@ RUN go build -o /web-service-gin
 ##
 ## Deploy
 ##
-FROM gcr.io/distroless/base-debian10
+FROM gcr.io/distroless/base-debian11:latest AS deploy
 
-WORKDIR /
+WORKDIR /app
 
-COPY --from=build /web-service-gin /web-service-gin
+COPY --from=build /web-service-gin ./
 
 EXPOSE 8080
 
 USER nonroot:nonroot
 
-ENTRYPOINT ["/web-service-gin"]
+ENTRYPOINT ["/app/web-service-gin"]
