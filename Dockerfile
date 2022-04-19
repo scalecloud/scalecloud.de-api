@@ -13,7 +13,7 @@ RUN go mod download
 
 COPY web-service-gin/*.go ./
 
-RUN go build -o /web-service-gin
+RUN go build -v -o /web-service-gin
 
 ##
 ## Deploy
