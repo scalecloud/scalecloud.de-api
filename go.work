@@ -3,6 +3,4 @@ go 1.18
 use (
 	./web-service-gin
 	./mongo
-	./hello
-	./greetings
 )
