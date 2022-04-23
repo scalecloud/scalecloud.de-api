@@ -1,9 +1,11 @@
+# API for Scalecloud.de
 Hello I'm the backend for https://github.com/scalecloud/scalecloud.de
 
 Going to create the homepage scalecloud.de with awt login and as backend golang + mongodb
 
 Maybe useful https://github.com/cornflourblue/node-mongo-signup-verification-api
 
+## Running the API in Docker
 ```
 docker pull scalecloudde/scalecloud.de-api:latest
 ```
@@ -15,13 +17,12 @@ docker run -d --restart unless-stopped \
     --log-driver local --log-opt max-size=100m --log-opt max-file=2 \
     --name scalecloud.de-api scalecloudde/scalecloud.de-api:latest
 ```
-```
-In keys folder are keys for:
-firebase: firebase-serviceAccountKey.json
-mongodb-atlas: mongodb-atlas.pem
-stripe: stripe-secret-key.json
-```
-#### SonarCloud.io:
+### Folder `<keys-dir>`:
+The following files are required in the `<keys-dir>` folder:<br>
+Firebase: `firebase-serviceAccountKey.json`<br>
+Mongodb-Atlas: `mongodb-atlas.pem`<br>
+Stripe: `stripe-secret-key.json`<br>
+## SonarCloud.io:
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=scalecloud_scalecloud.de-api&metric=bugs)](https://sonarcloud.io/summary/new_code?id=scalecloud_scalecloud.de-api)
 [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=scalecloud_scalecloud.de-api&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=scalecloud_scalecloud.de-api)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=scalecloud_scalecloud.de-api&metric=coverage)](https://sonarcloud.io/summary/new_code?id=scalecloud_scalecloud.de-api)
