@@ -5,18 +5,20 @@ import (
 	"log"
 
 	firebase "firebase.google.com/go/v4"
+	"google.golang.org/api/option"
 )
 
 func main() {
 }
 
 func initializeAppDefault() *firebase.App {
-	// [START initialize_app_default_golang]
-	app, err := firebase.NewApp(context.Background(), nil)
+
+	opt := option.WithCredentialsFile("path/to/serviceAccountKey.json")
+	app, err := firebase.NewApp(context.Background(), nil, opt)
 	if err != nil {
 		log.Fatalf("error initializing app: %v\n", err)
+		return nil
 	}
-	// [END initialize_app_default_golang]
 
 	return app
 }
