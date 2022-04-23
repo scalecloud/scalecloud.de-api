@@ -24,7 +24,7 @@ WORKDIR /app
 
 COPY --from=build /web-service-gin ./
 
-EXPOSE 8080
+EXPOSE 15000
 
 USER nonroot:nonroot
 

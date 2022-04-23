@@ -8,7 +8,19 @@ Maybe useful https://github.com/cornflourblue/node-mongo-signup-verification-api
 docker pull scalecloudde/scalecloud.de-api:latest
 ```
 https://hub.docker.com/r/scalecloudde/scalecloud.de-api
-
+```
+docker run -d --restart unless-stopped \
+    -p 15000:15000 \
+    --mount type=bind,source="<keys-dir>",destination=/app/keys \
+    --log-driver local --log-opt max-size=100m --log-opt max-file=2 \
+    --name scalecloud.de-api scalecloudde/scalecloud.de-api:latest
+```
+```
+In keys folder are keys for:
+firebase: firebase-serviceAccountKey.json
+mongodb-atlas: mongodb-atlas.pem
+stripe: stripe-secret-key.json
+```
 #### SonarCloud.io:
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=scalecloud_scalecloud.de-api&metric=bugs)](https://sonarcloud.io/summary/new_code?id=scalecloud_scalecloud.de-api)
 [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=scalecloud_scalecloud.de-api&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=scalecloud_scalecloud.de-api)

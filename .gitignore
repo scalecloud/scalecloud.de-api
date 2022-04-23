@@ -14,7 +14,7 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
-# In key are keys for:
+# In keys folder are keys for:
 # firebase: firebase-serviceAccountKey.json
 # mongodb-atlas: mongodb-atlas.pem
 # stripe: stripe-secret-key.json
