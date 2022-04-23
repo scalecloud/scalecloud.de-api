@@ -4,4 +4,5 @@ use (
 	./web-service-gin
 	./mongo
 	./firebase
+	./stripe
 )
