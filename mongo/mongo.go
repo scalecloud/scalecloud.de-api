@@ -1,4 +1,4 @@
-package main
+package mongo
 
 import (
 	"context"
@@ -12,7 +12,11 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-func main() {
+func InitMongo() {
+	log.Println("Init Mongo")
+}
+
+func startDBCon() {
 	connectionString := "mongodb://localhost:27017"
 	client, err := mongo.NewClient(options.Client().ApplyURI(connectionString))
 	if err != nil {

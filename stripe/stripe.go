@@ -1,4 +1,4 @@
-package main
+package stripe
 
 import (
 	"log"
@@ -8,7 +8,11 @@ import (
 	"github.com/stripe/stripe-go/v72/checkout/session"
 )
 
-func main() {
+func InitStripe() {
+	log.Println("Init stripe")
+}
+
+func createConnection() {
 	// This is a public sample test API key.
 	// Don’t submit any personally identifiable information in requests made with this key.
 	// Sign in to see your own test API key embedded in code samples.

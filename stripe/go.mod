@@ -1,4 +1,4 @@
-module example/stripe
+module github.com/scalecloud/scalecloud.de-api/tree/main/stripe
 
 go 1.18
 

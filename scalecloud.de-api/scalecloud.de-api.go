@@ -1,16 +1,21 @@
-package main
+package scalecloud
 
 import (
 	"os"
 
+	"github.com/scalecloud/scalecloud.de-api/tree/main/firebase"
+	"github.com/scalecloud/scalecloud.de-api/tree/main/mongo"
+	"github.com/scalecloud/scalecloud.de-api/tree/main/stripe"
 	"go.uber.org/zap"
 )
 
 var logger, _ = zap.NewProduction()
 
 func Init() {
-	logger.Info("Checking if keys folder exists and is complete.")
-
+	logger.Info("Init scalecloud.de-api")
+	firebase.InitFirebase()
+	mongo.InitMongo()
+	stripe.InitStripe()
 }
 
 func exists(path string) (bool, error) {

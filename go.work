@@ -3,7 +3,7 @@ go 1.18
 use (
 	./cmd/scalecloud.de-api
 	./scalecloud.de-api
-	./web-service-gin
+	./api
 	./mongo
 	./firebase
 	./stripe

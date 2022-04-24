@@ -11,6 +11,10 @@ import (
 func main() {
 }
 
+func InitFirebase() {
+	log.Println("Init firebase")
+}
+
 func InitializeAppDefault() *firebase.App {
 
 	opt := option.WithCredentialsFile("path/to/serviceAccountKey.json")
