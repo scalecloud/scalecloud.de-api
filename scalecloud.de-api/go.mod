@@ -5,6 +5,7 @@ go 1.18
 require (
 	github.com/scalecloud/scalecloud.de-api/tree/main/firebase v0.0.0-00010101000000-000000000000
 	github.com/scalecloud/scalecloud.de-api/tree/main/mongo v0.0.0-00010101000000-000000000000
+	github.com/scalecloud/scalecloud.de-api/tree/main/stripe v0.0.0-00010101000000-000000000000
 	go.uber.org/zap v1.21.0
 )
 
@@ -23,6 +24,7 @@ require (
 	github.com/googleapis/gax-go/v2 v2.3.0 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/stripe/stripe-go/v72 v72.103.0 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.0.2 // indirect
 	github.com/xdg-go/stringprep v1.0.2 // indirect
