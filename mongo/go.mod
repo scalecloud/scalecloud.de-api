@@ -1,4 +1,4 @@
-module example.com/mongo
+module github.com/scalecloud/scalecloud.de-api/tree/main/mongo
 
 go 1.18
 

@@ -1,4 +1,4 @@
-module github.com/scalecloud/scalecloud.de-api/tree/main/cmd/scalecloud.de-api
+module github.com/scalecloud/scalecloud.de-api/tree/main/scalecloud.de-api
 
 go 1.18
 
