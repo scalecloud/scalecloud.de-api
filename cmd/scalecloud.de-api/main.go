@@ -8,6 +8,7 @@ import (
 var logger, _ = zap.NewProduction()
 
 func main() {
-	logger.Info("Starting application")
+	logger.Info("Starting App.")
 	api.InitApi()
+	logger.Info("App ended.")
 }

@@ -7,13 +7,13 @@ FROM golang:1.18 AS build
 
 WORKDIR /app
 
-COPY web-service-gin/go.mod ./
-COPY web-service-gin/go.sum ./
+COPY cmd/scalecloud.de-api/go.mod ./
+COPY cmd/scalecloud.de-api/go.sum ./
 RUN go mod download
 
-COPY web-service-gin/*.go ./
+COPY cmd/scalecloud.de-api/*.go ./
 
-RUN go build -v -o /web-service-gin
+RUN go build -v -o /scalecloud.de-api
 
 ##
 ## Deploy
@@ -22,10 +22,10 @@ FROM gcr.io/distroless/base-debian11:latest AS deploy
 
 WORKDIR /app
 
-COPY --from=build /web-service-gin ./
+COPY --from=build /scalecloud.de-api ./
 
 EXPOSE 15000
 
 USER nonroot:nonroot
 
-ENTRYPOINT ["/app/web-service-gin"]
+ENTRYPOINT ["/app/scalecloud.de-api"]
