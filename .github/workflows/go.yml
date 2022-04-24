@@ -19,9 +19,9 @@ jobs:
         go-version: 1.18
 
     - name: Build
-      working-directory: ./web-service-gin
+      working-directory: ./cmd/scalecloud.de-api
       run: go build -v ./...
 
     - name: Test
-      working-directory: ./web-service-gin
+      working-directory: ./cmd/scalecloud.de-api
       run: go test -v ./...
