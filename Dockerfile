@@ -5,15 +5,13 @@
 ##
 FROM golang:1.18 AS build
 
-WORKDIR /app
+WORKDIR /build
 
-COPY cmd/scalecloud.de-api/go.mod ./
-COPY cmd/scalecloud.de-api/go.sum ./
+COPY ./ ./
+
 RUN go mod download
 
-COPY cmd/scalecloud.de-api/*.go ./
-
-RUN go build -v -o /scalecloud.de-api
+RUN go build -v -o /installer/scalecloud.de-api cmd/scalecloud.de-api
 
 ##
 ## Deploy
@@ -22,7 +20,7 @@ FROM gcr.io/distroless/base-debian11:latest AS deploy
 
 WORKDIR /app
 
-COPY --from=build /scalecloud.de-api ./
+COPY --from=build /installer/scalecloud.de-api ./
 
 EXPOSE 15000
 
