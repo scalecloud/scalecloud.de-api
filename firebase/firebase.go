@@ -2,17 +2,17 @@ package firebase
 
 import (
 	"context"
-	"log"
+
+	"go.uber.org/zap"
 
 	firebase "firebase.google.com/go/v4"
 	"google.golang.org/api/option"
 )
 
-func main() {
-}
+var logger, _ = zap.NewProduction()
 
 func InitFirebase() {
-	log.Println("Init firebase")
+	logger.Info("Init firebase")
 }
 
 func InitializeAppDefault() *firebase.App {
@@ -20,7 +20,7 @@ func InitializeAppDefault() *firebase.App {
 	opt := option.WithCredentialsFile("path/to/serviceAccountKey.json")
 	app, err := firebase.NewApp(context.Background(), nil, opt)
 	if err != nil {
-		log.Fatalf("error initializing app: %v\n", err)
+		logger.Error("Error initializing app", zap.Error(err))
 		return nil
 	}
 

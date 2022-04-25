@@ -1,15 +1,18 @@
 package stripe
 
 import (
-	"log"
 	"net/http"
+
+	"go.uber.org/zap"
 
 	"github.com/stripe/stripe-go/v72"
 	"github.com/stripe/stripe-go/v72/checkout/session"
 )
 
+var logger, _ = zap.NewProduction()
+
 func InitStripe() {
-	log.Println("Init stripe")
+	logger.Info("Init stripe")
 }
 
 func createConnection() {
@@ -21,8 +24,9 @@ func createConnection() {
 	http.Handle("/", http.FileServer(http.Dir("public")))
 	http.HandleFunc("/create-checkout-session", createCheckoutSession)
 	addr := "localhost:4242"
-	log.Printf("Listening on %s", addr)
-	log.Fatal(http.ListenAndServe(addr, nil))
+	logger.Info("Stripe server listening on", zap.String("addr", addr))
+
+	logger.Error("Error creating session", zap.Any("ListenAndServe:", http.ListenAndServe(addr, nil)))
 }
 
 func createCheckoutSession(w http.ResponseWriter, r *http.Request) {
@@ -43,7 +47,7 @@ func createCheckoutSession(w http.ResponseWriter, r *http.Request) {
 	s, err := session.New(params)
 
 	if err != nil {
-		log.Printf("session.New: %v", err)
+		logger.Error("Error creating session", zap.Error(err))
 	}
 
 	http.Redirect(w, r, s.URL, http.StatusSeeOther)
