@@ -11,7 +11,7 @@ COPY ./ ./
 
 RUN go mod download
 
-RUN go build -v -o /installer/scalecloud.de-api cmd/scalecloud.de-api
+RUN go build -v -o ./installer/scalecloud.de-api/ ./cmd/scalecloud.de-api
 
 ##
 ## Deploy
@@ -20,7 +20,7 @@ FROM gcr.io/distroless/base-debian11:latest AS deploy
 
 WORKDIR /app
 
-COPY --from=build /installer/scalecloud.de-api ./
+COPY --from=build /installer/scalecloud.de-api ./scalecloud.de-api
 
 EXPOSE 15000
 
