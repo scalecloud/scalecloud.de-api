@@ -20,7 +20,7 @@ FROM gcr.io/distroless/base-debian11:latest AS deploy
 
 WORKDIR /app
 
-COPY --from=build /build/installer/scalecloud.de-api ./scalecloud.de-api
+COPY --from=build /build/installer/scalecloud.de-api /app/scalecloud.de-api
 
 EXPOSE 15000
 

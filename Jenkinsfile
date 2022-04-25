@@ -20,15 +20,6 @@ node() {
         lastStage = env.STAGE_NAME
         sh 'docker push scalecloudde/scalecloud.de-api:latest'
     }
-    stage('Docker remove not needed images') {
-        lastStage = env.STAGE_NAME
-        sh 'docker rmi golang:1.18'
-        sh 'docker rmi gcr.io/distroless/base-debian11:latest' 
-    }
-    stage('Deploy') {
-        lastStage = env.STAGE_NAME
-        println "Deploying missing..."
-    }
   }
   catch (err) {
     echo "Caught errors! ${err}"
@@ -42,6 +33,10 @@ node() {
   finally {
     stage('Clean Workspace') {
       cleanWs()
+    }
+    stage('Docker remove not needed images') {
+        sh 'docker rmi golang:1.18'
+        sh 'docker rmi gcr.io/distroless/base-debian11:latest' 
     }
   }
 }
