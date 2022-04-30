@@ -2,7 +2,6 @@ package mongo
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"go.uber.org/zap"
@@ -39,5 +38,5 @@ func startDBCon() {
 	if err != nil {
 		logger.Error("Error listing databases", zap.Error(err))
 	}
-	fmt.Println(databases)
+	logger.Info("Databases", zap.Any("databases", databases))
 }
