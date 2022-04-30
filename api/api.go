@@ -1,12 +1,15 @@
 package api
 
 import (
-	"log"
 	"net/http"
+
+	"go.uber.org/zap"
 
 	"github.com/gin-gonic/gin"
 	"github.com/scalecloud/scalecloud.de-api/tree/main/scalecloud.de-api"
 )
+
+var logger, _ = zap.NewProduction()
 
 // album represents data about a record album.
 type album struct {
@@ -24,17 +27,19 @@ var albums = []album{
 }
 
 func InitApi() {
-	log.Println("Init api")
+	logger.Info("Init api")
 	scalecloud.Init()
+	startAPI()
 }
 
-func main() {
+func startAPI() {
 	router := gin.Default()
 	router.GET("/albums", getAlbums)
 	router.GET("/albums/:id", getAlbumByID)
 	router.POST("/albums", postAlbums)
 
-	router.Run("localhost:15000")
+	logger.Info("Starting listening for requests")
+	router.Run(":15000")
 }
 
 // getAlbums responds with the list of all albums as JSON.
