@@ -5,6 +5,7 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/gin-gonic/autotls"
 	"github.com/gin-gonic/gin"
 	"github.com/scalecloud/scalecloud.de-api/tree/main/scalecloud.de-api"
 )
@@ -34,12 +35,36 @@ func InitApi() {
 
 func startAPI() {
 	router := gin.Default()
+
+	initRoutes(router)
+	// initCertificate(router)
+	// initTrustedPlatform(router)
+	startListening(router)
+}
+
+func startListening(router *gin.Engine) {
+	logger.Info("Starting listening for requests")
+	router.Run(":15000")
+}
+
+func initRoutes(router *gin.Engine) {
+	logger.Info("Setting up routes...")
 	router.GET("/albums", getAlbums)
 	router.GET("/albums/:id", getAlbumByID)
 	router.POST("/albums", postAlbums)
+}
 
-	logger.Info("Starting listening for requests")
-	router.Run(":15000")
+func initCertificate(router *gin.Engine) {
+	logger.Info("init certificate")
+	error := autotls.Run(router, "api.scalecloud.de")
+	if error != nil {
+		logger.Error("Could not setup certificate", zap.Error(error))
+	}
+}
+
+func initTrustedPlatform(router *gin.Engine) {
+	logger.Info("init trusted platform")
+	router.TrustedPlatform = gin.PlatformGoogleAppEngine
 }
 
 // getAlbums responds with the list of all albums as JSON.
