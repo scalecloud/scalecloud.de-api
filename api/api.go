@@ -7,7 +7,7 @@ import (
 
 	"github.com/gin-gonic/autotls"
 	"github.com/gin-gonic/gin"
-	"github.com/scalecloud/scalecloud.de-api/tree/main/scalecloud.de-api"
+	"github.com/scalecloud/scalecloud.de-api/scalecloud.de-api"
 )
 
 var logger, _ = zap.NewProduction()

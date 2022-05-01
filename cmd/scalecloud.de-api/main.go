@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/scalecloud/scalecloud.de-api/tree/main/api"
+	"github.com/scalecloud/scalecloud.de-api/api"
 	"go.uber.org/zap"
 )
 

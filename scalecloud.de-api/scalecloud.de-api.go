@@ -4,41 +4,13 @@ import (
 	"context"
 	"os"
 
-	"github.com/scalecloud/scalecloud.de-api/tree/main/firebase"
-	"github.com/scalecloud/scalecloud.de-api/tree/main/mongo"
-	"github.com/scalecloud/scalecloud.de-api/tree/main/stripe"
+	"github.com/scalecloud/scalecloud.de-api/firebase"
+	"github.com/scalecloud/scalecloud.de-api/mongo"
+	"github.com/scalecloud/scalecloud.de-api/stripe"
 	"go.uber.org/zap"
 )
 
 var logger, _ = zap.NewProduction()
-
-type subscription struct {
-	ID                    string  `json:"id"`
-	Title                 string  `json:"title"`
-	SubscriptionArticelID string  `json:"artist"`
-	PricePerMonth         float64 `json:"pricepermonth"`
-	Started               string  `json:"Started"`
-	EndsOn                string  `json:"EndsOn"`
-}
-
-var subscriptionsPlaceholder = []subscription{
-	{
-		ID:                    "sub_INYwS5uFiirGNs",
-		Title:                 "Ruby",
-		SubscriptionArticelID: "si_INYwzY0bSrDTHX",
-		PricePerMonth:         10.00,
-		Started:               "2022-01-01",
-		EndsOn:                "2022-12-31",
-	},
-	{
-		ID:                    "sub_123abc",
-		Title:                 "Jade",
-		SubscriptionArticelID: "si_aaa111",
-		PricePerMonth:         15.00,
-		Started:               "2021-01-01",
-		EndsOn:                "2023-05-31",
-	},
-}
 
 func Init() {
 	logger.Info("Init scalecloud.de-api")
@@ -62,7 +34,8 @@ func exists(path string) (bool, error) {
 	return false, err
 }
 
-func GetDashboardSubscriptions(c context.Context) (subscriptions []subscription, err error) {
+func GetDashboardSubscriptions(c context.Context) (subscriptions []stripe.Subscription, err error) {
 	logger.Info("GetDashboardSubscriptions")
-	return subscriptionsPlaceholder, nil
+	customer := "customer_1"
+	return stripe.GetDashboardSubscriptions(c, customer)
 }

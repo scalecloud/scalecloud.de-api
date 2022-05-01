@@ -1,6 +1,7 @@
 package stripe
 
 import (
+	"context"
 	"net/http"
 
 	"go.uber.org/zap"
@@ -10,6 +11,25 @@ import (
 )
 
 var logger, _ = zap.NewProduction()
+
+var subscriptionsPlaceholder = []Subscription{
+	{
+		ID:                    "sub_INYwS5uFiirGNs",
+		Title:                 "Ruby",
+		SubscriptionArticelID: "si_INYwzY0bSrDTHX",
+		PricePerMonth:         10.00,
+		Started:               "2022-01-01",
+		EndsOn:                "2022-12-31",
+	},
+	{
+		ID:                    "sub_123abc",
+		Title:                 "Jade",
+		SubscriptionArticelID: "si_aaa111",
+		PricePerMonth:         15.00,
+		Started:               "2021-01-01",
+		EndsOn:                "2023-05-31",
+	},
+}
 
 func InitStripe() {
 	logger.Info("Init stripe")
@@ -51,4 +71,9 @@ func createCheckoutSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, s.URL, http.StatusSeeOther)
+}
+
+func GetDashboardSubscriptions(c context.Context, customer string) (subscriptions []Subscription, err error) {
+	logger.Info("GetDashboardSubscriptions")
+	return subscriptionsPlaceholder, nil
 }
