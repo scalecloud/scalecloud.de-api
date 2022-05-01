@@ -49,13 +49,13 @@ func startListening(router *gin.Engine) {
 
 func initRoutes(router *gin.Engine) {
 	logger.Info("Setting up routes...")
-	// Subscriptions
+	// Subscription
 
 	// Account
 	dashboard := router.Group("/dashboard")
 	dashboard.Use(AuthRequired)
 	{
-		dashboard.GET("/subscriptions", getMySubscriptions)
+		dashboard.GET("/subscriptions", getDashboardSubscriptions)
 	}
 
 	router.GET("/albums", getAlbums)
@@ -76,8 +76,18 @@ func initTrustedPlatform(router *gin.Engine) {
 	router.TrustedPlatform = gin.PlatformGoogleAppEngine
 }
 
-func getMySubscriptions(c *gin.Context) {
-	c.IndentedJSON(http.StatusOK, albums)
+func getDashboardSubscriptions(c *gin.Context) {
+	subscriptions, error := scalecloud.GetDashboardSubscriptions(c)
+	if error != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
+		return
+	}
+	logger.Info("Get dashboard subscriptions", zap.Any("subscriptions", subscriptions))
+	if subscriptions != nil {
+		c.SecureJSON(http.StatusOK, subscriptions)
+	} else {
+		c.SecureJSON(http.StatusNotFound, gin.H{"message": "subscriptions not found"})
+	}
 }
 
 // getAlbums responds with the list of all albums as JSON.
