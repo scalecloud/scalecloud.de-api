@@ -1,10 +1,11 @@
 # API for Scalecloud.de
 
-Hello I'm the backend for <https://github.com/scalecloud/scalecloud.de>
+Hello I'm the backend for www.scalecloud.de.
 
-Going to create the homepage scalecloud.de with awt login and as backend golang + mongodb
-
-Maybe useful <https://github.com/cornflourblue/node-mongo-signup-verification-api>
+Frontent: https://github.com/scalecloud/scalecloud.de  
+Auth: Firebase  
+NoSQL: MongoDB-Atlas  
+Payment: Stripe  
 
 ## Running the API in Docker
 
@@ -23,10 +24,10 @@ docker run -d --restart unless-stopped \
 
 ### Folder `<keys-dir>`
 
-The following files are required in the `<keys-dir>` folder:<br>
-Firebase: `firebase-serviceAccountKey.json`<br>
-Mongodb-Atlas: `mongodb-atlas.pem`<br>
-Stripe: `stripe-secret-key.json`<br>
+The following files are required in the `<keys-dir>` folder:  
+Firebase: `firebase-serviceAccountKey.json`  
+Mongodb-Atlas: `mongodb-atlas.pem`  
+Stripe: `stripe-secret-key.json`  
 
 ## SonarCloud.io
 
