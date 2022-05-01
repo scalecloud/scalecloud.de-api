@@ -49,6 +49,15 @@ func startListening(router *gin.Engine) {
 
 func initRoutes(router *gin.Engine) {
 	logger.Info("Setting up routes...")
+	// Subscriptions
+
+	// Account
+	dashboard := router.Group("/dashboard")
+	dashboard.Use(AuthRequired)
+	{
+		dashboard.GET("/subscriptions", getMySubscriptions)
+	}
+
 	router.GET("/albums", getAlbums)
 	router.GET("/albums/:id", getAlbumByID)
 	router.POST("/albums", postAlbums)
@@ -65,6 +74,10 @@ func initCertificate(router *gin.Engine) {
 func initTrustedPlatform(router *gin.Engine) {
 	logger.Info("init trusted platform")
 	router.TrustedPlatform = gin.PlatformGoogleAppEngine
+}
+
+func getMySubscriptions(c *gin.Context) {
+	c.IndentedJSON(http.StatusOK, albums)
 }
 
 // getAlbums responds with the list of all albums as JSON.
@@ -101,4 +114,16 @@ func getAlbumByID(c *gin.Context) {
 		}
 	}
 	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "album not found"})
+}
+
+// Authentication
+func AuthRequired(c *gin.Context) {
+	uid, token, hasAuth := c.Request.BasicAuth()
+	if hasAuth && uid != "" && token != "" && scalecloud.IsAuthenticated(c, uid, token) {
+		logger.Info("Authenticated", zap.String("uid", uid))
+		c.Next()
+	} else {
+		logger.Warn("Unauthorized", zap.String("uid", uid))
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+	}
 }

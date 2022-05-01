@@ -1,6 +1,7 @@
 package scalecloud
 
 import (
+	"context"
 	"os"
 
 	"github.com/scalecloud/scalecloud.de-api/tree/main/firebase"
@@ -16,6 +17,10 @@ func Init() {
 	firebase.InitFirebase()
 	mongo.InitMongo()
 	stripe.InitStripe()
+}
+
+func IsAuthenticated(ctx context.Context, uid string, token string) bool {
+	return firebase.VerifyIDToken(ctx, uid, token)
 }
 
 func exists(path string) (bool, error) {

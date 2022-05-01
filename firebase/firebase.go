@@ -22,17 +22,6 @@ func InitFirebase() {
 		logger.Error("Keyfile does not exist. ", zap.String("file", keyFile))
 		os.Exit(1)
 	}
-
-	token := ""
-	uid := ""
-	ctx := context.Background()
-	app := InitializeAppDefault(ctx)
-	if verifyIDToken(ctx, app, token, uid) {
-		logger.Info("Token is valid.")
-	} else {
-		logger.Info("Token is not valid.")
-	}
-
 }
 
 func fileExists(filename string) bool {
@@ -54,13 +43,14 @@ func InitializeAppDefault(ctx context.Context) *firebase.App {
 	return app
 }
 
-func verifyIDToken(ctx context.Context, app *firebase.App, awtToken string, uid string) bool {
+func VerifyIDToken(ctx context.Context, uid string, awtToken string) bool {
 	ret := false
 	if awtToken == "" {
 		logger.Error("ID token is empty")
 	} else if uid == "" {
 		logger.Error("UID is empty")
 	} else {
+		app := InitializeAppDefault(ctx)
 		client, err := app.Auth(ctx)
 		if err != nil {
 			logger.Error("Error initializing app", zap.Error(err))
