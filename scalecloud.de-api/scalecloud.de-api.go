@@ -19,8 +19,8 @@ func Init() {
 	stripe.InitStripe()
 }
 
-func IsAuthenticated(ctx context.Context, uid string, token string) bool {
-	return firebase.VerifyIDToken(ctx, uid, token)
+func IsAuthenticated(ctx context.Context, token string) bool {
+	return firebase.VerifyIDToken(ctx, token)
 }
 
 func exists(path string) (bool, error) {

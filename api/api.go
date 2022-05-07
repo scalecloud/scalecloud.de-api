@@ -140,12 +140,21 @@ func getAlbumByID(c *gin.Context) {
 
 // Authentication
 func AuthRequired(c *gin.Context) {
-	uid, token, hasAuth := c.Request.BasicAuth()
-	if hasAuth && uid != "" && token != "" && scalecloud.IsAuthenticated(c, uid, token) {
-		logger.Info("Authenticated", zap.String("uid", uid))
+	token, hasAuth := getBearerToken(c)
+	if hasAuth && token != "" && scalecloud.IsAuthenticated(c, token) {
+		logger.Info("Authenticated", zap.String("token:", token))
 		c.Next()
 	} else {
-		logger.Warn("Unauthorized", zap.String("uid", uid))
+		logger.Warn("Unauthorized", zap.String("token:", token))
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+	}
+}
+
+func getBearerToken(c *gin.Context) (token string, ok bool) {
+	jwtToken := c.Request.Header.Get("Authorization")
+	if jwtToken == "" {
+		return "", false
+	} else {
+		return jwtToken, true
 	}
 }

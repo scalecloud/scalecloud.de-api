@@ -43,25 +43,21 @@ func InitializeAppDefault(ctx context.Context) *firebase.App {
 	return app
 }
 
-func VerifyIDToken(ctx context.Context, uid string, awtToken string) bool {
+func VerifyIDToken(ctx context.Context, jwtToken string) bool {
 	ret := false
-	if awtToken == "" {
+	if jwtToken == "" {
 		logger.Error("ID token is empty")
-	} else if uid == "" {
-		logger.Error("UID is empty")
 	} else {
 		app := InitializeAppDefault(ctx)
 		client, err := app.Auth(ctx)
 		if err != nil {
 			logger.Error("Error initializing app", zap.Error(err))
 		} else {
-			token, err := client.VerifyIDTokenAndCheckRevoked(ctx, awtToken)
+			token, err := client.VerifyIDTokenAndCheckRevoked(ctx, jwtToken)
 			if err != nil {
 				logger.Error("Error verifying ID token", zap.Error(err))
-			} else if token.UID != uid {
-				logger.Error("UID does not match with Token", zap.Any("Token:", token))
-			} else if token.UID == uid {
-				logger.Info("Token is valid and matches UID.", zap.Any("Token:", token))
+			} else {
+				logger.Info("Token is valid.", zap.Any("UID:", token.UID))
 				ret = true
 			}
 		}
