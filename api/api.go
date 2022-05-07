@@ -2,12 +2,13 @@ package api
 
 import (
 	"net/http"
+	"time"
 
-	"go.uber.org/zap"
-
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/autotls"
 	"github.com/gin-gonic/gin"
 	"github.com/scalecloud/scalecloud.de-api/scalecloud.de-api"
+	"go.uber.org/zap"
 )
 
 var logger, _ = zap.NewProduction()
@@ -35,11 +36,22 @@ func InitApi() {
 
 func startAPI() {
 	router := gin.Default()
-
+	initHeaders(router)
 	initRoutes(router)
 	// initCertificate(router)
 	// initTrustedPlatform(router)
 	startListening(router)
+}
+
+func initHeaders(router *gin.Engine) {
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{"http://localhost:4200"}
+	config.AllowMethods = []string{"GET"}
+	config.AllowHeaders = []string{"Origin", "Content-Type", "Authorization"}
+	config.AllowCredentials = true
+	config.ExposeHeaders = []string{"Content-Length"}
+	config.MaxAge = 12 * time.Hour
+	router.Use(cors.New(config))
 }
 
 func startListening(router *gin.Engine) {
@@ -58,7 +70,7 @@ func initRoutes(router *gin.Engine) {
 		dashboard.GET("/subscriptions", getDashboardSubscriptions)
 	}
 
-	router.GET("/albums", getAlbums)
+	router.GET("/albums", getDashboardSubscriptions)
 	router.GET("/albums/:id", getAlbumByID)
 	router.POST("/albums", postAlbums)
 }
@@ -84,7 +96,7 @@ func getDashboardSubscriptions(c *gin.Context) {
 	}
 	logger.Info("Get dashboard subscriptions", zap.Any("subscriptions", subscriptions))
 	if subscriptions != nil {
-		c.SecureJSON(http.StatusOK, subscriptions)
+		c.IndentedJSON(http.StatusOK, subscriptions)
 	} else {
 		c.SecureJSON(http.StatusNotFound, gin.H{"message": "subscriptions not found"})
 	}
