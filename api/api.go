@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/autotls"
 	"github.com/gin-gonic/gin"
 	"github.com/scalecloud/scalecloud.de-api/scalecloud.de-api"
+	"github.com/scalecloud/scalecloud.de-api/stripe"
 	"go.uber.org/zap"
 )
 
@@ -68,8 +69,8 @@ func initRoutes(router *gin.Engine) {
 	dashboard.Use(AuthRequired)
 	{
 		dashboard.GET("/subscriptions", getDashboardSubscriptions)
+		dashboard.GET("/subscription/:id", getSubscriptionByID)
 	}
-
 	router.GET("/albums", getDashboardSubscriptions)
 	router.GET("/albums/:id", getAlbumByID)
 	router.POST("/albums", postAlbums)
@@ -99,6 +100,23 @@ func getDashboardSubscriptions(c *gin.Context) {
 		c.IndentedJSON(http.StatusOK, subscriptions)
 	} else {
 		c.SecureJSON(http.StatusNotFound, gin.H{"message": "subscriptions not found"})
+	}
+}
+
+func getSubscriptionByID(c *gin.Context) {
+	id := c.Param("id")
+	logger.Info("Get subscription by id", zap.String("id", id))
+	subscription, error := scalecloud.GetSubscriptionByID(c, id)
+	if error != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
+		return
+	}
+	logger.Info("Get getSubscriptionByID", zap.Any("subscription", subscription))
+
+	if subscription != (stripe.Subscription{}) {
+		c.IndentedJSON(http.StatusOK, subscription)
+	} else {
+		c.SecureJSON(http.StatusNotFound, gin.H{"message": "subscription not found"})
 	}
 }
 

@@ -77,3 +77,15 @@ func GetDashboardSubscriptions(c context.Context, customer string) (subscription
 	logger.Info("GetDashboardSubscriptions")
 	return subscriptionsPlaceholder, nil
 }
+
+func GetSubscriptionByID(c context.Context, id, customer string) (subscription Subscription, err error) {
+	logger.Info("GetSubscriptionByID")
+
+	for _, sub := range subscriptionsPlaceholder {
+		if sub.ID == id {
+			return sub, nil
+		}
+	}
+
+	return Subscription{}, nil
+}
