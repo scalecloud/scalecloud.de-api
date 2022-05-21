@@ -15,20 +15,18 @@ var logger, _ = zap.NewProduction()
 
 var subscriptionsOverviewPlaceholder = []SubscriptionOverview{
 	{
-		ID:                    "sub_INYwS5uFiirGNs",
-		Title:                 "Ruby",
-		SubscriptionArticelID: "si_INYwzY0bSrDTHX",
-		PricePerMonth:         10.00,
-		Started:               "2022-01-01",
-		EndsOn:                "2022-12-31",
+		ID:            "sub_INYwS5uFiirGNs",
+		Title:         "Ruby",
+		ProductName:   "Nextcloud",
+		StorageAmount: 10,
+		UserCount:     1,
 	},
 	{
-		ID:                    "sub_123abc",
-		Title:                 "Jade",
-		SubscriptionArticelID: "si_aaa111",
-		PricePerMonth:         15.00,
-		Started:               "2021-01-01",
-		EndsOn:                "2023-05-31",
+		ID:            "sub_123abc",
+		Title:         "Jade",
+		ProductName:   "Synology",
+		StorageAmount: 25,
+		UserCount:     2,
 	},
 }
 
