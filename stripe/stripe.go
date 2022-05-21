@@ -32,6 +32,25 @@ var subscriptionsPlaceholder = []Subscription{
 	},
 }
 
+var subscriptionDetailPlaceholder = []SubscriptionDetail{
+	{
+		ID:                    "sub_INYwS5uFiirGNs",
+		Title:                 "Ruby",
+		SubscriptionArticelID: "si_INYwzY0bSrDTHX",
+		PricePerMonth:         10.00,
+		Started:               "2022-01-01",
+		EndsOn:                "2022-12-31",
+	},
+	{
+		ID:                    "sub_123abc",
+		Title:                 "Jade",
+		SubscriptionArticelID: "si_aaa111",
+		PricePerMonth:         15.00,
+		Started:               "2021-01-01",
+		EndsOn:                "2023-05-31",
+	},
+}
+
 func InitStripe() {
 	logger.Info("Init stripe")
 }
@@ -79,13 +98,12 @@ func GetDashboardSubscriptions(c context.Context, customer string) (subscription
 	return subscriptionsPlaceholder, nil
 }
 
-func GetSubscriptionByID(c context.Context, id, customer string) (subscription Subscription, err error) {
+func GetSubscriptionByID(c context.Context, id, customer string) (subscriptionDetail SubscriptionDetail, err error) {
 	logger.Info("GetSubscriptionByID")
-
-	for _, sub := range subscriptionsPlaceholder {
+	for _, sub := range subscriptionDetailPlaceholder {
 		if sub.ID == id {
 			return sub, nil
 		}
 	}
-	return Subscription{}, errors.New("Subscription not found")
+	return SubscriptionDetail{}, errors.New("Subscription not found")
 }

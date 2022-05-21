@@ -40,7 +40,7 @@ func GetDashboardSubscriptions(c context.Context) (subscriptions []stripe.Subscr
 	return stripe.GetDashboardSubscriptions(c, customer)
 }
 
-func GetSubscriptionByID(c context.Context, id string) (subscription stripe.Subscription, err error) {
+func GetSubscriptionByID(c context.Context, id string) (subscriptionDetail stripe.SubscriptionDetail, err error) {
 	logger.Info("GetSubscriptionByID")
 	customer := "customer_1"
 	return stripe.GetSubscriptionByID(c, id, customer)

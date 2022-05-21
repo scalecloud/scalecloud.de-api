@@ -105,18 +105,17 @@ func getDashboardSubscriptions(c *gin.Context) {
 
 func getSubscriptionByID(c *gin.Context) {
 	id := c.Param("id")
-	logger.Info("Get subscription by id", zap.String("id", id))
-	subscription, error := scalecloud.GetSubscriptionByID(c, id)
+	logger.Info("getSubscriptionByID", zap.String("id", id))
+	subscriptionDetail, error := scalecloud.GetSubscriptionByID(c, id)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
 	}
-	logger.Info("Get getSubscriptionByID", zap.Any("subscription", subscription))
-
-	if subscription != (stripe.Subscription{}) {
-		c.IndentedJSON(http.StatusOK, subscription)
+	logger.Info("Found subscriptionDetail", zap.Any("subscriptionDetail", subscriptionDetail))
+	if subscriptionDetail != (stripe.SubscriptionDetail{}) {
+		c.IndentedJSON(http.StatusOK, subscriptionDetail)
 	} else {
-		c.SecureJSON(http.StatusNotFound, gin.H{"message": "subscription not found"})
+		c.SecureJSON(http.StatusNotFound, gin.H{"message": "subscriptionDetail not found"})
 	}
 }
 
