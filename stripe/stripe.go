@@ -2,6 +2,7 @@ package stripe
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"go.uber.org/zap"
@@ -86,6 +87,5 @@ func GetSubscriptionByID(c context.Context, id, customer string) (subscription S
 			return sub, nil
 		}
 	}
-
-	return Subscription{}, nil
+	return Subscription{}, errors.New("Subscription not found")
 }
