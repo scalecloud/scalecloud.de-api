@@ -34,10 +34,10 @@ func exists(path string) (bool, error) {
 	return false, err
 }
 
-func GetDashboardSubscriptions(c context.Context) (subscriptions []stripe.Subscription, err error) {
-	logger.Info("GetDashboardSubscriptions")
+func GetSubscriptionsOverview(c context.Context) (subscriptionsOverview []stripe.SubscriptionOverview, err error) {
+	logger.Info("GetSubscriptionsOverview")
 	customer := "customer_1"
-	return stripe.GetDashboardSubscriptions(c, customer)
+	return stripe.GetSubscriptionsOverview(c, customer)
 }
 
 func GetSubscriptionByID(c context.Context, id string) (subscriptionDetail stripe.SubscriptionDetail, err error) {

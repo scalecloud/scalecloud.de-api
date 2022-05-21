@@ -13,7 +13,7 @@ import (
 
 var logger, _ = zap.NewProduction()
 
-var subscriptionsPlaceholder = []Subscription{
+var subscriptionsOverviewPlaceholder = []SubscriptionOverview{
 	{
 		ID:                    "sub_INYwS5uFiirGNs",
 		Title:                 "Ruby",
@@ -93,9 +93,9 @@ func createCheckoutSession(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, s.URL, http.StatusSeeOther)
 }
 
-func GetDashboardSubscriptions(c context.Context, customer string) (subscriptions []Subscription, err error) {
-	logger.Info("GetDashboardSubscriptions")
-	return subscriptionsPlaceholder, nil
+func GetSubscriptionsOverview(c context.Context, customer string) (subscriptionsOverview []SubscriptionOverview, err error) {
+	logger.Info("GetSubscriptionsOverview")
+	return subscriptionsOverviewPlaceholder, nil
 }
 
 func GetSubscriptionByID(c context.Context, id, customer string) (subscriptionDetail SubscriptionDetail, err error) {

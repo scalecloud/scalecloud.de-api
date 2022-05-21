@@ -1,6 +1,6 @@
 package stripe
 
-type Subscription struct {
+type SubscriptionOverview struct {
 	ID                    string  `json:"id"`
 	Title                 string  `json:"title"`
 	SubscriptionArticelID string  `json:"subscriptionArticelID"`

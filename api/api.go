@@ -68,10 +68,9 @@ func initRoutes(router *gin.Engine) {
 	dashboard := router.Group("/dashboard")
 	dashboard.Use(AuthRequired)
 	{
-		dashboard.GET("/subscriptions", getDashboardSubscriptions)
+		dashboard.GET("/subscriptions", getSubscriptionsOverview)
 		dashboard.GET("/subscription/:id", getSubscriptionByID)
 	}
-	router.GET("/albums", getDashboardSubscriptions)
 	router.GET("/albums/:id", getAlbumByID)
 	router.POST("/albums", postAlbums)
 }
@@ -89,17 +88,17 @@ func initTrustedPlatform(router *gin.Engine) {
 	router.TrustedPlatform = gin.PlatformGoogleAppEngine
 }
 
-func getDashboardSubscriptions(c *gin.Context) {
-	subscriptions, error := scalecloud.GetDashboardSubscriptions(c)
+func getSubscriptionsOverview(c *gin.Context) {
+	subscriptionsOverview, error := scalecloud.GetSubscriptionsOverview(c)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
 	}
-	logger.Info("Get dashboard subscriptions", zap.Any("subscriptions", subscriptions))
-	if subscriptions != nil {
-		c.IndentedJSON(http.StatusOK, subscriptions)
+	logger.Info("getSubscriptionsOverview", zap.Any("subscriptionsOverview", subscriptionsOverview))
+	if subscriptionsOverview != nil {
+		c.IndentedJSON(http.StatusOK, subscriptionsOverview)
 	} else {
-		c.SecureJSON(http.StatusNotFound, gin.H{"message": "subscriptions not found"})
+		c.SecureJSON(http.StatusNotFound, gin.H{"message": "subscriptionsOverview not found"})
 	}
 }
 
