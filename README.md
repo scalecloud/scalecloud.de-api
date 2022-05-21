@@ -27,7 +27,7 @@ docker run -d --restart unless-stopped \
 The following files are required in the `<keys-dir>` folder:  
 Firebase: `firebase-serviceAccountKey.json`  
 Mongodb-Atlas: `mongodb-atlas.pem`  
-Stripe: `stripe-secret-key.json`  
+Stripe: `stripe-secret-key.txt`  
 
 ## SonarCloud.io
 
