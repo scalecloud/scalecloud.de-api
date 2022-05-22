@@ -15,23 +15,6 @@ var logger, _ = zap.NewProduction()
 
 const keyFile = "keys/stripe-secret-key.txt"
 
-/* var subscriptionsOverviewPlaceholder = []SubscriptionOverview{
-	{
-		ID:              "sub_INYwS5uFiirGNs",
-		PlanProductName: "Ruby",
-		ProductName:     "Nextcloud",
-		StorageAmount:   10,
-		UserCount:       1,
-	},
-	{
-		ID:              "sub_123abc",
-		PlanProductName: "Jade",
-		ProductName:     "Synology",
-		StorageAmount:   25,
-		UserCount:       2,
-	},
-} */
-
 var subscriptionDetailPlaceholder = []SubscriptionDetail{
 	{
 		ID:                    "sub_INYwS5uFiirGNs",
