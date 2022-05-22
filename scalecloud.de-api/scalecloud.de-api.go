@@ -41,9 +41,7 @@ func GetSubscriptionsOverview(c context.Context) (subscriptionsOverview []stripe
 }
 
 func GetSubscriptionByID(c context.Context, subscriptionID string) (subscriptionDetail stripe.SubscriptionDetail, err error) {
-	logger.Info("GetSubscriptionByID")
+	logger.Debug("GetSubscriptionByID")
 	customerID := "cus_IJNox8VXgkX2gU"
-	//subscriptionID := "sub_INYwS5uFiirGNs"
-
 	return stripe.GetSubscriptionByID(c, customerID, subscriptionID)
 }

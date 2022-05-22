@@ -24,12 +24,12 @@ func GetSubscriptionsOverview(c context.Context, customerID string) (subscriptio
 	for iter.Next() {
 		subscription := iter.Subscription()
 		logger.Info("Subscription", zap.Any("subscription", subscription.Customer.ID))
-		subscriptionDetail, err := mapSubscriptionToSubscriptionOverview(subscription)
+		subscriptionOverview, err := mapSubscriptionToSubscriptionOverview(subscription)
 		if err != nil {
 			logger.Error("Error mapping subscription to subscription detail", zap.Error(err))
 			return []SubscriptionOverview{}, errors.New("Subscription not found")
 		}
-		subscriptions = append(subscriptions, subscriptionDetail)
+		subscriptions = append(subscriptions, subscriptionOverview)
 	}
 	if len(subscriptions) == 0 {
 		logger.Error("No subscriptions found", zap.String("customerID", customerID))
@@ -54,7 +54,7 @@ func mapSubscriptionToSubscriptionOverview(subscription *stripe.Subscription) (s
 	return subscriptionOverview, nil
 }
 
-func mapSubscriptionItemToSubscriptionDetail(subscription stripe.Subscription, subscriptionItem stripe.SubscriptionItem) (subscriptionDetail SubscriptionDetail, err error) {
+func mapSubscriptionItemToSubscriptionOverview(subscription stripe.Subscription, subscriptionItem stripe.SubscriptionItem) (subscriptionDetail SubscriptionDetail, err error) {
 	subscriptionDetail.ID = subscriptionItem.ID
 	subscriptionDetail.PlanProductName = subscription.Plan.Product.Name
 	subscriptionDetail.SubscriptionArticelID = subscription.Items.Data[0].ID

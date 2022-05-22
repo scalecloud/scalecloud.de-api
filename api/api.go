@@ -104,13 +104,13 @@ func getSubscriptionsOverview(c *gin.Context) {
 
 func getSubscriptionByID(c *gin.Context) {
 	subscriptionID := c.Param("id")
-	logger.Info("getSubscriptionByID", zap.String("subscriptionID", subscriptionID))
+	logger.Debug("getSubscriptionByID", zap.String("subscriptionID", subscriptionID))
 	subscriptionDetail, error := scalecloud.GetSubscriptionByID(c, subscriptionID)
 	if error != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
+		c.IndentedJSON(http.StatusNoContent, gin.H{"error": error.Error()})
 		return
 	}
-	logger.Info("Found subscriptionDetail", zap.Any("subscriptionDetail", subscriptionDetail))
+	logger.Debug("Found subscriptionDetail", zap.Any("subscriptionDetail", subscriptionDetail))
 	if subscriptionDetail != (stripe.SubscriptionDetail{}) {
 		c.IndentedJSON(http.StatusOK, subscriptionDetail)
 	} else {
