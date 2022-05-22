@@ -53,13 +53,3 @@ func mapSubscriptionToSubscriptionOverview(subscription *stripe.Subscription) (s
 	subscriptionOverview.UserCount = subscription.Quantity
 	return subscriptionOverview, nil
 }
-
-func mapSubscriptionItemToSubscriptionOverview(subscription stripe.Subscription, subscriptionItem stripe.SubscriptionItem) (subscriptionDetail SubscriptionDetail, err error) {
-	subscriptionDetail.ID = subscriptionItem.ID
-	subscriptionDetail.PlanProductName = subscription.Plan.Product.Name
-	subscriptionDetail.SubscriptionArticelID = subscription.Items.Data[0].ID
-	//	subscriptionDetail.PricePerMonth = subscription.Items.Data[0].Plan.Amount / 100
-	//	subscriptionDetail.Started = subscription.Start
-	//	subscriptionDetail.EndsOn = subscription.End
-	return subscriptionDetail, nil
-}
