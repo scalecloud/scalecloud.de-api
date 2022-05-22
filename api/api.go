@@ -91,7 +91,7 @@ func initTrustedPlatform(router *gin.Engine) {
 func getSubscriptionsOverview(c *gin.Context) {
 	subscriptionsOverview, error := scalecloud.GetSubscriptionsOverview(c)
 	if error != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
+		c.IndentedJSON(http.StatusNoContent, gin.H{"error": error.Error()})
 		return
 	}
 	logger.Info("getSubscriptionsOverview", zap.Any("subscriptionsOverview", subscriptionsOverview))
@@ -103,9 +103,9 @@ func getSubscriptionsOverview(c *gin.Context) {
 }
 
 func getSubscriptionByID(c *gin.Context) {
-	id := c.Param("id")
-	logger.Info("getSubscriptionByID", zap.String("id", id))
-	subscriptionDetail, error := scalecloud.GetSubscriptionByID(c, id)
+	subscriptionID := c.Param("id")
+	logger.Info("getSubscriptionByID", zap.String("subscriptionID", subscriptionID))
+	subscriptionDetail, error := scalecloud.GetSubscriptionByID(c, subscriptionID)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
@@ -158,7 +158,7 @@ func getAlbumByID(c *gin.Context) {
 func AuthRequired(c *gin.Context) {
 	token, hasAuth := getBearerToken(c)
 	if hasAuth && token != "" && scalecloud.IsAuthenticated(c, token) {
-		logger.Info("Authenticated", zap.String("token:", token))
+		logger.Debug("Authenticated", zap.String("token:", token))
 		c.Next()
 	} else {
 		logger.Warn("Unauthorized", zap.String("token:", token))

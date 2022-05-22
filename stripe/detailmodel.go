@@ -2,7 +2,7 @@ package stripe
 
 type SubscriptionDetail struct {
 	ID                    string  `json:"id"`
-	Title                 string  `json:"title"`
+	PlanProductName       string  `json:"planProductName"`
 	SubscriptionArticelID string  `json:"subscriptionArticelID"`
 	PricePerMonth         float64 `json:"pricePerMonth"`
 	Started               string  `json:"started"`

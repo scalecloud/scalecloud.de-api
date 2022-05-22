@@ -35,13 +35,15 @@ func exists(path string) (bool, error) {
 }
 
 func GetSubscriptionsOverview(c context.Context) (subscriptionsOverview []stripe.SubscriptionOverview, err error) {
-	logger.Info("GetSubscriptionsOverview")
-	customer := "customer_1"
-	return stripe.GetSubscriptionsOverview(c, customer)
+	logger.Debug("GetSubscriptionsOverview")
+	customerID := "cus_IJNox8VXgkX2gU"
+	return stripe.GetSubscriptionsOverview(c, customerID)
 }
 
-func GetSubscriptionByID(c context.Context, id string) (subscriptionDetail stripe.SubscriptionDetail, err error) {
+func GetSubscriptionByID(c context.Context, subscriptionID string) (subscriptionDetail stripe.SubscriptionDetail, err error) {
 	logger.Info("GetSubscriptionByID")
-	customer := "customer_1"
-	return stripe.GetSubscriptionByID(c, id, customer)
+	customerID := "cus_IJNox8VXgkX2gU"
+	//subscriptionID := "sub_INYwS5uFiirGNs"
+
+	return stripe.GetSubscriptionByID(c, customerID, subscriptionID)
 }

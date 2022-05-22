@@ -1,9 +1,9 @@
 package stripe
 
 import (
-	"context"
-	"errors"
+	"io/ioutil"
 	"net/http"
+	"os"
 
 	"go.uber.org/zap"
 
@@ -13,27 +13,29 @@ import (
 
 var logger, _ = zap.NewProduction()
 
-var subscriptionsOverviewPlaceholder = []SubscriptionOverview{
+const keyFile = "keys/stripe-secret-key.txt"
+
+/* var subscriptionsOverviewPlaceholder = []SubscriptionOverview{
 	{
-		ID:            "sub_INYwS5uFiirGNs",
-		Title:         "Ruby",
-		ProductName:   "Nextcloud",
-		StorageAmount: 10,
-		UserCount:     1,
+		ID:              "sub_INYwS5uFiirGNs",
+		PlanProductName: "Ruby",
+		ProductName:     "Nextcloud",
+		StorageAmount:   10,
+		UserCount:       1,
 	},
 	{
-		ID:            "sub_123abc",
-		Title:         "Jade",
-		ProductName:   "Synology",
-		StorageAmount: 25,
-		UserCount:     2,
+		ID:              "sub_123abc",
+		PlanProductName: "Jade",
+		ProductName:     "Synology",
+		StorageAmount:   25,
+		UserCount:       2,
 	},
-}
+} */
 
 var subscriptionDetailPlaceholder = []SubscriptionDetail{
 	{
 		ID:                    "sub_INYwS5uFiirGNs",
-		Title:                 "Ruby",
+		PlanProductName:       "Ruby",
 		SubscriptionArticelID: "si_INYwzY0bSrDTHX",
 		PricePerMonth:         10.00,
 		Started:               "2022-01-01",
@@ -41,7 +43,7 @@ var subscriptionDetailPlaceholder = []SubscriptionDetail{
 	},
 	{
 		ID:                    "sub_123abc",
-		Title:                 "Jade",
+		PlanProductName:       "Jade",
 		SubscriptionArticelID: "si_aaa111",
 		PricePerMonth:         15.00,
 		Started:               "2021-01-01",
@@ -51,13 +53,36 @@ var subscriptionDetailPlaceholder = []SubscriptionDetail{
 
 func InitStripe() {
 	logger.Info("Init stripe")
+	if fileExists(keyFile) {
+		logger.Info("Keyfile exists. ", zap.String("file", keyFile))
+	} else {
+		logger.Error("Keyfile does not exist. ", zap.String("file", keyFile))
+		os.Exit(1)
+	}
+}
+
+func fileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
+}
+
+func getStripeKey() string {
+	content, err := ioutil.ReadFile(keyFile)
+	if err != nil {
+		logger.Error("Error reading file", zap.Error(err))
+	}
+	key := string(content)
+	return key
 }
 
 func createConnection() {
 	// This is a public sample test API key.
 	// Don’t submit any personally identifiable information in requests made with this key.
 	// Sign in to see your own test API key embedded in code samples.
-	stripe.Key = "sk_test_API_KEY"
+	stripe.Key = getStripeKey()
 
 	http.Handle("/", http.FileServer(http.Dir("public")))
 	http.HandleFunc("/create-checkout-session", createCheckoutSession)
@@ -89,19 +114,4 @@ func createCheckoutSession(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, s.URL, http.StatusSeeOther)
-}
-
-func GetSubscriptionsOverview(c context.Context, customer string) (subscriptionsOverview []SubscriptionOverview, err error) {
-	logger.Info("GetSubscriptionsOverview")
-	return subscriptionsOverviewPlaceholder, nil
-}
-
-func GetSubscriptionByID(c context.Context, id, customer string) (subscriptionDetail SubscriptionDetail, err error) {
-	logger.Info("GetSubscriptionByID")
-	for _, sub := range subscriptionDetailPlaceholder {
-		if sub.ID == id {
-			return sub, nil
-		}
-	}
-	return SubscriptionDetail{}, errors.New("Subscription not found")
 }

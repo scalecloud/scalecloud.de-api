@@ -57,7 +57,7 @@ func VerifyIDToken(ctx context.Context, jwtToken string) bool {
 			if err != nil {
 				logger.Error("Error verifying ID token", zap.Error(err))
 			} else {
-				logger.Info("Token is valid.", zap.Any("UID:", token.UID))
+				logger.Debug("Token is valid.", zap.Any("UID:", token.UID))
 				ret = true
 			}
 		}
