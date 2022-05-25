@@ -9,11 +9,11 @@ WORKDIR /build
 
 COPY ./ ./
 
+RUN go mod tidy -v
+
 RUN go mod download -json
 
 RUN go mod verify
-
-RUN go mod tidy -v
 
 RUN go build -v -o /scalecloud.de-api ./cmd/scalecloud.de-api
 
