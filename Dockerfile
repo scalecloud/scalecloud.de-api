@@ -11,7 +11,16 @@ COPY ./ ./
 
 RUN go mod download -json
 
+RUN go mod verify
+
+RUN go mod tidy -v
+
 RUN go build -v -o /scalecloud.de-api ./cmd/scalecloud.de-api
+
+##
+## Test
+##
+RUN go test ./... -json
 
 ##
 ## Deploy
