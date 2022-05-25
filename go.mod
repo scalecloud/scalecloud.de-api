@@ -58,6 +58,7 @@ require (
 	firebase.google.com/go/v4 v4.8.0
 	github.com/gin-gonic/autotls v0.0.3
 	github.com/gin-gonic/gin v1.7.7
+	github.com/stripe/stripe-go v70.15.0+incompatible
 	github.com/stripe/stripe-go/v72 v72.110.0
 	go.mongodb.org/mongo-driver v1.9.1
 	go.uber.org/atomic v1.9.0 // indirect

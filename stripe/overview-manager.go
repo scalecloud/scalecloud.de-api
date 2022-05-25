@@ -5,8 +5,8 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/stripe/stripe-go/v72"
-	"github.com/stripe/stripe-go/v72/sub"
+	"github.com/stripe/stripe-go"
+	"github.com/stripe/stripe-go/sub"
 	"go.uber.org/zap"
 )
 
@@ -41,8 +41,13 @@ func GetSubscriptionsOverview(c context.Context, customerID string) (subscriptio
 func mapSubscriptionToSubscriptionOverview(subscription *stripe.Subscription) (subscriptionOverview SubscriptionOverview, err error) {
 	subscriptionOverview.ID = subscription.ID
 	subscriptionOverview.PlanProductName = subscription.Plan.Product.Name
-	metaData := subscription.Plan.Product.Metadata
-
+	productID := subscription.Plan.Product.ID
+	logger.Debug("Product ID", zap.String("productID", productID))
+	metaData, err := getProductMetadata(context.Background(), productID)
+	if err != nil {
+		logger.Warn("Error getting product metadata", zap.Error(err))
+		return SubscriptionOverview{}, errors.New("Product metadata not found")
+	}
 	storageAmount, ok := metaData["storageAmount"]
 	if !ok {
 		logger.Warn("Storage amount not found", zap.Any("subscriptionID", subscription.ID))
