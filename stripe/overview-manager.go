@@ -50,6 +50,8 @@ func mapSubscriptionToSubscriptionOverview(c context.Context, subscription *stri
 	}
 	subscriptionOverview.ProductName = product.Name
 
+	subscriptionOverview.Acive = product.Active
+
 	metaData := product.Metadata
 	if err != nil {
 		logger.Warn("Error getting product metadata", zap.Error(err))

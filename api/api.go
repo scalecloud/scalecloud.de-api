@@ -110,7 +110,7 @@ func getSubscriptionByID(c *gin.Context) {
 		c.IndentedJSON(http.StatusNoContent, gin.H{"error": error.Error()})
 		return
 	}
-	logger.Debug("Found subscriptionDetail", zap.Any("subscriptionDetail", subscriptionDetail))
+	logger.Info("Found subscriptionDetail", zap.Any("subscriptionDetail", subscriptionDetail))
 	if subscriptionDetail != (stripe.SubscriptionDetail{}) {
 		c.IndentedJSON(http.StatusOK, subscriptionDetail)
 	} else {
