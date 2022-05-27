@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func getProductMetadata(c context.Context, productID string) (metadata map[string]string, err error) {
+func getProduct(c context.Context, productID string) (*stripe.Product, error) {
 	stripe.Key = getStripeKey()
 	params := &stripe.ProductParams{}
 	product, err := product.Get(productID, params)
@@ -17,6 +17,6 @@ func getProductMetadata(c context.Context, productID string) (metadata map[strin
 		logger.Warn("Error getting product", zap.Error(err))
 		return nil, errors.New("Product not found")
 	}
-	logger.Debug("Meta", zap.Any("metaData", product.Metadata))
-	return product.Metadata, nil
+	logger.Debug("Product", zap.Any("productID", product.ID))
+	return product, nil
 }

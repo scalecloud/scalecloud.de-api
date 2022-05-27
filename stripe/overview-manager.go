@@ -24,7 +24,7 @@ func GetSubscriptionsOverview(c context.Context, customerID string) (subscriptio
 	for iter.Next() {
 		subscription := iter.Subscription()
 		logger.Debug("Subscription", zap.Any("subscription", subscription.Customer.ID))
-		subscriptionOverview, err := mapSubscriptionToSubscriptionOverview(subscription)
+		subscriptionOverview, err := mapSubscriptionToSubscriptionOverview(c, subscription)
 		if err != nil {
 			logger.Warn("Error mapping subscription to subscription detail", zap.Error(err))
 			return []SubscriptionOverview{}, errors.New("Subscription not found")
@@ -38,12 +38,19 @@ func GetSubscriptionsOverview(c context.Context, customerID string) (subscriptio
 	return subscriptions, nil
 }
 
-func mapSubscriptionToSubscriptionOverview(subscription *stripe.Subscription) (subscriptionOverview SubscriptionOverview, err error) {
+func mapSubscriptionToSubscriptionOverview(c context.Context, subscription *stripe.Subscription) (subscriptionOverview SubscriptionOverview, err error) {
 	subscriptionOverview.ID = subscription.ID
-	subscriptionOverview.PlanProductName = subscription.Plan.Product.Name
 	productID := subscription.Plan.Product.ID
 	logger.Debug("Product ID", zap.String("productID", productID))
-	metaData, err := getProductMetadata(context.Background(), productID)
+
+	product, err := getProduct(c, productID)
+	if err != nil {
+		logger.Warn("Error getting product", zap.Error(err))
+		return SubscriptionOverview{}, errors.New("Product not found")
+	}
+	subscriptionOverview.ProductName = product.Name
+
+	metaData := product.Metadata
 	if err != nil {
 		logger.Warn("Error getting product metadata", zap.Error(err))
 		return SubscriptionOverview{}, errors.New("Product metadata not found")
@@ -59,12 +66,12 @@ func mapSubscriptionToSubscriptionOverview(subscription *stripe.Subscription) (s
 		return SubscriptionOverview{}, errors.New("Error converting storage amount to int")
 	}
 	subscriptionOverview.StorageAmount = iStorageAmount
-	productName, ok := metaData["productName"]
+	productType, ok := metaData["productType"]
 	if !ok {
-		logger.Warn("Product name not found", zap.Any("subscriptionID", subscription.ID))
-		return SubscriptionOverview{}, errors.New("Product name not found")
+		logger.Warn("ProductType not found", zap.Any("subscriptionID", subscription.ID))
+		return SubscriptionOverview{}, errors.New("ProductType not found")
 	}
-	subscriptionOverview.ProductName = productName
+	subscriptionOverview.ProductType = productType
 
 	subscriptionOverview.UserCount = subscription.Quantity
 	return subscriptionOverview, nil
