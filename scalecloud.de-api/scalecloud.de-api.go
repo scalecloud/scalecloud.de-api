@@ -45,3 +45,9 @@ func GetSubscriptionByID(c context.Context, subscriptionID string) (subscription
 	customerID := "cus_IJNox8VXgkX2gU"
 	return stripe.GetSubscriptionByID(c, customerID, subscriptionID)
 }
+
+func GetBillingPortal(c context.Context) (subscriptionDetail stripe.BillingPortalModel, err error) {
+	logger.Debug("GetBillingPortal")
+	customerID := "cus_IJNox8VXgkX2gU"
+	return stripe.GetBillingPortal(c, customerID)
+}

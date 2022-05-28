@@ -70,6 +70,7 @@ func initRoutes(router *gin.Engine) {
 	{
 		dashboard.GET("/subscriptions", getSubscriptionsOverview)
 		dashboard.GET("/subscription/:id", getSubscriptionByID)
+		dashboard.GET("/billing-portal", getBillingPortal)
 	}
 	router.GET("/albums/:id", getAlbumByID)
 	router.POST("/albums", postAlbums)
@@ -116,6 +117,16 @@ func getSubscriptionByID(c *gin.Context) {
 	} else {
 		c.SecureJSON(http.StatusNotFound, gin.H{"message": "subscriptionDetail not found"})
 	}
+}
+
+func getBillingPortal(c *gin.Context) {
+	billingPortal, error := scalecloud.GetBillingPortal(c)
+	if error != nil {
+		c.IndentedJSON(http.StatusNoContent, gin.H{"error": error.Error()})
+		return
+	}
+	logger.Info("getBillingPortal", zap.Any("billingPortal", billingPortal))
+	c.IndentedJSON(http.StatusOK, billingPortal)
 }
 
 // getAlbums responds with the list of all albums as JSON.
