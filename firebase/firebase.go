@@ -2,6 +2,7 @@ package firebase
 
 import (
 	"context"
+	"errors"
 	"os"
 
 	"go.uber.org/zap"
@@ -63,4 +64,37 @@ func VerifyIDToken(ctx context.Context, jwtToken string) bool {
 		}
 	}
 	return ret
+}
+
+func GetTokenDetails(ctx context.Context, jwtToken string) (tokenDetails TokenDetails, err error) {
+	if jwtToken == "" {
+		logger.Error("Token is empty")
+		return TokenDetails{}, errors.New("Token is empty")
+	}
+	app := InitializeAppDefault(ctx)
+	client, err := app.Auth(ctx)
+	if err != nil {
+		logger.Error("Error initializing app", zap.Error(err))
+		return TokenDetails{}, errors.New("Error initializing app")
+	}
+	idToken, err := client.VerifyIDTokenAndCheckRevoked(ctx, jwtToken)
+	if err != nil {
+		logger.Error("Error verifying ID token", zap.Error(err))
+		return TokenDetails{}, errors.New("Error verifying ID token")
+	}
+	uid := idToken.UID
+	if uid == "" {
+		logger.Error("UID is empty")
+		return TokenDetails{}, errors.New("UID is empty")
+	}
+	email := "test@test.de"
+	if email == "" {
+		logger.Error("Email is empty")
+		return TokenDetails{}, errors.New("Email is empty")
+	}
+	token := TokenDetails{
+		UID:   uid,
+		Email: email,
+	}
+	return token, nil
 }

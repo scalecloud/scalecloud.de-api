@@ -14,21 +14,6 @@ import (
 
 var logger, _ = zap.NewProduction()
 
-// album represents data about a record album.
-type album struct {
-	ID     string  `json:"id"`
-	Title  string  `json:"title"`
-	Artist string  `json:"artist"`
-	Price  float64 `json:"price"`
-}
-
-// albums slice to seed record album data.
-var albums = []album{
-	{ID: "1", Title: "Blue Train", Artist: "John Coltrane", Price: 56.99},
-	{ID: "2", Title: "Jeru", Artist: "Gerry Mulligan", Price: 17.99},
-	{ID: "3", Title: "Sarah Vaughan and Clifford Brown", Artist: "Sarah Vaughan", Price: 39.99},
-}
-
 func InitApi() {
 	logger.Info("Init api")
 	scalecloud.Init()
@@ -71,9 +56,8 @@ func initRoutes(router *gin.Engine) {
 		dashboard.GET("/subscriptions", getSubscriptionsOverview)
 		dashboard.GET("/subscription/:id", getSubscriptionByID)
 		dashboard.GET("/billing-portal", getBillingPortal)
+		dashboard.GET("/checkout", getCheckout)
 	}
-	router.GET("/albums/:id", getAlbumByID)
-	router.POST("/albums", postAlbums)
 }
 
 func initCertificate(router *gin.Engine) {
@@ -129,40 +113,19 @@ func getBillingPortal(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, billingPortal)
 }
 
-// getAlbums responds with the list of all albums as JSON.
-func getAlbums(c *gin.Context) {
-	c.IndentedJSON(http.StatusOK, albums)
-}
-
-// postAlbums adds an album from JSON received in the request body.
-func postAlbums(c *gin.Context) {
-	var newAlbum album
-
-	// Call BindJSON to bind the received JSON to
-	// newAlbum.
-	if err := c.BindJSON(&newAlbum); err != nil {
+func getCheckout(c *gin.Context) {
+	jwtToken, ok := getBearerToken(c)
+	if !ok {
+		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Bearer token not found"})
 		return
 	}
-
-	// Add the new album to the slice.
-	albums = append(albums, newAlbum)
-	c.IndentedJSON(http.StatusCreated, newAlbum)
-}
-
-// getAlbumByID locates the album whose ID value matches the id
-// parameter sent by the client, then returns that album as a response.
-func getAlbumByID(c *gin.Context) {
-	id := c.Param("id")
-
-	// Loop over the list of albums, looking for
-	// an album whose ID value matches the parameter.
-	for _, a := range albums {
-		if a.ID == id {
-			c.IndentedJSON(http.StatusOK, a)
-			return
-		}
+	checkout, error := scalecloud.GetCheckout(c, jwtToken)
+	if error != nil {
+		c.IndentedJSON(http.StatusNoContent, gin.H{"error": error.Error()})
+		return
 	}
-	c.IndentedJSON(http.StatusNotFound, gin.H{"message": "album not found"})
+	logger.Info("getCheckout", zap.Any("checkout", checkout))
+	c.IndentedJSON(http.StatusOK, checkout)
 }
 
 // Authentication

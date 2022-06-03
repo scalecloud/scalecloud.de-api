@@ -1,47 +1,48 @@
 package stripe
 
 import (
-	"net/http"
+	"context"
+	"errors"
 
+	"github.com/scalecloud/scalecloud.de-api/firebase"
 	"github.com/stripe/stripe-go/v72"
 	"github.com/stripe/stripe-go/v72/checkout/session"
 	"go.uber.org/zap"
 )
 
-func createConnection() {
-	// This is a public sample test API key.
-	// Don’t submit any personally identifiable information in requests made with this key.
-	// Sign in to see your own test API key embedded in code samples.
-	stripe.Key = getStripeKey()
+func GetCheckout(c context.Context, tokenDetails firebase.TokenDetails) (CheckoutModel, error) {
+	if tokenDetails.UID == "" {
+		logger.Error("Customer ID is empty")
+		return CheckoutModel{}, errors.New("Customer ID is empty")
+	}
+	if tokenDetails.Email == "" {
+		logger.Error("Email is empty")
+		return CheckoutModel{}, errors.New("Email is empty")
+	}
 
-	http.Handle("/", http.FileServer(http.Dir("public")))
-	http.HandleFunc("/create-checkout-session", createCheckoutSession)
-	addr := "localhost:4242"
-	logger.Info("Stripe server listening on", zap.String("addr", addr))
-
-	logger.Error("Error creating session", zap.Any("ListenAndServe:", http.ListenAndServe(addr, nil)))
-}
-
-func createCheckoutSession(w http.ResponseWriter, r *http.Request) {
-	domain := "http://localhost:4242"
+	domain := "https://scalecloud.de/checkout"
 	params := &stripe.CheckoutSessionParams{
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
-			&stripe.CheckoutSessionLineItemParams{
+			{
 				// Provide the exact Price ID (for example, pr_1234) of the product you want to sell
-				Price:    stripe.String("{{PRICE_ID}}"),
+				Price:    stripe.String("price_1Gv4wsA86yrbtIQrnW9dilsQ"),
 				Quantity: stripe.Int64(1),
 			},
 		},
 		Mode:       stripe.String(string(stripe.CheckoutSessionModePayment)),
 		SuccessURL: stripe.String(domain + "/success.html"),
 		CancelURL:  stripe.String(domain + "/cancel.html"),
+		Customer:   stripe.String("cus_IJNox8VXgkX2gU"),
 	}
 
-	s, err := session.New(params)
-
+	session, err := session.New(params)
 	if err != nil {
 		logger.Error("Error creating session", zap.Error(err))
+		return CheckoutModel{}, err
 	}
 
-	http.Redirect(w, r, s.URL, http.StatusSeeOther)
+	checkoutModel := CheckoutModel{
+		URL: session.URL,
+	}
+	return checkoutModel, nil
 }

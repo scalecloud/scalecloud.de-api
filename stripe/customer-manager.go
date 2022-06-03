@@ -9,8 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func getCustomerByID(c context.Context, customerID string) (customerDetails *stripe.Customer, err error) {
-	stripe.Key = getStripeKey()
+func getCustomerByID(ctx context.Context, customerID string) (customerDetails *stripe.Customer, err error) {
 	//customerID := "cus_IJNox8VXgkX2gU"
 	customer, error := customer.Get(
 		customerID,
@@ -22,4 +21,20 @@ func getCustomerByID(c context.Context, customerID string) (customerDetails *str
 	}
 	logger.Debug("Customer", zap.Any("customer", customer))
 	return customer, nil
+}
+
+func createCustomer(ctx context.Context, email string) (*stripe.Customer, error) {
+	if email == "" {
+		return nil, errors.New("E-Mail is required")
+	}
+	params := &stripe.CustomerParams{
+		Email: stripe.String(email),
+	}
+	newCustomer, err := customer.New(params)
+	if err != nil {
+		logger.Error("Error creating customer", zap.Error(err))
+		return nil, err
+	}
+	logger.Debug("Customer", zap.Any("customer", newCustomer))
+	return newCustomer, nil
 }
