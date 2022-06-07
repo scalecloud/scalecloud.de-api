@@ -10,7 +10,12 @@ import (
 	"go.uber.org/zap"
 )
 
-func GetCheckout(c context.Context, tokenDetails firebase.TokenDetails) (CheckoutModel, error) {
+func CreateCheckoutSession(c context.Context, token string) (CheckoutModel, error) {
+	tokenDetails, err := firebase.GetTokenDetails(c, token)
+	if err != nil {
+		logger.Error("Error getting token details", zap.Error(err))
+		return CheckoutModel{}, err
+	}
 	if tokenDetails.UID == "" {
 		logger.Error("Customer ID is empty")
 		return CheckoutModel{}, errors.New("Customer ID is empty")

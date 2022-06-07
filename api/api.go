@@ -56,7 +56,7 @@ func initRoutes(router *gin.Engine) {
 		dashboard.GET("/subscriptions", getSubscriptionsOverview)
 		dashboard.GET("/subscription/:id", getSubscriptionByID)
 		dashboard.GET("/billing-portal", getBillingPortal)
-		dashboard.GET("/checkout", getCheckout)
+		dashboard.GET("/create-checkout-session", createCheckoutSession)
 	}
 }
 
@@ -113,18 +113,18 @@ func getBillingPortal(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, billingPortal)
 }
 
-func getCheckout(c *gin.Context) {
+func createCheckoutSession(c *gin.Context) {
 	jwtToken, ok := getBearerToken(c)
 	if !ok {
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Bearer token not found"})
 		return
 	}
-	checkout, error := scalecloud.GetCheckout(c, jwtToken)
+	checkout, error := scalecloud.CreateCheckoutSession(c, jwtToken)
 	if error != nil {
 		c.IndentedJSON(http.StatusNoContent, gin.H{"error": error.Error()})
 		return
 	}
-	logger.Info("getCheckout", zap.Any("checkout", checkout))
+	logger.Info("CreateCheckoutSession", zap.Any("checkout", checkout))
 	c.IndentedJSON(http.StatusOK, checkout)
 }
 

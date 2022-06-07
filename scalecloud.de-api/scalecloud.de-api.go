@@ -2,7 +2,6 @@ package scalecloud
 
 import (
 	"context"
-	"errors"
 	"os"
 
 	"github.com/scalecloud/scalecloud.de-api/firebase"
@@ -53,22 +52,7 @@ func GetBillingPortal(c context.Context) (subscriptionDetail stripe.BillingPorta
 	return stripe.GetBillingPortal(c, customerID)
 }
 
-func GetCheckout(c context.Context, token string) (checkoutModel stripe.CheckoutModel, err error) {
-	logger.Debug("GetCheckout")
-	tokenDetails, err := firebase.GetTokenDetails(c, token)
-	if err != nil {
-		logger.Error("Error getting token details", zap.Error(err))
-		return stripe.CheckoutModel{}, err
-	}
-	uid := tokenDetails.UID
-	if uid == "" {
-		logger.Error("UID is empty")
-		return stripe.CheckoutModel{}, errors.New("UID is empty")
-	}
-	email := tokenDetails.Email
-	if email == "" {
-		logger.Error("E-Mail is empty")
-		return stripe.CheckoutModel{}, errors.New("E-Mail is empty")
-	}
-	return stripe.GetCheckout(c, tokenDetails)
+func CreateCheckoutSession(c context.Context, token string) (checkoutModel stripe.CheckoutModel, err error) {
+	logger.Debug("CreateCheckoutSession")
+	return stripe.CreateCheckoutSession(c, token)
 }
