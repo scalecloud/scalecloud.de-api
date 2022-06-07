@@ -32,11 +32,11 @@ func initMongoStripe() {
 	}
 }
 
-func createUser(ctx context.Context, user User) error {
+func CreateUser(ctx context.Context, user User) error {
 	return createDocument(ctx, databaseStripe, collectionUsers, user)
 }
 
-func updateUser(ctx context.Context, user User) error {
+func UpdateUser(ctx context.Context, user User) error {
 	if user.UID == "" {
 		logger.Error("user.UID is empty")
 		return errors.New("user.UID is empty")
@@ -45,7 +45,7 @@ func updateUser(ctx context.Context, user User) error {
 	return updateDocument(ctx, databaseStripe, collectionUsers, user, filter)
 }
 
-func deleteUser(ctx context.Context, user User) error {
+func DeleteUser(ctx context.Context, user User) error {
 	if user.UID == "" {
 		logger.Error("user.UID is empty")
 		return errors.New("user.UID is empty")
@@ -54,7 +54,7 @@ func deleteUser(ctx context.Context, user User) error {
 	return deleteDocument(ctx, databaseStripe, collectionUsers, filter)
 }
 
-func getUser(ctx context.Context, user User) (User, error) {
+func GetUser(ctx context.Context, user User) (User, error) {
 	if user.UID == "" {
 		logger.Error("user.UID is empty")
 		return User{}, errors.New("user.UID is empty")

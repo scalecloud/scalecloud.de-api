@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/scalecloud/scalecloud.de-api/firebase"
+	"github.com/scalecloud/scalecloud.de-api/mongo"
 	"github.com/stripe/stripe-go/v72"
 	"github.com/stripe/stripe-go/v72/checkout/session"
 	"go.uber.org/zap"
@@ -25,19 +26,28 @@ func CreateCheckoutSession(c context.Context, token string) (CheckoutModel, erro
 		return CheckoutModel{}, errors.New("Email is empty")
 	}
 
+	filter := mongo.User{
+		UID: tokenDetails.UID,
+	}
+
+	customerID, err := getCustomerID(c, filter, tokenDetails)
+	if err != nil {
+		logger.Error("Error getting customer ID", zap.Error(err))
+		return CheckoutModel{}, err
+	}
+
 	domain := "https://scalecloud.de/checkout"
 	params := &stripe.CheckoutSessionParams{
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
 			{
-				// Provide the exact Price ID (for example, pr_1234) of the product you want to sell
-				Price:    stripe.String("price_1Gv4wsA86yrbtIQrnW9dilsQ"),
+				Price:    stripe.String("price_1Gv4vwA86yrbtIQrn1Sj21uo"),
 				Quantity: stripe.Int64(1),
 			},
 		},
 		Mode:       stripe.String(string(stripe.CheckoutSessionModePayment)),
 		SuccessURL: stripe.String(domain + "/success.html"),
 		CancelURL:  stripe.String(domain + "/cancel.html"),
-		Customer:   stripe.String("cus_IJNox8VXgkX2gU"),
+		Customer:   stripe.String(customerID),
 	}
 
 	session, err := session.New(params)
@@ -50,4 +60,44 @@ func CreateCheckoutSession(c context.Context, token string) (CheckoutModel, erro
 		URL: session.URL,
 	}
 	return checkoutModel, nil
+}
+
+func createUser(c context.Context, tokenDetails firebase.TokenDetails) (mongo.User, error) {
+	customer, err := CreateCustomer(c, tokenDetails.Email)
+	if err != nil {
+		logger.Error("Error creating customer", zap.Error(err))
+		return mongo.User{}, err
+	} else {
+		logger.Info("New Customer was created with Customer.ID", zap.Any("customer.ID", customer.ID))
+		newUser := mongo.User{
+			UID:        tokenDetails.UID,
+			CustomerID: customer.ID,
+		}
+		err := mongo.CreateUser(c, newUser)
+		if err != nil {
+			logger.Error("Error creating user in MongoDB.", zap.Error(err))
+			return mongo.User{}, err
+		} else {
+			logger.Info("New User was created in MongoDB with User.ID", zap.Any("user.ID", newUser.UID))
+			return newUser, nil
+		}
+	}
+}
+
+func getCustomerID(c context.Context, filter mongo.User, tokenDetails firebase.TokenDetails) (customerID string, err error) {
+	userSearch, err := mongo.GetUser(c, filter)
+	if err != nil {
+		logger.Warn("Could not find user in MongoDB. Going to create new Customer in Stripe.", zap.Error(err))
+		newUser, err := createUser(c, tokenDetails)
+		if err != nil {
+			logger.Error("Error creating user", zap.Error(err))
+			return "", err
+		} else {
+			logger.Info("New User was created in MongoDB with User.ID", zap.Any("user.ID", newUser.UID))
+			return newUser.CustomerID, nil
+		}
+	} else {
+		logger.Info("User was found in MongoDB with User.ID", zap.Any("user.ID", userSearch.UID))
+		return userSearch.CustomerID, nil
+	}
 }

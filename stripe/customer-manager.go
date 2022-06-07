@@ -23,7 +23,7 @@ func getCustomerByID(ctx context.Context, customerID string) (customerDetails *s
 	return customer, nil
 }
 
-func createCustomer(ctx context.Context, email string) (*stripe.Customer, error) {
+func CreateCustomer(ctx context.Context, email string) (*stripe.Customer, error) {
 	if email == "" {
 		return nil, errors.New("E-Mail is required")
 	}
