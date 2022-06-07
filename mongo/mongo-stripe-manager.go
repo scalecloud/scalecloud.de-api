@@ -25,6 +25,7 @@ func initMongoStripe() {
 	usersCount, err := users.CountDocuments(ctx, bson.D{})
 	if err != nil {
 		logger.Error("Error counting documents", zap.Error(err))
+		os.Exit(1)
 	} else if usersCount == 0 {
 		logger.Warn("Users collection is empty.")
 	} else {
