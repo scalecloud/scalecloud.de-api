@@ -294,6 +294,8 @@ github.com/stripe/stripe-go/v72 v72.112.0 h1:gnk6nuOfYJR/+/5OiyG3Z7V1+f2UB6kDpiA
 github.com/stripe/stripe-go/v72 v72.112.0/go.mod h1:QwqJQtduHubZht9mek5sds9CtQcKFdsykV9ZepRWwo0=
 github.com/stripe/stripe-go/v72 v72.113.0 h1:k/1oaN/8ydC5t3r1rSn1yd6UkO+/yVfqTtcRAuaf0rc=
 github.com/stripe/stripe-go/v72 v72.113.0/go.mod h1:QwqJQtduHubZht9mek5sds9CtQcKFdsykV9ZepRWwo0=
+github.com/stripe/stripe-go/v72 v72.114.0 h1:fF4EEF9p+e8UzRsUYV1woTr8CC8f/51wXJr1MAnnP2M=
+github.com/stripe/stripe-go/v72 v72.114.0/go.mod h1:QwqJQtduHubZht9mek5sds9CtQcKFdsykV9ZepRWwo0=
 github.com/tidwall/pretty v1.0.0 h1:HsD+QiTn7sK6flMKIvNmpqz1qrpP3Ps6jOKIKMooyg4=
 github.com/tidwall/pretty v1.0.0/go.mod h1:XNkn88O1ChpSDQmQeStsy+sBenx6DDtFZJxhVysOjyk=
 github.com/ugorji/go v1.1.7/go.mod h1:kZn38zHttfInRq0xu/PH0az30d+z6vm202qpg1oXVMw=
