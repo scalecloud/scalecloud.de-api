@@ -55,16 +55,24 @@ func DeleteUser(ctx context.Context, user User) error {
 	return deleteDocument(ctx, databaseStripe, collectionUsers, filter)
 }
 
-func GetUser(ctx context.Context, user User) (User, error) {
-	if user.UID == "" {
+func GetUser(ctx context.Context, userFilter User) (User, error) {
+	if userFilter.UID == "" {
 		logger.Error("user.UID is empty")
 		return User{}, errors.New("user.UID is empty")
 	}
-	filter := bson.M{"uid": user.UID}
-	document, err := findDocument(ctx, databaseStripe, collectionUsers, filter)
+	filter := bson.M{"uid": userFilter.UID}
+	singleResult, err := findDocument(ctx, databaseStripe, collectionUsers, filter)
 	if err != nil {
-		logger.Error("Error finding document", zap.Error(err))
+		logger.Info("Error finding document", zap.Error(err))
 		return User{}, err
 	}
-	return document.(User), nil
+
+	var user User
+	decodeErr := singleResult.Decode(&user)
+	if decodeErr != nil {
+		logger.Error("Error decoding document", zap.Error(decodeErr))
+		return User{}, decodeErr
+	}
+	logger.Info("Found user", zap.Any("user", user))
+	return user, nil
 }

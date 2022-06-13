@@ -122,7 +122,7 @@ func deleteDocument(ctx context.Context, databaseName, collectionName string, fi
 	}
 }
 
-func findDocument(ctx context.Context, databaseName, collectionName string, filter interface{}) (interface{}, error) {
+func findDocument(ctx context.Context, databaseName, collectionName string, filter interface{}) (*mongo.SingleResult, error) {
 	client, collection, err := getCollection(ctx, databaseName, collectionName)
 	if err != nil {
 		logger.Error("Error getting collection", zap.Error(err))
@@ -133,12 +133,13 @@ func findDocument(ctx context.Context, databaseName, collectionName string, filt
 		logger.Error("filter is nil")
 		return nil, errors.New("filter is nil")
 	}
-	result := collection.FindOne(ctx, filter)
-	if result.Err() != nil {
-		logger.Error("Error finding document", zap.Error(result.Err()))
-		return nil, result.Err()
-	} else {
-		logger.Info("Found document")
-		return result.Decode(filter), nil
+	logger.Debug("filter", zap.Any("filter", filter))
+
+	singleResult := collection.FindOne(ctx, filter)
+	if singleResult.Err() != nil {
+		logger.Error("Error finding document", zap.Error(singleResult.Err()))
+		return nil, singleResult.Err()
 	}
+	return singleResult, nil
+
 }

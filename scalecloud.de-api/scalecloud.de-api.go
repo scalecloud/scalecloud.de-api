@@ -52,7 +52,7 @@ func GetBillingPortal(c context.Context) (subscriptionDetail stripe.BillingPorta
 	return stripe.GetBillingPortal(c, customerID)
 }
 
-func CreateCheckoutSession(c context.Context, token string) (checkoutModel stripe.CheckoutModel, err error) {
+func CreateCheckoutSession(c context.Context, token, productID string) (checkoutModel stripe.CheckoutModel, err error) {
 	logger.Debug("CreateCheckoutSession")
-	return stripe.CreateCheckoutSession(c, token)
+	return stripe.CreateCheckoutSession(c, token, productID)
 }

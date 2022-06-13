@@ -56,7 +56,7 @@ func initRoutes(router *gin.Engine) {
 		dashboard.GET("/subscriptions", getSubscriptionsOverview)
 		dashboard.GET("/subscription/:id", getSubscriptionByID)
 		dashboard.GET("/billing-portal", getBillingPortal)
-		dashboard.GET("/create-checkout-session", createCheckoutSession)
+		dashboard.POST("/create-checkout-session", createCheckoutSession)
 	}
 }
 
@@ -114,12 +114,23 @@ func getBillingPortal(c *gin.Context) {
 }
 
 func createCheckoutSession(c *gin.Context) {
-	jwtToken, ok := getBearerToken(c)
+	token, ok := getBearerToken(c)
 	if !ok {
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Bearer token not found"})
 		return
 	}
-	checkout, error := scalecloud.CreateCheckoutSession(c, jwtToken)
+
+	var productModel stripe.ProductModel
+	if err := c.BindJSON(&productModel); err != nil {
+		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
+		return
+	}
+	if productModel.ProductID == "" {
+		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "productID not found"})
+		return
+	}
+	logger.Debug("productID", zap.Any("productID", productModel.ProductID))
+	checkout, error := scalecloud.CreateCheckoutSession(c, token, productModel.ProductID)
 	if error != nil {
 		c.IndentedJSON(http.StatusNoContent, gin.H{"error": error.Error()})
 		return

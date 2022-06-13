@@ -24,6 +24,7 @@ func getCustomerByID(ctx context.Context, customerID string) (customerDetails *s
 }
 
 func CreateCustomer(ctx context.Context, email string) (*stripe.Customer, error) {
+	stripe.Key = getStripeKey()
 	if email == "" {
 		return nil, errors.New("E-Mail is required")
 	}

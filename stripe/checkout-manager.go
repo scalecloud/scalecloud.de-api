@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func CreateCheckoutSession(c context.Context, token string) (CheckoutModel, error) {
+func CreateCheckoutSession(c context.Context, token, productID string) (CheckoutModel, error) {
 	tokenDetails, err := firebase.GetTokenDetails(c, token)
 	if err != nil {
 		logger.Error("Error getting token details", zap.Error(err))
@@ -35,6 +35,12 @@ func CreateCheckoutSession(c context.Context, token string) (CheckoutModel, erro
 		logger.Error("Error getting customer ID", zap.Error(err))
 		return CheckoutModel{}, err
 	}
+	if customerID == "" {
+		logger.Error("Customer ID is empty")
+		return CheckoutModel{}, errors.New("Customer ID is empty")
+	}
+
+	stripe.Key = getStripeKey()
 
 	domain := "https://scalecloud.de/checkout"
 	params := &stripe.CheckoutSessionParams{
@@ -44,7 +50,7 @@ func CreateCheckoutSession(c context.Context, token string) (CheckoutModel, erro
 				Quantity: stripe.Int64(1),
 			},
 		},
-		Mode:       stripe.String(string(stripe.CheckoutSessionModePayment)),
+		Mode:       stripe.String(string(stripe.CheckoutSessionModeSubscription)),
 		SuccessURL: stripe.String(domain + "/success.html"),
 		CancelURL:  stripe.String(domain + "/cancel.html"),
 		Customer:   stripe.String(customerID),
@@ -87,7 +93,8 @@ func createUser(c context.Context, tokenDetails firebase.TokenDetails) (mongo.Us
 func getCustomerID(c context.Context, filter mongo.User, tokenDetails firebase.TokenDetails) (customerID string, err error) {
 	userSearch, err := mongo.GetUser(c, filter)
 	if err != nil {
-		logger.Warn("Could not find user in MongoDB. Going to create new Customer in Stripe.", zap.Error(err))
+		logger.Info("Could not find user in MongoDB. Going to create new Customer in MongoDB Database 'stripe' collection 'users'.")
+		logger.Debug("err", zap.Error(err))
 		newUser, err := createUser(c, tokenDetails)
 		if err != nil {
 			logger.Error("Error creating user", zap.Error(err))
