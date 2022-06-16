@@ -42,11 +42,17 @@ func CreateCheckoutSession(c context.Context, token, productID string) (Checkout
 
 	stripe.Key = getStripeKey()
 
+	price, err := getPrice(c, productID)
+	if err != nil {
+		logger.Error("Error getting price", zap.Error(err))
+		return CheckoutModel{}, err
+	}
+
 	domain := "https://scalecloud.de/checkout"
 	params := &stripe.CheckoutSessionParams{
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
 			{
-				Price:    stripe.String("price_1Gv4vwA86yrbtIQrn1Sj21uo"),
+				Price:    stripe.String(price.ID),
 				Quantity: stripe.Int64(1),
 			},
 		},
