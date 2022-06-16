@@ -11,13 +11,22 @@ import (
 )
 
 func getPrice(c context.Context, productID string) (*stripe.Price, error) {
-	ret := &stripe.Price{}
+	priceSearch := &stripe.Price{}
 	stripe.Key = getStripeKey()
 	params := &stripe.PriceListParams{
 		Product: stripe.String(productID),
 		Active:  stripe.Bool(true),
 	}
 	iter := price.List(params)
+	priceSearch = searchPrice(iter, priceSearch, productID)
+	if priceSearch.ID == "" {
+		logger.Error("No active price for productID" + productID)
+		return nil, errors.New("No active price for productID" + productID)
+	}
+	return priceSearch, nil
+}
+
+func searchPrice(iter *price.Iter, ret *stripe.Price, productID string) *stripe.Price {
 	for {
 		if iter.Next() {
 			if ret.ID != "" {
@@ -27,23 +36,21 @@ func getPrice(c context.Context, productID string) (*stripe.Price, error) {
 				logger.Info("Price", zap.Any("priceID", ret.ID))
 			}
 		} else {
-			if iter.Err() != nil {
-				if iter.Err() == iterator.Done {
-					logger.Debug("Iteration done")
-					break
-				} else {
-					logger.Error("Error getting price", zap.Error(iter.Err()))
-					break
-				}
-			} else {
-				logger.Debug("Iteration done with no error.")
-				break
-			}
+			checkIterErrors(iter)
+			break
 		}
 	}
-	if ret.ID == "" {
-		logger.Error("No active price for productID" + productID)
-		return nil, errors.New("No active price for productID" + productID)
+	return ret
+}
+
+func checkIterErrors(iter *price.Iter) {
+	if iter.Err() != nil {
+		if iter.Err() == iterator.Done {
+			logger.Debug("Iteration done")
+		} else {
+			logger.Error("Error getting price", zap.Error(iter.Err()))
+		}
+	} else {
+		logger.Debug("Iteration done with no error.")
 	}
-	return ret, nil
 }
