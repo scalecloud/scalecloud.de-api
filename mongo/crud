@@ -26,7 +26,7 @@ func insertDocument(client *mongo.Client, collection *mongo.Collection, document
 	if err != nil {
 		logger.Error("Error connecting to MongoDB.", zap.Error(err))
 	}
-	defer client.Disconnect(ctx)
+	defer disconnect(ctx, client)
 
 	// Interact with data
 	type Post struct {

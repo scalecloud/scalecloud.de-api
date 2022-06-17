@@ -65,7 +65,7 @@ func createDocument(ctx context.Context, databaseName, collectionName string, do
 		logger.Error("Error getting collection", zap.Error(err))
 		return err
 	}
-	defer client.Disconnect(ctx)
+	defer disconnect(ctx, client)
 	result, err := collection.InsertOne(ctx, document)
 	if err != nil {
 		logger.Error("Error creating document", zap.Error(err))
@@ -82,7 +82,7 @@ func updateDocument(ctx context.Context, databaseName, collectionName string, fi
 		logger.Error("Error getting collection", zap.Error(err))
 		return err
 	}
-	defer client.Disconnect(ctx)
+	defer disconnect(ctx, client)
 	if filter == nil {
 		logger.Error("filter is nil")
 		return errors.New("filter is nil")
@@ -107,7 +107,7 @@ func deleteDocument(ctx context.Context, databaseName, collectionName string, fi
 		logger.Error("Error getting collection", zap.Error(err))
 		return err
 	}
-	defer client.Disconnect(ctx)
+	defer disconnect(ctx, client)
 	if filter == nil {
 		logger.Error("filter is nil")
 		return errors.New("filter is nil")
@@ -128,7 +128,7 @@ func findDocument(ctx context.Context, databaseName, collectionName string, filt
 		logger.Error("Error getting collection", zap.Error(err))
 		return nil, err
 	}
-	defer client.Disconnect(ctx)
+	defer disconnect(ctx, client)
 	if filter == nil {
 		logger.Error("filter is nil")
 		return nil, errors.New("filter is nil")
@@ -142,4 +142,10 @@ func findDocument(ctx context.Context, databaseName, collectionName string, filt
 	}
 	return singleResult, nil
 
+}
+
+func disconnect(ctx context.Context, client *mongo.Client) {
+	if err := client.Disconnect(ctx); err != nil {
+		logger.Error("Error disconnecting from MongoDB", zap.Error(err))
+	}
 }

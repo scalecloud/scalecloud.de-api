@@ -42,7 +42,10 @@ func initHeaders(router *gin.Engine) {
 
 func startListening(router *gin.Engine) {
 	logger.Info("Starting listening for requests")
-	router.Run(":15000")
+	err := router.Run(":15000")
+	if err != nil {
+		logger.Error("Could not start listening for requests", zap.Error(err))
+	}
 }
 
 func initRoutes(router *gin.Engine) {

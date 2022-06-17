@@ -20,7 +20,7 @@ func initMongoStripe() {
 		logger.Error("Error getting collection", zap.Error(err))
 		os.Exit(1)
 	} else {
-		defer client.Disconnect(ctx)
+		defer disconnect(ctx, client)
 	}
 	usersCount, err := users.CountDocuments(ctx, bson.D{})
 	if err != nil {
