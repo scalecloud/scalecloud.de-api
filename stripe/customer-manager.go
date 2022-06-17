@@ -10,7 +10,6 @@ import (
 )
 
 func getCustomerByID(ctx context.Context, customerID string) (customerDetails *stripe.Customer, err error) {
-	//customerID := "cus_IJNox8VXgkX2gU"
 	customer, error := customer.Get(
 		customerID,
 		nil,
