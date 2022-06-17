@@ -14,11 +14,11 @@ node() {
     }
     stage('Build and Test') {
         lastStage = env.STAGE_NAME
-        sh "docker build --tag scalecloudde/scalecloud.de-api:latest ."
+        sh "docker build --tag scalecloudde/scalecloud.de-api:beta ."
     }
     stage('Push Docker Image') {
         lastStage = env.STAGE_NAME
-        sh 'docker push scalecloudde/scalecloud.de-api:latest'
+        sh 'docker push scalecloudde/scalecloud.de-api:beta'
     }
   }
   catch (err) {
@@ -36,7 +36,7 @@ node() {
     }
     stage('Docker remove not needed images') {
         sh 'docker rmi golang:1.18'
-        sh 'docker rmi gcr.io/distroless/base-debian11:latest' 
+        sh 'docker rmi gcr.io/distroless/base-debian11:beta' 
     }
   }
 }

@@ -25,7 +25,7 @@ RUN go test ./... -json
 ##
 ## Deploy
 ##
-FROM gcr.io/distroless/base-debian11:beta AS deploy
+FROM gcr.io/distroless/base-debian11:latest AS deploy
 
 WORKDIR /app
 
