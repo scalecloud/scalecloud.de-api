@@ -109,6 +109,6 @@ func getEMailFromToken(idToken *auth.Token) (string, error) {
 	if email == "" {
 		return "", errors.New("email is empty")
 	}
-	logger.Info("E-Mail from token:", zap.String("email", email))
+	logger.Debug("E-Mail from token:", zap.String("email", email))
 	return email, nil
 }
