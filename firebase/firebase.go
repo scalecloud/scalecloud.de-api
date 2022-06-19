@@ -8,6 +8,7 @@ import (
 	"go.uber.org/zap"
 
 	firebase "firebase.google.com/go/v4"
+	"firebase.google.com/go/v4/auth"
 	"google.golang.org/api/option"
 )
 
@@ -87,14 +88,27 @@ func GetTokenDetails(ctx context.Context, jwtToken string) (tokenDetails TokenDe
 		logger.Error("UID is empty")
 		return TokenDetails{}, errors.New("UID is empty")
 	}
-	email := "test@test.de"
-	if email == "" {
-		logger.Error("Email is empty")
-		return TokenDetails{}, errors.New("Email is empty")
+
+	email, err := getEMailFromToken(idToken)
+	if err != nil {
+		logger.Error("Error getting email from token", zap.Error(err))
+		return TokenDetails{}, errors.New("Error getting email from token")
 	}
 	token := TokenDetails{
 		UID:   uid,
 		Email: email,
 	}
 	return token, nil
+}
+
+func getEMailFromToken(idToken *auth.Token) (string, error) {
+	if idToken.Claims == nil {
+		return "", errors.New("claims is nil")
+	}
+	email := idToken.Claims["email"].(string)
+	if email == "" {
+		return "", errors.New("email is empty")
+	}
+	logger.Info("E-Mail from token:", zap.String("email", email))
+	return email, nil
 }

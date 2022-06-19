@@ -137,7 +137,7 @@ func findDocument(ctx context.Context, databaseName, collectionName string, filt
 
 	singleResult := collection.FindOne(ctx, filter)
 	if singleResult.Err() != nil {
-		logger.Error("Error finding document", zap.Error(singleResult.Err()))
+		logger.Warn("Did not findDocument", zap.Error(singleResult.Err()))
 		return nil, singleResult.Err()
 	}
 	return singleResult, nil
