@@ -2,7 +2,6 @@ package scalecloud
 
 import (
 	"context"
-	"os"
 
 	"github.com/scalecloud/scalecloud.de-api/firebase"
 	"github.com/scalecloud/scalecloud.de-api/mongo"
@@ -21,17 +20,6 @@ func Init() {
 
 func IsAuthenticated(ctx context.Context, token string) bool {
 	return firebase.VerifyIDToken(ctx, token)
-}
-
-func exists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return false, err
 }
 
 func GetSubscriptionsOverview(c context.Context) (subscriptionsOverview []stripe.SubscriptionOverview, err error) {
