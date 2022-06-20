@@ -96,9 +96,14 @@ func getSubscriptionsOverview(c *gin.Context) {
 }
 
 func getSubscriptionByID(c *gin.Context) {
+	token, ok := getBearerToken(c)
+	if !ok {
+		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Bearer token not found"})
+		return
+	}
 	subscriptionID := c.Param("id")
 	logger.Debug("getSubscriptionByID", zap.String("subscriptionID", subscriptionID))
-	subscriptionDetail, error := scalecloud.GetSubscriptionByID(c, subscriptionID)
+	subscriptionDetail, error := scalecloud.GetSubscriptionByID(c, token, subscriptionID)
 	if error != nil {
 		c.IndentedJSON(http.StatusNoContent, gin.H{"error": error.Error()})
 		return

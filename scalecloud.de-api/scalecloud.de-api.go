@@ -27,10 +27,9 @@ func GetSubscriptionsOverview(c context.Context, token string) (subscriptionsOve
 	return stripe.GetSubscriptionsOverview(c, token)
 }
 
-func GetSubscriptionByID(c context.Context, subscriptionID string) (subscriptionDetail stripe.SubscriptionDetail, err error) {
+func GetSubscriptionByID(c context.Context, token, subscriptionID string) (subscriptionDetail stripe.SubscriptionDetail, err error) {
 	logger.Debug("GetSubscriptionByID")
-	customerID := "cus_IJNox8VXgkX2gU"
-	return stripe.GetSubscriptionByID(c, customerID, subscriptionID)
+	return stripe.GetSubscriptionByID(c, token, subscriptionID)
 }
 
 func GetBillingPortal(c context.Context) (subscriptionDetail stripe.BillingPortalModel, err error) {
