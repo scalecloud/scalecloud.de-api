@@ -14,6 +14,8 @@ import (
 
 var logger, _ = zap.NewProduction()
 
+const messageBearer = "Bearer token not found"
+
 func InitApi() {
 	logger.Info("Init api")
 	scalecloud.Init()
@@ -79,7 +81,7 @@ func initTrustedPlatform(router *gin.Engine) {
 func getSubscriptionsOverview(c *gin.Context) {
 	token, ok := getBearerToken(c)
 	if !ok {
-		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Bearer token not found"})
+		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": messageBearer})
 		return
 	}
 	subscriptionsOverview, error := scalecloud.GetSubscriptionsOverview(c, token)
@@ -98,7 +100,7 @@ func getSubscriptionsOverview(c *gin.Context) {
 func getSubscriptionByID(c *gin.Context) {
 	token, ok := getBearerToken(c)
 	if !ok {
-		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Bearer token not found"})
+		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": messageBearer})
 		return
 	}
 	subscriptionID := c.Param("id")
@@ -119,7 +121,7 @@ func getSubscriptionByID(c *gin.Context) {
 func getBillingPortal(c *gin.Context) {
 	token, ok := getBearerToken(c)
 	if !ok {
-		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Bearer token not found"})
+		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": messageBearer})
 		return
 	}
 	billingPortal, error := scalecloud.GetBillingPortal(c, token)
@@ -134,7 +136,7 @@ func getBillingPortal(c *gin.Context) {
 func createCheckoutSession(c *gin.Context) {
 	token, ok := getBearerToken(c)
 	if !ok {
-		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Bearer token not found"})
+		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": messageBearer})
 		return
 	}
 
