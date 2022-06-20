@@ -117,7 +117,12 @@ func getSubscriptionByID(c *gin.Context) {
 }
 
 func getBillingPortal(c *gin.Context) {
-	billingPortal, error := scalecloud.GetBillingPortal(c)
+	token, ok := getBearerToken(c)
+	if !ok {
+		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Bearer token not found"})
+		return
+	}
+	billingPortal, error := scalecloud.GetBillingPortal(c, token)
 	if error != nil {
 		c.IndentedJSON(http.StatusNoContent, gin.H{"error": error.Error()})
 		return

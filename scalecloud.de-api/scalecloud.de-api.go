@@ -32,10 +32,9 @@ func GetSubscriptionByID(c context.Context, token, subscriptionID string) (subsc
 	return stripe.GetSubscriptionByID(c, token, subscriptionID)
 }
 
-func GetBillingPortal(c context.Context) (subscriptionDetail stripe.BillingPortalModel, err error) {
+func GetBillingPortal(c context.Context, token string) (subscriptionDetail stripe.BillingPortalModel, err error) {
 	logger.Debug("GetBillingPortal")
-	customerID := "cus_IJNox8VXgkX2gU"
-	return stripe.GetBillingPortal(c, customerID)
+	return stripe.GetBillingPortal(c, token)
 }
 
 func CreateCheckoutSession(c context.Context, token, productID string) (checkoutModel stripe.CheckoutModel, err error) {
