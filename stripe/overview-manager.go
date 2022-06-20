@@ -5,15 +5,22 @@ import (
 	"errors"
 	"strconv"
 
+	"github.com/scalecloud/scalecloud.de-api/firebase"
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/sub"
 	"go.uber.org/zap"
 )
 
-func GetSubscriptionsOverview(c context.Context, customerID string) (subscriptionOverview []SubscriptionOverview, err error) {
-	if customerID == "" {
-		logger.Error("Customer ID is empty")
-		return []SubscriptionOverview{}, errors.New("Customer ID is empty")
+func GetSubscriptionsOverview(c context.Context, token string) (subscriptionOverview []SubscriptionOverview, err error) {
+	tokenDetails, err := firebase.GetTokenDetails(c, token)
+	if err != nil {
+		logger.Error("Error getting token details", zap.Error(err))
+		return []SubscriptionOverview{}, err
+	}
+	customerID, err := getCustomerIDByUID(c, tokenDetails.UID)
+	if err != nil {
+		logger.Error("Error getting customer ID", zap.Error(err))
+		return []SubscriptionOverview{}, err
 	}
 	subscriptions := []SubscriptionOverview{}
 	stripe.Key = getStripeKey()

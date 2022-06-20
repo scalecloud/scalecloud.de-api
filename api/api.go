@@ -77,7 +77,12 @@ func initTrustedPlatform(router *gin.Engine) {
 }
 
 func getSubscriptionsOverview(c *gin.Context) {
-	subscriptionsOverview, error := scalecloud.GetSubscriptionsOverview(c)
+	token, ok := getBearerToken(c)
+	if !ok {
+		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Bearer token not found"})
+		return
+	}
+	subscriptionsOverview, error := scalecloud.GetSubscriptionsOverview(c, token)
 	if error != nil {
 		c.IndentedJSON(http.StatusNoContent, gin.H{"error": error.Error()})
 		return

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/scalecloud/scalecloud.de-api/mongo"
 	"github.com/stripe/stripe-go/v72"
 	"github.com/stripe/stripe-go/v72/customer"
 	"go.uber.org/zap"
@@ -20,6 +21,23 @@ func getCustomerByID(ctx context.Context, customerID string) (customerDetails *s
 	}
 	logger.Debug("Customer", zap.Any("customer", customer))
 	return customer, nil
+}
+
+func getCustomerIDByUID(ctx context.Context, uid string) (string, error) {
+	filter := mongo.User{
+		UID: uid,
+	}
+	userSearch, err := mongo.GetUser(ctx, filter)
+	if err != nil {
+		logger.Error("Error getting user", zap.Error(err))
+		return "", err
+	}
+	customerID := userSearch.CustomerID
+	if customerID == "" {
+		logger.Error("Customer ID is empty")
+		return "", errors.New("Customer ID is empty")
+	}
+	return customerID, nil
 }
 
 func CreateCustomer(ctx context.Context, email string) (*stripe.Customer, error) {

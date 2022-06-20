@@ -22,10 +22,9 @@ func IsAuthenticated(ctx context.Context, token string) bool {
 	return firebase.VerifyIDToken(ctx, token)
 }
 
-func GetSubscriptionsOverview(c context.Context) (subscriptionsOverview []stripe.SubscriptionOverview, err error) {
+func GetSubscriptionsOverview(c context.Context, token string) (subscriptionsOverview []stripe.SubscriptionOverview, err error) {
 	logger.Debug("GetSubscriptionsOverview")
-	customerID := "cus_IJNox8VXgkX2gU"
-	return stripe.GetSubscriptionsOverview(c, customerID)
+	return stripe.GetSubscriptionsOverview(c, token)
 }
 
 func GetSubscriptionByID(c context.Context, subscriptionID string) (subscriptionDetail stripe.SubscriptionDetail, err error) {

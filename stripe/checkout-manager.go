@@ -17,20 +17,10 @@ func CreateCheckoutSession(c context.Context, token, productID string) (Checkout
 		logger.Error("Error getting token details", zap.Error(err))
 		return CheckoutModel{}, err
 	}
-	if tokenDetails.UID == "" {
-		logger.Error("Customer ID is empty")
-		return CheckoutModel{}, errors.New("Customer ID is empty")
-	}
-	if tokenDetails.Email == "" {
-		logger.Error("Email is empty")
-		return CheckoutModel{}, errors.New("Email is empty")
-	}
-
 	filter := mongo.User{
 		UID: tokenDetails.UID,
 	}
-
-	customerID, err := getCustomerID(c, filter, tokenDetails)
+	customerID, err := searchOrCreateCustomer(c, filter, tokenDetails)
 	if err != nil {
 		logger.Error("Error getting customer ID", zap.Error(err))
 		return CheckoutModel{}, err
@@ -39,15 +29,12 @@ func CreateCheckoutSession(c context.Context, token, productID string) (Checkout
 		logger.Error("Customer ID is empty")
 		return CheckoutModel{}, errors.New("Customer ID is empty")
 	}
-
 	stripe.Key = getStripeKey()
-
 	price, err := getPrice(c, productID)
 	if err != nil {
 		logger.Error("Error getting price", zap.Error(err))
 		return CheckoutModel{}, err
 	}
-
 	domain := "https://scalecloud.de/checkout"
 	params := &stripe.CheckoutSessionParams{
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
@@ -74,7 +61,7 @@ func CreateCheckoutSession(c context.Context, token, productID string) (Checkout
 	return checkoutModel, nil
 }
 
-func createUser(c context.Context, tokenDetails firebase.TokenDetails) (mongo.User, error) {
+func createCustomerAndUser(c context.Context, tokenDetails firebase.TokenDetails) (mongo.User, error) {
 	customer, err := CreateCustomer(c, tokenDetails.Email)
 	if err != nil {
 		logger.Error("Error creating customer", zap.Error(err))
@@ -96,12 +83,12 @@ func createUser(c context.Context, tokenDetails firebase.TokenDetails) (mongo.Us
 	}
 }
 
-func getCustomerID(c context.Context, filter mongo.User, tokenDetails firebase.TokenDetails) (customerID string, err error) {
-	userSearch, err := mongo.GetUser(c, filter)
+func searchOrCreateCustomer(c context.Context, filter mongo.User, tokenDetails firebase.TokenDetails) (string, error) {
+	customerID, err := getCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
 		logger.Info("Could not find user in MongoDB. Going to create new Customer in MongoDB Database 'stripe' collection 'users'.")
 		logger.Debug("err", zap.Error(err))
-		newUser, err := createUser(c, tokenDetails)
+		newUser, err := createCustomerAndUser(c, tokenDetails)
 		if err != nil {
 			logger.Error("Error creating user", zap.Error(err))
 			return "", err
@@ -110,7 +97,7 @@ func getCustomerID(c context.Context, filter mongo.User, tokenDetails firebase.T
 			return newUser.CustomerID, nil
 		}
 	} else {
-		logger.Info("User was found in MongoDB with User.ID", zap.Any("user.ID", userSearch.UID))
-		return userSearch.CustomerID, nil
+		logger.Info("User was found in MongoDB with customerID", zap.Any("customerID", customerID))
+		return customerID, nil
 	}
 }
