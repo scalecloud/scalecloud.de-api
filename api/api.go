@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/autotls"
 	"github.com/gin-gonic/gin"
 	"github.com/scalecloud/scalecloud.de-api/scalecloud.de-api"
 	"github.com/scalecloud/scalecloud.de-api/stripe"
@@ -26,8 +25,8 @@ func startAPI() {
 	router := gin.Default()
 	initHeaders(router)
 	initRoutes(router)
-	// initCertificate(router)
-	// initTrustedPlatform(router)
+	initCertificate(router)
+	initTrustedPlatform(router)
 	startListening(router)
 }
 
@@ -66,16 +65,16 @@ func initRoutes(router *gin.Engine) {
 }
 
 func initCertificate(router *gin.Engine) {
-	logger.Info("init certificate")
-	error := autotls.Run(router, "api.scalecloud.de")
+	logger.Warn("init certificate not implemented yet.")
+	/* error := autotls.Run(router, "api.scalecloud.de")
 	if error != nil {
 		logger.Error("Could not setup certificate", zap.Error(error))
-	}
+	} */
 }
 
 func initTrustedPlatform(router *gin.Engine) {
-	logger.Info("init trusted platform")
-	router.TrustedPlatform = gin.PlatformGoogleAppEngine
+	logger.Info("init trusted platform not implemented yet.")
+	/* router.TrustedPlatform = gin.PlatformGoogleAppEngine */
 }
 
 func getSubscriptionsOverview(c *gin.Context) {
