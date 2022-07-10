@@ -3,6 +3,7 @@ package stripe
 import (
 	"context"
 	"errors"
+	"strconv"
 
 	"github.com/scalecloud/scalecloud.de-api/firebase"
 	"github.com/scalecloud/scalecloud.de-api/mongo"
@@ -36,6 +37,22 @@ func CreateCheckoutSession(c context.Context, token string, productmodel Product
 		logger.Error("Error getting price", zap.Error(err))
 		return CheckoutModel{}, err
 	}
+	metaData := price.Metadata
+	if err != nil {
+		logger.Warn("Error getting price metadata", zap.Error(err))
+		return CheckoutModel{}, errors.New("Price metadata not found")
+	}
+	trialPeriodDays, ok := metaData["trialPeriodDays"]
+	if !ok {
+		logger.Warn("trialPeriodDays not found", zap.Any("priceID", price.ID))
+		return CheckoutModel{}, errors.New("trialPeriodDays not found")
+	}
+	iTrialPeriodDays, err := strconv.ParseInt(trialPeriodDays, 10, 64)
+	if err != nil {
+		logger.Warn("Error converting trialPeriodDays to int", zap.Error(err))
+		return CheckoutModel{}, errors.New("Error converting trialPeriodDays to int")
+	}
+
 	domain := "https://scalecloud.de/checkout"
 	params := &stripe.CheckoutSessionParams{
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
@@ -46,6 +63,9 @@ func CreateCheckoutSession(c context.Context, token string, productmodel Product
 					Enabled: stripe.Bool(true),
 				},
 			},
+		},
+		SubscriptionData: &stripe.CheckoutSessionSubscriptionDataParams{
+			TrialPeriodDays: stripe.Int64(iTrialPeriodDays),
 		},
 		Mode:       stripe.String(string(stripe.CheckoutSessionModeSubscription)),
 		SuccessURL: stripe.String(domain + "/success.html"),
