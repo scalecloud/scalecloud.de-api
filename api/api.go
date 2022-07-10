@@ -61,6 +61,7 @@ func initRoutes(router *gin.Engine) {
 		dashboard.GET("/subscription/:id", getSubscriptionByID)
 		dashboard.GET("/billing-portal", getBillingPortal)
 		dashboard.POST("/create-checkout-session", createCheckoutSession)
+		dashboard.POST("/create-checkout-subscription", createCheckoutSubscription)
 	}
 }
 
@@ -154,7 +155,7 @@ func createCheckoutSession(c *gin.Context) {
 		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "quantity not found"})
 		return
 	}
-	logger.Debug("productID", zap.Any("quantity", productModel.Quantity))
+	logger.Debug("quantity", zap.Any("quantity", productModel.Quantity))
 	checkout, error := scalecloud.CreateCheckoutSession(c, token, productModel)
 	if error != nil {
 		c.IndentedJSON(http.StatusNoContent, gin.H{"error": error.Error()})
@@ -162,6 +163,38 @@ func createCheckoutSession(c *gin.Context) {
 	}
 	logger.Info("CreateCheckoutSession", zap.Any("checkout", checkout))
 	c.IndentedJSON(http.StatusOK, checkout)
+}
+
+func createCheckoutSubscription(c *gin.Context) {
+	token, ok := getBearerToken(c)
+	if !ok {
+		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": messageBearer})
+		return
+	}
+
+	var productModel stripe.ProductModel
+	if err := c.BindJSON(&productModel); err != nil {
+		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
+		return
+	}
+
+	if productModel.ProductID == "" {
+		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "productID not found"})
+		return
+	}
+	logger.Debug("productID", zap.Any("productID", productModel.ProductID))
+	if productModel.Quantity == 0 {
+		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "quantity not found"})
+		return
+	}
+	logger.Debug("quantity", zap.Any("quantity", productModel.Quantity))
+	secret, error := scalecloud.CreateCheckoutSubscription(c, token, productModel)
+	if error != nil {
+		c.IndentedJSON(http.StatusNoContent, gin.H{"error": error.Error()})
+		return
+	}
+	logger.Info("CreateSubscription", zap.Any("secret", secret))
+	c.IndentedJSON(http.StatusOK, secret)
 }
 
 // Authentication

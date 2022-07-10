@@ -41,3 +41,8 @@ func CreateCheckoutSession(c context.Context, token string, productmodel stripe.
 	logger.Debug("CreateCheckoutSession")
 	return stripe.CreateCheckoutSession(c, token, productmodel)
 }
+
+func CreateCheckoutSubscription(c context.Context, token string, productmodel stripe.ProductModel) (checkoutSubscriptionModel stripe.CheckoutSubscriptionModel, err error) {
+	logger.Debug("CreateCheckoutSubscription")
+	return stripe.CreateCheckoutSubscription(c, token, productmodel)
+}
