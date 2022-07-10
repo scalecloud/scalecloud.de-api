@@ -42,6 +42,9 @@ func CreateCheckoutSession(c context.Context, token string, productmodel Product
 			{
 				Price:    stripe.String(price.ID),
 				Quantity: stripe.Int64(productmodel.Quantity),
+				AdjustableQuantity: &stripe.CheckoutSessionLineItemAdjustableQuantityParams{
+					Enabled: stripe.Bool(true),
+				},
 			},
 		},
 		Mode:       stripe.String(string(stripe.CheckoutSessionModeSubscription)),
@@ -49,7 +52,6 @@ func CreateCheckoutSession(c context.Context, token string, productmodel Product
 		CancelURL:  stripe.String(domain + "/cancel.html"),
 		Customer:   stripe.String(customerID),
 	}
-
 	session, err := session.New(params)
 	if err != nil {
 		logger.Error("Error creating session", zap.Error(err))
