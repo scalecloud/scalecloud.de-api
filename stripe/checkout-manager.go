@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func CreateCheckoutSession(c context.Context, token, productID string) (CheckoutModel, error) {
+func CreateCheckoutSession(c context.Context, token string, productmodel ProductModel) (CheckoutModel, error) {
 	tokenDetails, err := firebase.GetTokenDetails(c, token)
 	if err != nil {
 		logger.Error("Error getting token details", zap.Error(err))
@@ -30,7 +30,8 @@ func CreateCheckoutSession(c context.Context, token, productID string) (Checkout
 		return CheckoutModel{}, errors.New("Customer ID is empty")
 	}
 	stripe.Key = getStripeKey()
-	price, err := getPrice(c, productID)
+
+	price, err := getPrice(c, productmodel.ProductID)
 	if err != nil {
 		logger.Error("Error getting price", zap.Error(err))
 		return CheckoutModel{}, err
@@ -40,7 +41,7 @@ func CreateCheckoutSession(c context.Context, token, productID string) (Checkout
 		LineItems: []*stripe.CheckoutSessionLineItemParams{
 			{
 				Price:    stripe.String(price.ID),
-				Quantity: stripe.Int64(1),
+				Quantity: stripe.Int64(productmodel.Quantity),
 			},
 		},
 		Mode:       stripe.String(string(stripe.CheckoutSessionModeSubscription)),

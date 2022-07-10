@@ -144,12 +144,18 @@ func createCheckoutSession(c *gin.Context) {
 		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
 		return
 	}
+
 	if productModel.ProductID == "" {
 		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "productID not found"})
 		return
 	}
 	logger.Debug("productID", zap.Any("productID", productModel.ProductID))
-	checkout, error := scalecloud.CreateCheckoutSession(c, token, productModel.ProductID)
+	if productModel.Quantity == 0 {
+		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "quantity not found"})
+		return
+	}
+	logger.Debug("productID", zap.Any("quantity", productModel.Quantity))
+	checkout, error := scalecloud.CreateCheckoutSession(c, token, productModel)
 	if error != nil {
 		c.IndentedJSON(http.StatusNoContent, gin.H{"error": error.Error()})
 		return

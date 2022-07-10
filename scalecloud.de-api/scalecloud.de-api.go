@@ -37,7 +37,7 @@ func GetBillingPortal(c context.Context, token string) (subscriptionDetail strip
 	return stripe.GetBillingPortal(c, token)
 }
 
-func CreateCheckoutSession(c context.Context, token, productID string) (checkoutModel stripe.CheckoutModel, err error) {
+func CreateCheckoutSession(c context.Context, token string, productmodel stripe.ProductModel) (checkoutModel stripe.CheckoutModel, err error) {
 	logger.Debug("CreateCheckoutSession")
-	return stripe.CreateCheckoutSession(c, token, productID)
+	return stripe.CreateCheckoutSession(c, token, productmodel)
 }
