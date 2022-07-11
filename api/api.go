@@ -60,8 +60,12 @@ func initRoutes(router *gin.Engine) {
 		dashboard.GET("/subscriptions", getSubscriptionsOverview)
 		dashboard.GET("/subscription/:id", getSubscriptionByID)
 		dashboard.GET("/billing-portal", getBillingPortal)
-		dashboard.POST("/create-checkout-session", createCheckoutSession)
-		dashboard.POST("/create-checkout-subscription", createCheckoutSubscription)
+	}
+	checkout := router.Group("/checkout")
+	dashboard.Use(AuthRequired)
+	{
+		checkout.POST("/create-checkout-session", createCheckoutSession)
+		checkout.POST("/create-checkout-subscription", createCheckoutSubscription)
 	}
 }
 

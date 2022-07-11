@@ -53,6 +53,7 @@ func CreateCheckoutSubscription(c context.Context, token string, productmodel Pr
 		return CheckoutSubscriptionModel{}, errors.New("trialPeriodDays not found")
 	}
 	iTrialPeriodDays, err := strconv.ParseInt(trialPeriodDays, 10, 64)
+	logger.Info("trialPeriodDays", zap.Any("trialPeriodDays", iTrialPeriodDays))
 	if err != nil {
 		logger.Warn("Error converting trialPeriodDays to int", zap.Error(err))
 		return CheckoutSubscriptionModel{}, errors.New("Error converting trialPeriodDays to int")
@@ -79,20 +80,24 @@ func CreateCheckoutSubscription(c context.Context, token string, productmodel Pr
 		TrialPeriodDays: stripe.Int64(iTrialPeriodDays),
 	}
 	subscriptionParams.AddExpand("latest_invoice.payment_intent")
-	s, err := sub.New(subscriptionParams)
+	subscription, err := sub.New(subscriptionParams)
 	if err != nil {
 		logger.Error("Error creating subscription", zap.Error(err))
 		return CheckoutSubscriptionModel{}, err
 	}
-
-	logger.Info("Subscription created", zap.Any("subscription", s))
-	logger.Info("s.LatestInvoice", zap.Any("LatestInvoice", s.LatestInvoice))
-	logger.Info("s.LatestInvoice.PaymentIntent", zap.Any("PaymentIntent", s.LatestInvoice.PaymentIntent))
-	logger.Info("s.LatestInvoice.PaymentIntent.ClientSecret", zap.Any("ClientSecret", s.LatestInvoice.PaymentIntent.ClientSecret))
+	logger.Info("Subscription created", zap.Any("subscriptionID", subscription.ID))
+	if subscription.LatestInvoice == nil {
+		logger.Error("Latest invoice is nil", zap.Any("subscriptionID", subscription.ID))
+		return CheckoutSubscriptionModel{}, errors.New("Latest invoice is nil")
+	}
+	if subscription.LatestInvoice.PaymentIntent == nil {
+		logger.Error("Payment intent is nil", zap.Any("subscriptionID", subscription.ID))
+		return CheckoutSubscriptionModel{}, errors.New("Payment intent is nil")
+	}
 
 	checkoutSubscriptionModel := CheckoutSubscriptionModel{
-		SubscriptionID: s.ID,
-		ClientSecret:   s.LatestInvoice.PaymentIntent.ClientSecret,
+		SubscriptionID: subscription.ID,
+		ClientSecret:   subscription.LatestInvoice.PaymentIntent.ClientSecret,
 	}
 	return checkoutSubscriptionModel, nil
 }
