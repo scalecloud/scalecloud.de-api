@@ -80,6 +80,7 @@ func CreateCheckoutSubscription(c context.Context, token string, productmodel Pr
 		TrialPeriodDays: stripe.Int64(iTrialPeriodDays),
 	}
 	subscriptionParams.AddExpand("latest_invoice.payment_intent")
+	//subscriptionParams.AddExpand("pending_setup_intent")
 	subscription, err := sub.New(subscriptionParams)
 	if err != nil {
 		logger.Error("Error creating subscription", zap.Error(err))

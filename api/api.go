@@ -162,7 +162,7 @@ func createCheckoutSession(c *gin.Context) {
 	logger.Debug("quantity", zap.Any("quantity", productModel.Quantity))
 	checkout, error := scalecloud.CreateCheckoutSession(c, token, productModel)
 	if error != nil {
-		c.IndentedJSON(http.StatusNoContent, gin.H{"error": error.Error()})
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
 	}
 	logger.Info("CreateCheckoutSession", zap.Any("checkout", checkout))
@@ -194,7 +194,7 @@ func createCheckoutSubscription(c *gin.Context) {
 	logger.Debug("quantity", zap.Any("quantity", productModel.Quantity))
 	secret, error := scalecloud.CreateCheckoutSubscription(c, token, productModel)
 	if error != nil {
-		c.IndentedJSON(http.StatusNoContent, gin.H{"error": error.Error()})
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
 	}
 	logger.Info("CreateSubscription", zap.Any("secret", secret))
