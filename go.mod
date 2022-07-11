@@ -51,7 +51,7 @@ require (
 	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/appengine/v2 v2.0.1 // indirect
-	google.golang.org/genproto v0.0.0-20220708155623-50e5f4832e73 // indirect
+	google.golang.org/genproto v0.0.0-20220711132622-b6f31b0ceb50 // indirect
 	google.golang.org/grpc v1.47.0 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
