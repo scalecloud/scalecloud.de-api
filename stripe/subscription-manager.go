@@ -80,25 +80,25 @@ func CreateCheckoutSubscription(c context.Context, token string, productmodel Pr
 		TrialPeriodDays: stripe.Int64(iTrialPeriodDays),
 	}
 	subscriptionParams.AddExpand("latest_invoice.payment_intent")
-	//subscriptionParams.AddExpand("pending_setup_intent")
+	subscriptionParams.AddExpand("pending_setup_intent")
 	subscription, err := sub.New(subscriptionParams)
 	if err != nil {
 		logger.Error("Error creating subscription", zap.Error(err))
 		return CheckoutSubscriptionModel{}, err
 	}
 	logger.Info("Subscription created", zap.Any("subscriptionID", subscription.ID))
-	if subscription.LatestInvoice == nil {
-		logger.Error("Latest invoice is nil", zap.Any("subscriptionID", subscription.ID))
-		return CheckoutSubscriptionModel{}, errors.New("Latest invoice is nil")
+	if subscription.PendingSetupIntent == nil {
+		logger.Error("Pending setup intent is nil")
+		return CheckoutSubscriptionModel{}, errors.New("Pending setup intent is nil")
 	}
-	if subscription.LatestInvoice.PaymentIntent == nil {
-		logger.Error("Payment intent is nil", zap.Any("subscriptionID", subscription.ID))
-		return CheckoutSubscriptionModel{}, errors.New("Payment intent is nil")
+	if subscription.PendingSetupIntent.ClientSecret == "" {
+		logger.Error("Pending setup intent client secret is nil")
+		return CheckoutSubscriptionModel{}, errors.New("Pending setup intent client secret is nil")
 	}
 
 	checkoutSubscriptionModel := CheckoutSubscriptionModel{
 		SubscriptionID: subscription.ID,
-		ClientSecret:   subscription.LatestInvoice.PaymentIntent.ClientSecret,
+		ClientSecret:   subscription.PendingSetupIntent.ClientSecret,
 	}
 	return checkoutSubscriptionModel, nil
 }
