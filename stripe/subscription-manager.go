@@ -53,7 +53,6 @@ func CreateCheckoutSubscription(c context.Context, token string, productmodel Pr
 		return CheckoutSubscriptionModel{}, errors.New("trialPeriodDays not found")
 	}
 	iTrialPeriodDays, err := strconv.ParseInt(trialPeriodDays, 10, 64)
-	logger.Info("trialPeriodDays", zap.Any("trialPeriodDays", iTrialPeriodDays))
 	if err != nil {
 		logger.Warn("Error converting trialPeriodDays to int", zap.Error(err))
 		return CheckoutSubscriptionModel{}, errors.New("Error converting trialPeriodDays to int")
