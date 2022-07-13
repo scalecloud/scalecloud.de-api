@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/gin-contrib/cors v1.4.0
 	go.uber.org/zap v1.21.0
-	google.golang.org/api v0.86.0
+	google.golang.org/api v0.87.0
 )
 
 require (
@@ -29,7 +29,7 @@ require (
 	github.com/googleapis/gax-go/v2 v2.4.0 // indirect
 	github.com/googleapis/go-type-adapters v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.15.7 // indirect
+	github.com/klauspost/compress v1.15.8 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
@@ -52,7 +52,7 @@ require (
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/appengine/v2 v2.0.1 // indirect
 	google.golang.org/genproto v0.0.0-20220712132514-bdd2acd4974d // indirect
-	google.golang.org/grpc v1.47.0 // indirect
+	google.golang.org/grpc v1.48.0 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
@@ -61,7 +61,7 @@ require (
 	firebase.google.com/go/v4 v4.8.0
 	github.com/gin-gonic/gin v1.8.1
 	github.com/stripe/stripe-go v70.15.0+incompatible
-	github.com/stripe/stripe-go/v72 v72.118.0
+	github.com/stripe/stripe-go/v72 v72.119.0
 	go.mongodb.org/mongo-driver v1.9.1
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
