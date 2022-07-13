@@ -71,7 +71,8 @@ func CreateCheckoutSubscription(c context.Context, token string, productmodel Pr
 		Customer: stripe.String(customerID),
 		Items: []*stripe.SubscriptionItemsParams{
 			{
-				Price: stripe.String(price.ID),
+				Price:    stripe.String(price.ID),
+				Quantity: stripe.Int64(productmodel.Quantity),
 			},
 		},
 		PaymentSettings: paymentSettings,
@@ -85,7 +86,7 @@ func CreateCheckoutSubscription(c context.Context, token string, productmodel Pr
 		logger.Error("Error creating subscription", zap.Error(err))
 		return CheckoutSubscriptionModel{}, err
 	}
-	logger.Info("Subscription created", zap.Any("subscriptionID", subscription.ID))
+	logger.Info("Subscription created and waiting for payment.", zap.Any("subscriptionID", subscription.ID))
 	if subscription.PendingSetupIntent == nil {
 		logger.Error("Pending setup intent is nil")
 		return CheckoutSubscriptionModel{}, errors.New("Pending setup intent is nil")
