@@ -37,12 +37,17 @@ func GetBillingPortal(c context.Context, token string) (subscriptionDetail strip
 	return stripe.GetBillingPortal(c, token)
 }
 
-func CreateCheckoutSession(c context.Context, token string, productmodel stripe.ProductModel) (checkoutModel stripe.CheckoutModel, err error) {
+func CreateCheckoutSession(c context.Context, token string, checkoutModelPortalRequest stripe.CheckoutModelPortalRequest) (checkoutModel stripe.CheckoutModelPortalReturn, err error) {
 	logger.Debug("CreateCheckoutSession")
-	return stripe.CreateCheckoutSession(c, token, productmodel)
+	return stripe.CreateCheckoutSession(c, token, checkoutModelPortalRequest)
 }
 
-func CreateCheckoutSubscription(c context.Context, token string, productmodel stripe.ProductModel) (checkoutSubscriptionModel stripe.CheckoutSubscriptionModel, err error) {
+func CreateCheckoutSubscription(c context.Context, token string, checkoutIntegrationRequest stripe.CheckoutIntegrationRequest) (checkoutSubscriptionModel stripe.CheckoutIntegrationReturn, err error) {
 	logger.Debug("CreateCheckoutSubscription")
-	return stripe.CreateCheckoutSubscription(c, token, productmodel)
+	return stripe.CreateCheckoutSubscription(c, token, checkoutIntegrationRequest)
+}
+
+func UpdateCheckoutSubscription(c context.Context, token string, checkoutIntegrationUpdateRequest stripe.CheckoutIntegrationUpdateRequest) (checkoutSubscriptionModel stripe.CheckoutIntegrationUpdateReturn, err error) {
+	logger.Debug("UpdateCheckoutSubscription")
+	return stripe.UpdateCheckoutSubscription(c, token, checkoutIntegrationUpdateRequest)
 }

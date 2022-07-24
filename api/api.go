@@ -61,11 +61,16 @@ func initRoutes(router *gin.Engine) {
 		dashboard.GET("/subscription/:id", getSubscriptionByID)
 		dashboard.GET("/billing-portal", getBillingPortal)
 	}
-	checkout := router.Group("/checkout")
+	checkoutPortal := router.Group("/checkout-portal")
 	dashboard.Use(AuthRequired)
 	{
-		checkout.POST("/create-checkout-session", createCheckoutSession)
-		checkout.POST("/create-checkout-subscription", createCheckoutSubscription)
+		checkoutPortal.POST("/create-checkout-session", createCheckoutSession)
+	}
+	checkoutIntegration := router.Group("/checkout-integration")
+	dashboard.Use(AuthRequired)
+	{
+		checkoutIntegration.POST("/create-subscription", createCheckoutSubscription)
+		checkoutIntegration.POST("/create-update-subscription", updateCheckoutSubscription)
 	}
 }
 
@@ -144,23 +149,23 @@ func createCheckoutSession(c *gin.Context) {
 		return
 	}
 
-	var productModel stripe.ProductModel
-	if err := c.BindJSON(&productModel); err != nil {
+	var checkoutModelPortalRequest stripe.CheckoutModelPortalRequest
+	if err := c.BindJSON(&checkoutModelPortalRequest); err != nil {
 		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
 		return
 	}
 
-	if productModel.ProductID == "" {
+	if checkoutModelPortalRequest.ProductID == "" {
 		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "productID not found"})
 		return
 	}
-	logger.Debug("productID", zap.Any("productID", productModel.ProductID))
-	if productModel.Quantity == 0 {
+	logger.Debug("productID", zap.Any("productID", checkoutModelPortalRequest.ProductID))
+	if checkoutModelPortalRequest.Quantity == 0 {
 		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "quantity not found"})
 		return
 	}
-	logger.Debug("quantity", zap.Any("quantity", productModel.Quantity))
-	checkout, error := scalecloud.CreateCheckoutSession(c, token, productModel)
+	logger.Debug("quantity", zap.Any("quantity", checkoutModelPortalRequest.Quantity))
+	checkout, error := scalecloud.CreateCheckoutSession(c, token, checkoutModelPortalRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
@@ -176,28 +181,60 @@ func createCheckoutSubscription(c *gin.Context) {
 		return
 	}
 
-	var productModel stripe.ProductModel
-	if err := c.BindJSON(&productModel); err != nil {
+	var checkoutIntegrationRequest stripe.CheckoutIntegrationRequest
+	if err := c.BindJSON(&checkoutIntegrationRequest); err != nil {
 		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
 		return
 	}
 
-	if productModel.ProductID == "" {
+	if checkoutIntegrationRequest.ProductID == "" {
 		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "productID not found"})
 		return
 	}
-	logger.Debug("productID", zap.Any("productID", productModel.ProductID))
-	if productModel.Quantity == 0 {
+	logger.Debug("productID", zap.Any("productID", checkoutIntegrationRequest.ProductID))
+	if checkoutIntegrationRequest.Quantity == 0 {
 		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "quantity not found"})
 		return
 	}
-	logger.Debug("quantity", zap.Any("quantity", productModel.Quantity))
-	secret, error := scalecloud.CreateCheckoutSubscription(c, token, productModel)
+	logger.Debug("quantity", zap.Any("quantity", checkoutIntegrationRequest.Quantity))
+	secret, error := scalecloud.CreateCheckoutSubscription(c, token, checkoutIntegrationRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
 	}
 	logger.Info("CreateSubscription", zap.Any("secret", secret))
+	c.IndentedJSON(http.StatusOK, secret)
+}
+
+func updateCheckoutSubscription(c *gin.Context) {
+	token, ok := getBearerToken(c)
+	if !ok {
+		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": messageBearer})
+		return
+	}
+
+	var checkoutIntegrationUpdateRequest stripe.CheckoutIntegrationUpdateRequest
+	if err := c.BindJSON(&checkoutIntegrationUpdateRequest); err != nil {
+		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
+		return
+	}
+
+	if checkoutIntegrationUpdateRequest.SubscriptionID == "" {
+		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "SubscriptionID not found"})
+		return
+	}
+	logger.Debug("subscriptionID", zap.Any("subscriptionID", checkoutIntegrationUpdateRequest.SubscriptionID))
+	if checkoutIntegrationUpdateRequest.Quantity == 0 {
+		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "quantity not found"})
+		return
+	}
+	logger.Debug("quantity", zap.Any("quantity", checkoutIntegrationUpdateRequest.Quantity))
+	secret, error := scalecloud.UpdateCheckoutSubscription(c, token, checkoutIntegrationUpdateRequest)
+	if error != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
+		return
+	}
+	logger.Info("UpdateCheckoutSubscription", zap.Any("secret", secret))
 	c.IndentedJSON(http.StatusOK, secret)
 }
 
