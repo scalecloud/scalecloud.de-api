@@ -5,6 +5,6 @@ type CheckoutModelPortalRequest struct {
 	Quantity  int64  `json:"quantity"`
 }
 
-type CheckoutModelPortalReturn struct {
+type CheckoutModelPortalReply struct {
 	URL string `json:"url"`
 }

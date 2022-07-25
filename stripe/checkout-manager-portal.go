@@ -12,11 +12,11 @@ import (
 	"go.uber.org/zap"
 )
 
-func CreateCheckoutSession(c context.Context, token string, checkoutModelPortalRequest CheckoutModelPortalRequest) (CheckoutModelPortalReturn, error) {
+func CreateCheckoutSession(c context.Context, token string, checkoutModelPortalRequest CheckoutModelPortalRequest) (CheckoutModelPortalReply, error) {
 	tokenDetails, err := firebase.GetTokenDetails(c, token)
 	if err != nil {
 		logger.Error("Error getting token details", zap.Error(err))
-		return CheckoutModelPortalReturn{}, err
+		return CheckoutModelPortalReply{}, err
 	}
 	filter := mongo.User{
 		UID: tokenDetails.UID,
@@ -24,33 +24,33 @@ func CreateCheckoutSession(c context.Context, token string, checkoutModelPortalR
 	customerID, err := searchOrCreateCustomer(c, filter, tokenDetails)
 	if err != nil {
 		logger.Error("Error getting customer ID", zap.Error(err))
-		return CheckoutModelPortalReturn{}, err
+		return CheckoutModelPortalReply{}, err
 	}
 	if customerID == "" {
 		logger.Error("Customer ID is empty")
-		return CheckoutModelPortalReturn{}, errors.New("Customer ID is empty")
+		return CheckoutModelPortalReply{}, errors.New("Customer ID is empty")
 	}
 	stripe.Key = getStripeKey()
 
 	price, err := getPrice(c, checkoutModelPortalRequest.ProductID)
 	if err != nil {
 		logger.Error("Error getting price", zap.Error(err))
-		return CheckoutModelPortalReturn{}, err
+		return CheckoutModelPortalReply{}, err
 	}
 	metaData := price.Metadata
 	if err != nil {
 		logger.Warn("Error getting price metadata", zap.Error(err))
-		return CheckoutModelPortalReturn{}, errors.New("Price metadata not found")
+		return CheckoutModelPortalReply{}, errors.New("Price metadata not found")
 	}
 	trialPeriodDays, ok := metaData["trialPeriodDays"]
 	if !ok {
 		logger.Warn("trialPeriodDays not found", zap.Any("priceID", price.ID))
-		return CheckoutModelPortalReturn{}, errors.New("trialPeriodDays not found")
+		return CheckoutModelPortalReply{}, errors.New("trialPeriodDays not found")
 	}
 	iTrialPeriodDays, err := strconv.ParseInt(trialPeriodDays, 10, 64)
 	if err != nil {
 		logger.Warn("Error converting trialPeriodDays to int", zap.Error(err))
-		return CheckoutModelPortalReturn{}, errors.New("Error converting trialPeriodDays to int")
+		return CheckoutModelPortalReply{}, errors.New("Error converting trialPeriodDays to int")
 	}
 
 	domain := "https://scalecloud.de/checkout"
@@ -75,10 +75,10 @@ func CreateCheckoutSession(c context.Context, token string, checkoutModelPortalR
 	session, err := session.New(params)
 	if err != nil {
 		logger.Error("Error creating session", zap.Error(err))
-		return CheckoutModelPortalReturn{}, err
+		return CheckoutModelPortalReply{}, err
 	}
 
-	checkoutModel := CheckoutModelPortalReturn{
+	checkoutModel := CheckoutModelPortalReply{
 		URL: session.URL,
 	}
 	return checkoutModel, nil

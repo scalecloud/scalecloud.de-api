@@ -5,7 +5,7 @@ type CheckoutIntegrationRequest struct {
 	Quantity  int64  `json:"quantity"`
 }
 
-type CheckoutIntegrationReturn struct {
+type CheckoutIntegrationReply struct {
 	SubscriptionID string `json:"subscriptionId"`
 	ClientSecret   string `json:"clientSecret"`
 	Quantity       int64  `json:"quantity"`
@@ -16,7 +16,7 @@ type CheckoutIntegrationUpdateRequest struct {
 	Quantity       int64  `json:"quantity"`
 }
 
-type CheckoutIntegrationUpdateReturn struct {
+type CheckoutIntegrationUpdateReply struct {
 	SubscriptionID string `json:"subscriptionId"`
 	ClientSecret   string `json:"clientSecret"`
 	Quantity       int64  `json:"quantity"`

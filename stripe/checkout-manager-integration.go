@@ -12,11 +12,11 @@ import (
 	"go.uber.org/zap"
 )
 
-func CreateCheckoutSubscription(c context.Context, token string, checkoutIntegrationRequest CheckoutIntegrationRequest) (CheckoutIntegrationReturn, error) {
+func CreateCheckoutSubscription(c context.Context, token string, checkoutIntegrationRequest CheckoutIntegrationRequest) (CheckoutIntegrationReply, error) {
 	tokenDetails, err := firebase.GetTokenDetails(c, token)
 	if err != nil {
 		logger.Error("Error getting token details", zap.Error(err))
-		return CheckoutIntegrationReturn{}, err
+		return CheckoutIntegrationReply{}, err
 	}
 	filter := mongo.User{
 		UID: tokenDetails.UID,
@@ -24,33 +24,33 @@ func CreateCheckoutSubscription(c context.Context, token string, checkoutIntegra
 	customerID, err := searchOrCreateCustomer(c, filter, tokenDetails)
 	if err != nil {
 		logger.Error("Error getting customer ID", zap.Error(err))
-		return CheckoutIntegrationReturn{}, err
+		return CheckoutIntegrationReply{}, err
 	}
 	if customerID == "" {
 		logger.Error("Customer ID is empty")
-		return CheckoutIntegrationReturn{}, errors.New("Customer ID is empty")
+		return CheckoutIntegrationReply{}, errors.New("Customer ID is empty")
 	}
 	stripe.Key = getStripeKey()
 
 	price, err := getPrice(c, checkoutIntegrationRequest.ProductID)
 	if err != nil {
 		logger.Error("Error getting price", zap.Error(err))
-		return CheckoutIntegrationReturn{}, err
+		return CheckoutIntegrationReply{}, err
 	}
 	metaData := price.Metadata
 	if err != nil {
 		logger.Warn("Error getting price metadata", zap.Error(err))
-		return CheckoutIntegrationReturn{}, errors.New("Price metadata not found")
+		return CheckoutIntegrationReply{}, errors.New("Price metadata not found")
 	}
 	trialPeriodDays, ok := metaData["trialPeriodDays"]
 	if !ok {
 		logger.Warn("trialPeriodDays not found", zap.Any("priceID", price.ID))
-		return CheckoutIntegrationReturn{}, errors.New("trialPeriodDays not found")
+		return CheckoutIntegrationReply{}, errors.New("trialPeriodDays not found")
 	}
 	iTrialPeriodDays, err := strconv.ParseInt(trialPeriodDays, 10, 64)
 	if err != nil {
 		logger.Warn("Error converting trialPeriodDays to int", zap.Error(err))
-		return CheckoutIntegrationReturn{}, errors.New("Error converting trialPeriodDays to int")
+		return CheckoutIntegrationReply{}, errors.New("Error converting trialPeriodDays to int")
 	}
 
 	// Automatically save the payment method to the subscription
@@ -79,35 +79,35 @@ func CreateCheckoutSubscription(c context.Context, token string, checkoutIntegra
 	subscription, err := sub.New(subscriptionParams)
 	if err != nil {
 		logger.Error("Error creating subscription", zap.Error(err))
-		return CheckoutIntegrationReturn{}, err
+		return CheckoutIntegrationReply{}, err
 	}
 	logger.Info("Subscription created and waiting for payment.", zap.Any("subscriptionID", subscription.ID))
 	if subscription.PendingSetupIntent == nil {
 		logger.Error("Pending setup intent is nil")
-		return CheckoutIntegrationReturn{}, errors.New("Pending setup intent is nil")
+		return CheckoutIntegrationReply{}, errors.New("Pending setup intent is nil")
 	}
 	if subscription.PendingSetupIntent.ClientSecret == "" {
 		logger.Error("Pending setup intent client secret is nil")
-		return CheckoutIntegrationReturn{}, errors.New("Pending setup intent client secret is nil")
+		return CheckoutIntegrationReply{}, errors.New("Pending setup intent client secret is nil")
 	}
 
-	checkoutSubscriptionModel := CheckoutIntegrationReturn{
+	checkoutSubscriptionModel := CheckoutIntegrationReply{
 		SubscriptionID: subscription.ID,
 		ClientSecret:   subscription.PendingSetupIntent.ClientSecret,
 	}
 	return checkoutSubscriptionModel, nil
 }
 
-func UpdateCheckoutSubscription(c context.Context, token string, checkoutIntegrationUpdateRequest CheckoutIntegrationUpdateRequest) (CheckoutIntegrationUpdateReturn, error) {
+func UpdateCheckoutSubscription(c context.Context, token string, checkoutIntegrationUpdateRequest CheckoutIntegrationUpdateRequest) (CheckoutIntegrationUpdateReply, error) {
 	tokenDetails, err := firebase.GetTokenDetails(c, token)
 	if err != nil {
 		logger.Error("Error getting token details", zap.Error(err))
-		return CheckoutIntegrationUpdateReturn{}, err
+		return CheckoutIntegrationUpdateReply{}, err
 	}
 	customerIDFromUID, err := getCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
 		logger.Error("Error getting customerID", zap.Error(err))
-		return CheckoutIntegrationUpdateReturn{}, err
+		return CheckoutIntegrationUpdateReply{}, err
 	}
 
 	stripe.Key = getStripeKey()
@@ -115,26 +115,26 @@ func UpdateCheckoutSubscription(c context.Context, token string, checkoutIntegra
 	subscription, err := getSubscriptionByID(c, checkoutIntegrationUpdateRequest.SubscriptionID)
 	if err != nil {
 		logger.Error("Error getting subscription", zap.Error(err))
-		return CheckoutIntegrationUpdateReturn{}, err
+		return CheckoutIntegrationUpdateReply{}, err
 	}
 	if subscription.Customer == nil {
 		logger.Error("Customer is nil")
-		return CheckoutIntegrationUpdateReturn{}, errors.New("Customer is nil")
+		return CheckoutIntegrationUpdateReply{}, errors.New("Customer is nil")
 	}
 	customerIDFromSubscription := *&subscription.Customer.ID
 	if customerIDFromSubscription == "" {
 		logger.Error("Customer ID is empty")
-		return CheckoutIntegrationUpdateReturn{}, errors.New("Customer ID is empty")
+		return CheckoutIntegrationUpdateReply{}, errors.New("Customer ID is empty")
 	}
 	if customerIDFromUID != customerIDFromSubscription {
 		logger.Error("Customer ID from UID does not match customer ID from subscription")
-		return CheckoutIntegrationUpdateReturn{}, errors.New("CustomerID from UID does not match customerID from subscription")
+		return CheckoutIntegrationUpdateReply{}, errors.New("CustomerID from UID does not match customerID from subscription")
 	}
 
 	subscriptionItemID := subscription.Items.Data[0].ID
 	if subscriptionItemID == "" {
 		logger.Error("Subscription item ID is empty")
-		return CheckoutIntegrationUpdateReturn{}, errors.New("Subscription item ID is empty")
+		return CheckoutIntegrationUpdateReply{}, errors.New("Subscription item ID is empty")
 	}
 	params := &stripe.SubscriptionParams{
 		Quantity: stripe.Int64(checkoutIntegrationUpdateRequest.Quantity),
@@ -145,13 +145,13 @@ func UpdateCheckoutSubscription(c context.Context, token string, checkoutIntegra
 	)
 	if err != nil {
 		logger.Error("Error updating subscription", zap.Error(err))
-		return CheckoutIntegrationUpdateReturn{}, err
+		return CheckoutIntegrationUpdateReply{}, err
 	}
 	if checkoutIntegrationUpdateRequest.Quantity != subscriptionUpdated.Quantity {
 		logger.Error("Requested Quantity does not match updated qantity")
-		return CheckoutIntegrationUpdateReturn{}, errors.New("Requested Quantity does not match updated qantity")
+		return CheckoutIntegrationUpdateReply{}, errors.New("Requested Quantity does not match updated qantity")
 	}
-	checkoutIntegrationUpdateReturn := CheckoutIntegrationUpdateReturn{
+	checkoutIntegrationUpdateReturn := CheckoutIntegrationUpdateReply{
 		SubscriptionID: subscriptionUpdated.ID,
 		ClientSecret:   subscriptionUpdated.PendingSetupIntent.ClientSecret,
 		Quantity:       subscriptionUpdated.Quantity,
