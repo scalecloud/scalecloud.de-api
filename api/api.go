@@ -69,8 +69,8 @@ func initRoutes(router *gin.Engine) {
 	checkoutIntegration := router.Group("/checkout-integration")
 	dashboard.Use(AuthRequired)
 	{
-		checkoutIntegration.POST("/create-subscription", createCheckoutSubscription)
-		checkoutIntegration.POST("/create-update-subscription", updateCheckoutSubscription)
+		checkoutIntegration.POST("/create-checkout-subscription", createCheckoutSubscription)
+		checkoutIntegration.POST("/update-checkout-subscription", updateCheckoutSubscription)
 	}
 }
 
