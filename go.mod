@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/gin-contrib/cors v1.4.0
 	go.uber.org/zap v1.21.0
-	google.golang.org/api v0.89.0
+	google.golang.org/api v0.90.0
 )
 
 require (
@@ -42,7 +42,7 @@ require (
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a // indirect
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa // indirect
-	golang.org/x/net v0.0.0-20220728153142-1f511ac62c11 // indirect
+	golang.org/x/net v0.0.0-20220728211354-c7608f3a8462 // indirect
 	golang.org/x/oauth2 v0.0.0-20220722155238-128564f6959c // indirect
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 // indirect
 	golang.org/x/sys v0.0.0-20220728004956-3c1f35247d10 // indirect
@@ -50,7 +50,7 @@ require (
 	golang.org/x/xerrors v0.0.0-20220609144429-65e65417b02f // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/appengine/v2 v2.0.1 // indirect
-	google.golang.org/genproto v0.0.0-20220725144611-272f38e5d71b // indirect
+	google.golang.org/genproto v0.0.0-20220728213248-dd149ef739b9 // indirect
 	google.golang.org/grpc v1.48.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
