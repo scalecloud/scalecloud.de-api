@@ -94,6 +94,7 @@ func CreateCheckoutSubscription(c context.Context, token string, checkoutIntegra
 	checkoutSubscriptionModel := CheckoutIntegrationReply{
 		SubscriptionID: subscription.ID,
 		ClientSecret:   subscription.PendingSetupIntent.ClientSecret,
+		Quantity:       subscription.Quantity,
 	}
 	return checkoutSubscriptionModel, nil
 }
