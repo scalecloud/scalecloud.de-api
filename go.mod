@@ -42,7 +42,7 @@ require (
 	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a // indirect
 	go.opencensus.io v0.23.0 // indirect
 	golang.org/x/crypto v0.0.0-20220919173607-35f4265a4bc0 // indirect
-	golang.org/x/net v0.0.0-20220919171627-f8f703f97925 // indirect
+	golang.org/x/net v0.0.0-20220920152717-4a395b0a80a1 // indirect
 	golang.org/x/oauth2 v0.0.0-20220909003341-f21342109be1 // indirect
 	golang.org/x/sync v0.0.0-20220907140024-f12130a52804 // indirect
 	golang.org/x/sys v0.0.0-20220919091848-fb04ddd9f9c8 // indirect
