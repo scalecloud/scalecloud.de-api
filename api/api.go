@@ -71,6 +71,7 @@ func initRoutes(router *gin.Engine) {
 	{
 		checkoutIntegration.POST("/create-checkout-subscription", createCheckoutSubscription)
 		checkoutIntegration.POST("/update-checkout-subscription", updateCheckoutSubscription)
+		checkoutIntegration.POST("/get-checkout-product", getCheckoutProduct)
 	}
 }
 
@@ -236,6 +237,33 @@ func updateCheckoutSubscription(c *gin.Context) {
 	}
 	logger.Info("UpdateCheckoutSubscription", zap.Any("secret", secret))
 	c.IndentedJSON(http.StatusOK, secret)
+}
+
+func getCheckoutProduct(c *gin.Context) {
+	token, ok := getBearerToken(c)
+	if !ok {
+		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": messageBearer})
+		return
+	}
+
+	var checkoutProductRequest stripe.CheckoutProductRequest
+	if err := c.BindJSON(&checkoutProductRequest); err != nil {
+		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
+		return
+	}
+
+	if checkoutProductRequest.SubscriptionID == "" {
+		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "SubscriptionID not found"})
+		return
+	}
+	logger.Debug("subscriptionID", zap.Any("subscriptionID", checkoutProductRequest.SubscriptionID))
+	checkoutProductReply, error := scalecloud.GetCheckoutProduct(c, token, checkoutProductRequest)
+	if error != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
+		return
+	}
+	logger.Info("GetCheckoutProduct", zap.Any("checkoutProductReply", checkoutProductReply))
+	c.IndentedJSON(http.StatusOK, checkoutProductReply)
 }
 
 // Authentication

@@ -21,3 +21,17 @@ type CheckoutIntegrationUpdateReply struct {
 	ClientSecret   string `json:"clientSecret"`
 	Quantity       int64  `json:"quantity"`
 }
+
+type CheckoutProductRequest struct {
+	SubscriptionID string `json:"subscriptionId"`
+}
+
+type CheckoutProductReply struct {
+	SubscriptionID string `json:"subscriptionId"`
+	ProductID      string `json:"productID"`
+	Name           string `json:"name"`
+	StorageAmount  int64  `json:"storageAmount"`
+	StorageUnit    string `json:"storageUnit"`
+	TrialDays      int64  `json:"trialDays"`
+	PricePerMonth  int64  `json:"pricePerMonth"`
+}

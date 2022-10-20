@@ -159,3 +159,90 @@ func UpdateCheckoutSubscription(c context.Context, token string, checkoutIntegra
 	}
 	return checkoutIntegrationUpdateReturn, nil
 }
+
+func GetCheckoutProduct(c context.Context, token string, checkoutProductRequest CheckoutProductRequest) (CheckoutProductReply, error) {
+	tokenDetails, err := firebase.GetTokenDetails(c, token)
+	if err != nil {
+		logger.Error("Error getting token details", zap.Error(err))
+		return CheckoutProductReply{}, err
+	}
+	customerIDFromUID, err := getCustomerIDByUID(c, tokenDetails.UID)
+	if err != nil {
+		logger.Error("Error getting customerID", zap.Error(err))
+		return CheckoutProductReply{}, err
+	}
+
+	stripe.Key = getStripeKey()
+
+	subscription, err := getSubscriptionByID(c, checkoutProductRequest.SubscriptionID)
+	if err != nil {
+		logger.Error("Error getting subscription", zap.Error(err))
+		return CheckoutProductReply{}, err
+	}
+	if subscription.Customer == nil {
+		logger.Error("Customer is nil")
+		return CheckoutProductReply{}, errors.New("Customer is nil")
+	}
+	customerIDFromSubscription := *&subscription.Customer.ID
+	if customerIDFromSubscription == "" {
+		logger.Error("Customer ID is empty")
+		return CheckoutProductReply{}, errors.New("Customer ID is empty")
+	}
+	if customerIDFromUID != customerIDFromSubscription {
+		logger.Error("Customer ID from UID does not match customer ID from subscription")
+		return CheckoutProductReply{}, errors.New("CustomerID from UID does not match customerID from subscription")
+	}
+	subscriptionItem := subscription.Items.Data[0]
+	if subscriptionItem == nil {
+		logger.Error("Subscription item is nill")
+		return CheckoutProductReply{}, errors.New("Subscription item is nill")
+	}
+	price, err := getPrice(c, subscriptionItem.Plan.Product.ID)
+	if err != nil {
+		logger.Error("Error getting price", zap.Error(err))
+		return CheckoutProductReply{}, err
+	}
+	metaData := price.Metadata
+	if err != nil {
+		logger.Warn("Error getting price metadata", zap.Error(err))
+		return CheckoutProductReply{}, errors.New("Price metadata not found")
+	}
+	trialPeriodDays, ok := metaData["trialPeriodDays"]
+	if !ok {
+		logger.Warn("trialPeriodDays not found", zap.Any("priceID", price.ID))
+		return CheckoutProductReply{}, errors.New("trialPeriodDays not found")
+	}
+	iTrialPeriodDays, err := strconv.ParseInt(trialPeriodDays, 10, 64)
+	if err != nil {
+		logger.Warn("Error converting trialPeriodDays to int", zap.Error(err))
+		return CheckoutProductReply{}, errors.New("Error converting trialPeriodDays to int")
+	}
+
+	storageAmount, ok := metaData["storageAmount"]
+	if !ok {
+		logger.Warn("storageAmount not found", zap.Any("priceID", price.ID))
+		return CheckoutProductReply{}, errors.New("storageAmount not found")
+	}
+	iStorageAmount, err := strconv.ParseInt(storageAmount, 10, 64)
+	if err != nil {
+		logger.Warn("Error converting storageAmount to int", zap.Error(err))
+		return CheckoutProductReply{}, errors.New("Error converting storageAmount to int")
+	}
+
+	storageUnit, ok := metaData["storageUnit"]
+	if !ok {
+		logger.Warn("StorageUnit not found", zap.Any("priceID", price.ID))
+		return CheckoutProductReply{}, errors.New("StorageUnit not found")
+	}
+
+	checkoutProductReply := CheckoutProductReply{
+		SubscriptionID: subscription.ID,
+		ProductID:      price.Product.ID,
+		Name:           price.Product.Name,
+		StorageAmount:  iStorageAmount,
+		StorageUnit:    storageUnit,
+		TrialDays:      iTrialPeriodDays,
+		PricePerMonth:  price.UnitAmount,
+	}
+	return checkoutProductReply, nil
+}

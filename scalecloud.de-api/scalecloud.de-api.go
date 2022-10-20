@@ -51,3 +51,8 @@ func UpdateCheckoutSubscription(c context.Context, token string, checkoutIntegra
 	logger.Debug("UpdateCheckoutSubscription")
 	return stripe.UpdateCheckoutSubscription(c, token, checkoutIntegrationUpdateRequest)
 }
+
+func GetCheckoutProduct(c context.Context, token string, checkoutProductRequest stripe.CheckoutProductRequest) (checkoutProductReply stripe.CheckoutProductReply, err error) {
+	logger.Debug("GetCheckoutProduct")
+	return stripe.GetCheckoutProduct(c, token, checkoutProductRequest)
+}
