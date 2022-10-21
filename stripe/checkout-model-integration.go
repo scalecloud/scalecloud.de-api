@@ -6,28 +6,28 @@ type CheckoutIntegrationRequest struct {
 }
 
 type CheckoutIntegrationReply struct {
-	SubscriptionID string `json:"subscriptionId"`
+	SubscriptionID string `json:"subscriptionID"`
 	ClientSecret   string `json:"clientSecret"`
 	Quantity       int64  `json:"quantity"`
 }
 
 type CheckoutIntegrationUpdateRequest struct {
-	SubscriptionID string `json:"subscriptionId"`
+	SubscriptionID string `json:"subscriptionID"`
 	Quantity       int64  `json:"quantity"`
 }
 
 type CheckoutIntegrationUpdateReply struct {
-	SubscriptionID string `json:"subscriptionId"`
+	SubscriptionID string `json:"subscriptionID"`
 	ClientSecret   string `json:"clientSecret"`
 	Quantity       int64  `json:"quantity"`
 }
 
 type CheckoutProductRequest struct {
-	SubscriptionID string `json:"subscriptionId"`
+	SubscriptionID string `json:"subscriptionID"`
 }
 
 type CheckoutProductReply struct {
-	SubscriptionID string `json:"subscriptionId"`
+	SubscriptionID string `json:"subscriptionID"`
 	ProductID      string `json:"productID"`
 	Name           string `json:"name"`
 	StorageAmount  int64  `json:"storageAmount"`
