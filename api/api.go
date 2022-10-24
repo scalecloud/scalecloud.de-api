@@ -62,12 +62,13 @@ func initRoutes(router *gin.Engine) {
 		dashboard.GET("/billing-portal", getBillingPortal)
 	}
 	checkoutPortal := router.Group("/checkout-portal")
-	dashboard.Use(AuthRequired)
+	checkoutPortal.Use(AuthRequired)
 	{
 		checkoutPortal.POST("/create-checkout-session", createCheckoutSession)
+
 	}
 	checkoutIntegration := router.Group("/checkout-integration")
-	dashboard.Use(AuthRequired)
+	checkoutIntegration.Use(AuthRequired)
 	{
 		checkoutIntegration.POST("/create-checkout-subscription", createCheckoutSubscription)
 		checkoutIntegration.POST("/update-checkout-subscription", updateCheckoutSubscription)
@@ -240,6 +241,7 @@ func updateCheckoutSubscription(c *gin.Context) {
 }
 
 func getCheckoutProduct(c *gin.Context) {
+	logger.Info("getCheckoutProduct")
 	token, ok := getBearerToken(c)
 	if !ok {
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": messageBearer})
