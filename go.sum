@@ -50,6 +50,8 @@ github.com/bytedance/sonic v1.8.1 h1:NqAHCaGaTzro0xMmnTCLUyRlbEP6r8MCA1cJUrH3Pu4
 github.com/bytedance/sonic v1.8.1/go.mod h1:i736AoUSYt75HyZLoJW9ERYxcy6eaN6h4BZXU064P/U=
 github.com/bytedance/sonic v1.8.2 h1:Eq1oE3xWIBE3tj2ZtJFK1rDAx7+uA4bRytozVhXMHKY=
 github.com/bytedance/sonic v1.8.2/go.mod h1:i736AoUSYt75HyZLoJW9ERYxcy6eaN6h4BZXU064P/U=
+github.com/bytedance/sonic v1.8.3 h1:pf6fGl5eqWYKkx1RcD4qpuX+BIUaduv/wTm5ekWJ80M=
+github.com/bytedance/sonic v1.8.3/go.mod h1:i736AoUSYt75HyZLoJW9ERYxcy6eaN6h4BZXU064P/U=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/chenzhuoyu/base64x v0.0.0-20211019084208-fb5309c8db06/go.mod h1:DH46F32mSOjUmXrMHnKwZdA8wcEefY7UVqBKYGjpdQY=
 github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 h1:qSGYFH7+jGhDF8vLC+iwCD4WpbV1EBDSzWkJODFLams=
@@ -414,6 +416,8 @@ google.golang.org/genproto v0.0.0-20230227214838-9b19f0bdc514 h1:rtNKfB++wz5mtDY
 google.golang.org/genproto v0.0.0-20230227214838-9b19f0bdc514/go.mod h1:TvhZT5f700eVlTNwND1xoEZQeWTB2RY/65kplwl/bFA=
 google.golang.org/genproto v0.0.0-20230301170018-024586e96072 h1:ooKphBH1i53uhcevB+LAdKeFlsBQHsSCs6aaY9gAy/0=
 google.golang.org/genproto v0.0.0-20230301170018-024586e96072/go.mod h1:TvhZT5f700eVlTNwND1xoEZQeWTB2RY/65kplwl/bFA=
+google.golang.org/genproto v0.0.0-20230301171018-9ab4bdc49ad5 h1:/cadn7taPtPlCgiWNetEPsle7jgnlad2R7gR5MXB6dM=
+google.golang.org/genproto v0.0.0-20230301171018-9ab4bdc49ad5/go.mod h1:TvhZT5f700eVlTNwND1xoEZQeWTB2RY/65kplwl/bFA=
 google.golang.org/grpc v1.19.0/go.mod h1:mqu4LbDTu4XGKhr4mRzUsmM4RtVoemTSY81AxZiDr8c=
 google.golang.org/grpc v1.23.0/go.mod h1:Y5yQAOtifL1yxbo5wqy6BxZv8vAUGQwXBOALyacEbxg=
 google.golang.org/grpc v1.25.1/go.mod h1:c3i+UQWmh7LiEpx4sFZnkU36qjEYZ0imhYfXVyQciAY=
