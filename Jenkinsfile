@@ -35,7 +35,7 @@ node() {
       cleanWs()
     }
     stage('Docker remove not needed images') {
-        sh 'docker rmi golang:1.19'
+        sh 'docker rmi golang:1.20'
         sh 'docker rmi gcr.io/distroless/base-debian11:latest'
     }
   }
