@@ -197,17 +197,19 @@ func GetCheckoutProduct(c context.Context, token string, checkoutProductRequest 
 		logger.Error("Subscription item is nill")
 		return CheckoutProductReply{}, errors.New("Subscription item is nill")
 	}
-	price, err := getPrice(c, subscriptionItem.Plan.Product.ID)
+	productID := subscriptionItem.Plan.Product.ID
+
+	price, err := getPrice(c, productID)
 	if err != nil {
 		logger.Error("Error getting price", zap.Error(err))
 		return CheckoutProductReply{}, err
 	}
-	metaData := price.Metadata
+	metaDataPrice := price.Metadata
 	if err != nil {
 		logger.Warn("Error getting price metadata", zap.Error(err))
 		return CheckoutProductReply{}, errors.New("Price metadata not found")
 	}
-	trialPeriodDays, ok := metaData["trialPeriodDays"]
+	trialPeriodDays, ok := metaDataPrice["trialPeriodDays"]
 	if !ok {
 		logger.Warn("trialPeriodDays not found", zap.Any("priceID", price.ID))
 		return CheckoutProductReply{}, errors.New("trialPeriodDays not found")
@@ -218,7 +220,17 @@ func GetCheckoutProduct(c context.Context, token string, checkoutProductRequest 
 		return CheckoutProductReply{}, errors.New("Error converting trialPeriodDays to int")
 	}
 
-	storageAmount, ok := metaData["storageAmount"]
+	product, err := getProduct(c, productID)
+	if err != nil {
+		logger.Error("Error getting product", zap.Error(err))
+		return CheckoutProductReply{}, err
+	}
+
+	productName := product.Name
+
+	metaDataProduct := product.Metadata
+
+	storageAmount, ok := metaDataProduct["storageAmount"]
 	if !ok {
 		logger.Warn("storageAmount not found", zap.Any("priceID", price.ID))
 		return CheckoutProductReply{}, errors.New("storageAmount not found")
@@ -229,7 +241,7 @@ func GetCheckoutProduct(c context.Context, token string, checkoutProductRequest 
 		return CheckoutProductReply{}, errors.New("Error converting storageAmount to int")
 	}
 
-	storageUnit, ok := metaData["storageUnit"]
+	storageUnit, ok := metaDataProduct["storageUnit"]
 	if !ok {
 		logger.Warn("StorageUnit not found", zap.Any("priceID", price.ID))
 		return CheckoutProductReply{}, errors.New("StorageUnit not found")
@@ -237,8 +249,8 @@ func GetCheckoutProduct(c context.Context, token string, checkoutProductRequest 
 
 	checkoutProductReply := CheckoutProductReply{
 		SubscriptionID: subscription.ID,
-		ProductID:      price.Product.ID,
-		Name:           price.Product.Name,
+		ProductID:      productID,
+		Name:           productName,
 		StorageAmount:  iStorageAmount,
 		StorageUnit:    storageUnit,
 		TrialDays:      iTrialPeriodDays,
