@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"strconv"
+	"strings"
 
 	"github.com/scalecloud/scalecloud.de-api/firebase"
 	"github.com/scalecloud/scalecloud.de-api/mongo"
@@ -204,6 +205,9 @@ func GetCheckoutProduct(c context.Context, token string, checkoutProductRequest 
 		logger.Error("Error getting price", zap.Error(err))
 		return CheckoutProductReply{}, err
 	}
+
+	currency := strings.ToUpper(string(price.Currency))
+
 	metaDataPrice := price.Metadata
 	if err != nil {
 		logger.Warn("Error getting price metadata", zap.Error(err))
@@ -255,6 +259,7 @@ func GetCheckoutProduct(c context.Context, token string, checkoutProductRequest 
 		StorageUnit:    storageUnit,
 		TrialDays:      iTrialPeriodDays,
 		PricePerMonth:  price.UnitAmount,
+		Currency:       currency,
 	}
 	return checkoutProductReply, nil
 }

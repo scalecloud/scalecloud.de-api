@@ -34,4 +34,5 @@ type CheckoutProductReply struct {
 	StorageUnit    string `json:"storageUnit"`
 	TrialDays      int64  `json:"trialDays"`
 	PricePerMonth  int64  `json:"pricePerMonth"`
+	Currency       string `json:"currency"`
 }
