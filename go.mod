@@ -5,19 +5,19 @@ go 1.20
 require (
 	github.com/gin-contrib/cors v1.4.0
 	go.uber.org/zap v1.24.0
-	google.golang.org/api v0.123.0
+	google.golang.org/api v0.124.0
 )
 
 require (
 	cloud.google.com/go v0.110.2 // indirect
 	cloud.google.com/go/compute v1.19.3 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
-	cloud.google.com/go/firestore v1.9.0 // indirect
+	cloud.google.com/go/firestore v1.10.0 // indirect
 	cloud.google.com/go/iam v1.0.1 // indirect
 	cloud.google.com/go/longrunning v0.4.2 // indirect
 	cloud.google.com/go/storage v1.30.1 // indirect
 	github.com/MicahParks/keyfunc v1.9.0 // indirect
-	github.com/bytedance/sonic v1.8.9 // indirect
+	github.com/bytedance/sonic v1.8.10 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20221115062448-fe3a3abad311 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
