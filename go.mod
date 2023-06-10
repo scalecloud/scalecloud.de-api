@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/gin-contrib/cors v1.4.0
 	go.uber.org/zap v1.24.0
-	google.golang.org/api v0.125.0
+	google.golang.org/api v0.126.0
 )
 
 require (
@@ -32,7 +32,7 @@ require (
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/s2a-go v0.1.4 // indirect
 	github.com/google/uuid v1.3.0 // indirect
-	github.com/googleapis/enterprise-certificate-proxy v0.2.3 // indirect
+	github.com/googleapis/enterprise-certificate-proxy v0.2.4 // indirect
 	github.com/googleapis/gax-go/v2 v2.10.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.16.5 // indirect
@@ -75,7 +75,7 @@ require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/stripe/stripe-go v70.15.0+incompatible
 	github.com/stripe/stripe-go/v72 v72.122.0
-	go.mongodb.org/mongo-driver v1.11.6
+	go.mongodb.org/mongo-driver v1.11.7
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 )
