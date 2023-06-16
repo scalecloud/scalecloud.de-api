@@ -73,6 +73,11 @@ func initRoutes(router *gin.Engine) {
 		checkoutIntegration.POST("/update-checkout-subscription", updateCheckoutSubscription)
 		checkoutIntegration.POST("/get-checkout-product", getCheckoutProduct)
 	}
+	checkoutSetupIntent := router.Group("/checkout-setup-intent")
+	checkoutSetupIntent.Use(AuthRequired)
+	{
+		checkoutSetupIntent.POST("/create-setup-intent", CreateCheckoutSetupIntent)
+	}
 }
 
 func initCertificate(router *gin.Engine) {
