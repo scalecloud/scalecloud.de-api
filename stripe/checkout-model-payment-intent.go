@@ -1,27 +1,22 @@
 package stripe
 
-type CheckoutIntegrationRequest struct {
+type CheckoutPaymentIntentRequest struct {
 	ProductID string `json:"productID"`
 	Quantity  int64  `json:"quantity"`
 }
 
-type CheckoutIntegrationReply struct {
+type CheckoutPaymentIntentReply struct {
 	SubscriptionID string `json:"subscriptionID"`
 	ClientSecret   string `json:"clientSecret"`
 	Quantity       int64  `json:"quantity"`
 }
 
-type CheckoutSetupIntentReply struct {
-	SetupIntentID string `json:"setupIntentID"`
-	ClientSecret  string `json:"clientSecret"`
-}
-
-type CheckoutIntegrationUpdateRequest struct {
+type CheckoutPaymentIntentUpdateRequest struct {
 	SubscriptionID string `json:"subscriptionID"`
 	Quantity       int64  `json:"quantity"`
 }
 
-type CheckoutIntegrationUpdateReply struct {
+type CheckoutPaymentIntentUpdateReply struct {
 	SubscriptionID string `json:"subscriptionID"`
 	ClientSecret   string `json:"clientSecret"`
 	Quantity       int64  `json:"quantity"`

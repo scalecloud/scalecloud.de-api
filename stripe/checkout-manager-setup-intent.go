@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func CreateCheckoutSetupIntent(c context.Context, token string, checkoutIntegrationRequest CheckoutIntegrationRequest) (CheckoutSetupIntentReply, error) {
+func CreateCheckoutSetupIntent(c context.Context, token string, checkoutSetupIntentRequest CheckoutSetupIntentRequest) (CheckoutSetupIntentReply, error) {
 	tokenDetails, err := firebase.GetTokenDetails(c, token)
 	if err != nil {
 		logger.Error("Error getting token details", zap.Error(err))

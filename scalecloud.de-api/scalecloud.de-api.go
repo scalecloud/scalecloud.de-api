@@ -42,12 +42,12 @@ func CreateCheckoutSession(c context.Context, token string, checkoutModelPortalR
 	return stripe.CreateCheckoutSession(c, token, checkoutModelPortalRequest)
 }
 
-func CreateCheckoutSubscription(c context.Context, token string, checkoutIntegrationRequest stripe.CheckoutIntegrationRequest) (checkoutSubscriptionModel stripe.CheckoutIntegrationReply, err error) {
+func CreateCheckoutSubscription(c context.Context, token string, checkoutIntegrationRequest stripe.CheckoutPaymentIntentRequest) (checkoutSubscriptionModel stripe.CheckoutPaymentIntentReply, err error) {
 	logger.Debug("CreateCheckoutSubscription")
 	return stripe.CreateCheckoutSubscription(c, token, checkoutIntegrationRequest)
 }
 
-func UpdateCheckoutSubscription(c context.Context, token string, checkoutIntegrationUpdateRequest stripe.CheckoutIntegrationUpdateRequest) (checkoutSubscriptionModel stripe.CheckoutIntegrationUpdateReply, err error) {
+func UpdateCheckoutSubscription(c context.Context, token string, checkoutIntegrationUpdateRequest stripe.CheckoutPaymentIntentUpdateRequest) (checkoutSubscriptionModel stripe.CheckoutPaymentIntentUpdateReply, err error) {
 	logger.Debug("UpdateCheckoutSubscription")
 	return stripe.UpdateCheckoutSubscription(c, token, checkoutIntegrationUpdateRequest)
 }
@@ -55,4 +55,9 @@ func UpdateCheckoutSubscription(c context.Context, token string, checkoutIntegra
 func GetCheckoutProduct(c context.Context, token string, checkoutProductRequest stripe.CheckoutProductRequest) (checkoutProductReply stripe.CheckoutProductReply, err error) {
 	logger.Debug("GetCheckoutProduct")
 	return stripe.GetCheckoutProduct(c, token, checkoutProductRequest)
+}
+
+func CreateCheckoutSetupIntent(c context.Context, token string, checkoutSetupIntentRequest stripe.CheckoutSetupIntentRequest) (checkoutSetupIntentReply stripe.CheckoutSetupIntentReply, err error) {
+	logger.Debug("CreateCheckoutSetupIntent")
+	return stripe.CreateCheckoutSetupIntent(c, token, checkoutSetupIntentRequest)
 }
