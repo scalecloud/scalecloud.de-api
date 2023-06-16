@@ -11,6 +11,11 @@ type CheckoutIntegrationReply struct {
 	Quantity       int64  `json:"quantity"`
 }
 
+type CheckoutSetupIntentReply struct {
+	SetupIntentID string `json:"setupIntentID"`
+	ClientSecret  string `json:"clientSecret"`
+}
+
 type CheckoutIntegrationUpdateRequest struct {
 	SubscriptionID string `json:"subscriptionID"`
 	Quantity       int64  `json:"quantity"`
