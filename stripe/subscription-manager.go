@@ -48,9 +48,9 @@ func CancelSubscription(c context.Context, token string, request SubscriptionCan
 		}
 
 		reply := SubscriptionCancelReply{
-			ID:       result.ID,
-			Status:   string(result.Status),
-			CancelAt: result.CancelAt,
+			ID:                result.ID,
+			CancelAtPeriodEnd: result.CancelAtPeriodEnd,
+			CancelAt:          result.CancelAt,
 		}
 		return reply, nil
 	}
