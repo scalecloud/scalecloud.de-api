@@ -58,6 +58,7 @@ func initRoutes(router *gin.Engine) {
 	{
 		dashboard.GET("/subscriptions", getSubscriptionsOverview)
 		dashboard.GET("/subscription/:id", getSubscriptionByID)
+		dashboard.POST("/cancel-subscription", cancelSubscription)
 		dashboard.GET("/billing-portal", getBillingPortal)
 	}
 	checkoutPortal := router.Group("/checkout-portal")

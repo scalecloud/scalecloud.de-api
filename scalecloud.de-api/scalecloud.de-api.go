@@ -61,3 +61,8 @@ func CreateCheckoutSetupIntent(c context.Context, token string, checkoutSetupInt
 	logger.Debug("CreateCheckoutSetupIntent")
 	return stripe.CreateCheckoutSetupIntent(c, token, checkoutSetupIntentRequest)
 }
+
+func CancelSubscription(c context.Context, token string, subscriptionCancelRequest stripe.SubscriptionCancelRequest) (subscriptionCancelReply stripe.SubscriptionCancelReply, err error) {
+	logger.Debug("CancelSubscription")
+	return stripe.CancelSubscription(c, token, subscriptionCancelRequest)
+}
