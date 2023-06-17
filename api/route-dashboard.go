@@ -64,6 +64,32 @@ func getBillingPortal(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, billingPortal)
 }
 
+func resumeSubscription(c *gin.Context) {
+	token, ok := getBearerToken(c)
+	if !ok {
+		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": messageBearer})
+		return
+	}
+
+	var subscriptionResumeRequest stripe.SubscriptionResumeRequest
+	if err := c.BindJSON(&subscriptionResumeRequest); err != nil {
+		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
+		return
+	}
+
+	if subscriptionResumeRequest.ID == "" {
+		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "ID not found"})
+		return
+	}
+	reply, error := scalecloud.ResumeSubscription(c, token, subscriptionResumeRequest)
+	if error != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
+		return
+	}
+	logger.Info("resumeSubscription", zap.Any("Resume", reply))
+	c.IndentedJSON(http.StatusOK, reply)
+}
+
 func cancelSubscription(c *gin.Context) {
 	token, ok := getBearerToken(c)
 	if !ok {

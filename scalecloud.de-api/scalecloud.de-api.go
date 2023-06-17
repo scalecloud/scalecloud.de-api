@@ -62,6 +62,11 @@ func CreateCheckoutSetupIntent(c context.Context, token string, checkoutSetupInt
 	return stripe.CreateCheckoutSetupIntent(c, token, checkoutSetupIntentRequest)
 }
 
+func ResumeSubscription(c context.Context, token string, subscriptionResumeRequest stripe.SubscriptionResumeRequest) (subscriptionResumeReply stripe.SubscriptionResumeReply, err error) {
+	logger.Debug("ResumeSubscription")
+	return stripe.ResumeSubscription(c, token, subscriptionResumeRequest)
+}
+
 func CancelSubscription(c context.Context, token string, subscriptionCancelRequest stripe.SubscriptionCancelRequest) (subscriptionCancelReply stripe.SubscriptionCancelReply, err error) {
 	logger.Debug("CancelSubscription")
 	return stripe.CancelSubscription(c, token, subscriptionCancelRequest)
