@@ -104,7 +104,7 @@ func ChangeSubscriptionPaymentMethod(c context.Context, token string, request Su
 
 	reply := SubscriptionSetupIntentReply{
 		SetupIntentID: si.ID,
-		Secret:        si.ClientSecret,
+		ClientSecret:  si.ClientSecret,
 	}
 	return reply, nil
 }

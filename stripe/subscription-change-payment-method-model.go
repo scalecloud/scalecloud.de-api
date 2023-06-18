@@ -6,5 +6,5 @@ type SubscriptionSetupIntentRequest struct {
 
 type SubscriptionSetupIntentReply struct {
 	SetupIntentID string `json:"setupintentid"`
-	Secret        string `json:"secret"`
+	ClientSecret  string `json:"clientsecret"`
 }
