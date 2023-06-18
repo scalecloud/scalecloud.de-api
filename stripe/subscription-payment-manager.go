@@ -63,29 +63,29 @@ func GetSubscriptionPaymentMethod(c context.Context, token string, request Subsc
 	return SubscriptionPaymentMethodReply{}, errors.New("Payment method not found")
 }
 
-func ChangeSubscriptionPaymentMethod(c context.Context, token string, request ChangeSubscriptionPaymentMethodRequest) (ChangeSubscriptionPaymentMethodReply, error) {
+func ChangeSubscriptionPaymentMethod(c context.Context, token string, request SubscriptionSetupIntentRequest) (SubscriptionSetupIntentReply, error) {
 	if request.SubscriptionID == "" {
-		return ChangeSubscriptionPaymentMethodReply{}, errors.New("Subscription ID is empty")
+		return SubscriptionSetupIntentReply{}, errors.New("Subscription ID is empty")
 	}
 	tokenDetails, err := firebase.GetTokenDetails(c, token)
 	if err != nil {
 		logger.Error("Error getting token details", zap.Error(err))
-		return ChangeSubscriptionPaymentMethodReply{}, err
+		return SubscriptionSetupIntentReply{}, err
 	}
 	customerID, err := getCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
 		logger.Error("Error getting customer ID", zap.Error(err))
-		return ChangeSubscriptionPaymentMethodReply{}, err
+		return SubscriptionSetupIntentReply{}, err
 	}
 	stripe.Key = getStripeKey()
 	subscription, error := getSubscriptionByID(c, request.SubscriptionID)
 	if error != nil {
 		logger.Warn("Error getting subscription", zap.Error(error))
-		return ChangeSubscriptionPaymentMethodReply{}, errors.New("Subscription not found")
+		return SubscriptionSetupIntentReply{}, errors.New("Subscription not found")
 	}
 	if subscription.Customer.ID != customerID {
 		logger.Error("Tried to request subscription for wrong customer", zap.String("customerID", customerID), zap.String("subscriptionID", request.SubscriptionID))
-		return ChangeSubscriptionPaymentMethodReply{}, errors.New("Subscription not matching customer")
+		return SubscriptionSetupIntentReply{}, errors.New("Subscription not matching customer")
 	}
 
 	params := &stripe.SetupIntentParams{
@@ -99,10 +99,10 @@ func ChangeSubscriptionPaymentMethod(c context.Context, token string, request Ch
 	si, err := setupintent.New(params)
 	if err != nil {
 		logger.Error("Error creating setup intent", zap.Error(err))
-		return ChangeSubscriptionPaymentMethodReply{}, err
+		return SubscriptionSetupIntentReply{}, err
 	}
 
-	reply := ChangeSubscriptionPaymentMethodReply{
+	reply := SubscriptionSetupIntentReply{
 		SetupIntentID: si.ID,
 		Secret:        si.ClientSecret,
 	}

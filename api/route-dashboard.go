@@ -149,7 +149,7 @@ func changeSubscriptionPaymentMethod(c *gin.Context) {
 		return
 	}
 
-	var changeSubscriptionPaymentMethodRequest stripe.ChangeSubscriptionPaymentMethodRequest
+	var changeSubscriptionPaymentMethodRequest stripe.SubscriptionSetupIntentRequest
 	if err := c.BindJSON(&changeSubscriptionPaymentMethodRequest); err != nil {
 		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
 		return

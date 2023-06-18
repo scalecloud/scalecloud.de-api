@@ -77,7 +77,7 @@ func GetSubscriptionPaymentMethod(c context.Context, token string, subscriptionP
 	return stripe.GetSubscriptionPaymentMethod(c, token, subscriptionPaymentMethodRequest)
 }
 
-func ChangeSubscriptionPaymentMethod(c context.Context, token string, changeSubscriptionPaymentMethodRequest stripe.ChangeSubscriptionPaymentMethodRequest) (stripe.ChangeSubscriptionPaymentMethodReply, error) {
+func ChangeSubscriptionPaymentMethod(c context.Context, token string, request stripe.SubscriptionSetupIntentRequest) (stripe.SubscriptionSetupIntentReply, error) {
 	logger.Debug("ChangeSubscriptionPaymentMethod")
-	return stripe.ChangeSubscriptionPaymentMethod(c, token, changeSubscriptionPaymentMethodRequest)
+	return stripe.ChangeSubscriptionPaymentMethod(c, token, request)
 }
