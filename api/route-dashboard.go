@@ -115,3 +115,29 @@ func cancelSubscription(c *gin.Context) {
 	logger.Info("CancelSubscription", zap.Any("Cancel", reply))
 	c.IndentedJSON(http.StatusOK, reply)
 }
+
+func getSubscriptionPaymentMethod(c *gin.Context) {
+	token, ok := getBearerToken(c)
+	if !ok {
+		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": messageBearer})
+		return
+	}
+
+	var subscriptionPaymentMethodRequest stripe.SubscriptionPaymentMethodRequest
+	if err := c.BindJSON(&subscriptionPaymentMethodRequest); err != nil {
+		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
+		return
+	}
+
+	if subscriptionPaymentMethodRequest.ID == "" {
+		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "ID not found"})
+		return
+	}
+	reply, error := scalecloud.GetSubscriptionPaymentMethod(c, token, subscriptionPaymentMethodRequest)
+	if error != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
+		return
+	}
+	logger.Info("getSubscriptionPaymentMethod", zap.Any("SubscriptionPaymentMethodRequest", reply))
+	c.IndentedJSON(http.StatusOK, reply)
+}

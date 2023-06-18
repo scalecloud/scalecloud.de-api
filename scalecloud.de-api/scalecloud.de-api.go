@@ -71,3 +71,8 @@ func CancelSubscription(c context.Context, token string, subscriptionCancelReque
 	logger.Debug("CancelSubscription")
 	return stripe.CancelSubscription(c, token, subscriptionCancelRequest)
 }
+
+func GetSubscriptionPaymentMethod(c context.Context, token string, subscriptionPaymentMethodRequest stripe.SubscriptionPaymentMethodRequest) (subscriptionPaymentMethodReply stripe.SubscriptionPaymentMethodReply, err error) {
+	logger.Debug("CancelSubscription")
+	return stripe.GetSubscriptionPaymentMethod(c, token, subscriptionPaymentMethodRequest)
+}
