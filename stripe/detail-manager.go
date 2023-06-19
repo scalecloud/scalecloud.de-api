@@ -97,5 +97,9 @@ func mapSubscriptionItemToSubscriptionDetail(c context.Context, subscription *st
 
 	subscriptionDetail.CancelAt = subscription.CancelAt
 
+	subscriptionDetail.Status = string(subscription.Status)
+
+	subscriptionDetail.TrialEnd = subscription.TrialEnd
+
 	return subscriptionDetail, nil
 }

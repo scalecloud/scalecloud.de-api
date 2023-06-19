@@ -3,12 +3,14 @@ package stripe
 type SubscriptionDetail struct {
 	ID                string `json:"id"`
 	Active            bool   `json:"active"`
-	ProductName       string `json:"productName"`
-	ProductType       string `json:"productType"`
-	StorageAmount     int    `json:"storageAmount"`
-	UserCount         int64  `json:"userCount"`
-	PricePerMonth     int64  `json:"pricePerMonth"`
+	ProductName       string `json:"product_name"`
+	ProductType       string `json:"product_type"`
+	StorageAmount     int    `json:"storage_amount"`
+	UserCount         int64  `json:"user_count"`
+	PricePerMonth     int64  `json:"price_per_month"`
 	Currency          string `json:"currency"`
-	CancelAtPeriodEnd bool   `json:"cancelAtPeriodEnd"`
-	CancelAt          int64  `json:"cancelAt"`
+	CancelAtPeriodEnd bool   `json:"cancel_at_period_end"`
+	CancelAt          int64  `json:"cancel_at"`
+	Status            string `json:"status"`
+	TrialEnd          int64  `json:"trial_end"`
 }
