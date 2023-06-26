@@ -96,7 +96,7 @@ func GetTokenDetails(ctx context.Context, jwtToken string) (tokenDetails TokenDe
 	}
 	token := TokenDetails{
 		UID:   uid,
-		Email: email,
+		EMail: email,
 	}
 	return token, nil
 }

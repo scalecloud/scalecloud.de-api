@@ -9,7 +9,7 @@ import (
 )
 
 func createCustomerAndUser(c context.Context, tokenDetails firebase.TokenDetails) (mongo.User, error) {
-	customer, err := CreateCustomer(c, tokenDetails.Email)
+	customer, err := CreateCustomer(c, tokenDetails.EMail)
 	if err != nil {
 		logger.Error("Error creating customer", zap.Error(err))
 		return mongo.User{}, err

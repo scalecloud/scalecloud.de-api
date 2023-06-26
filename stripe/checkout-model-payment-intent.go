@@ -9,6 +9,7 @@ type CheckoutPaymentIntentReply struct {
 	SubscriptionID string `json:"subscriptionID"`
 	ClientSecret   string `json:"clientSecret"`
 	Quantity       int64  `json:"quantity"`
+	EMail          string `json:"email"`
 }
 
 type CheckoutPaymentIntentUpdateRequest struct {
