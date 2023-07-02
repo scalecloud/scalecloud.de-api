@@ -35,6 +35,10 @@ func GetSubscriptionPaymentMethod(c context.Context, token string, request Subsc
 		logger.Error("Tried to request subscription for wrong customer", zap.String("customerID", customerID), zap.String("subscriptionID", request.ID))
 		return SubscriptionPaymentMethodReply{}, errors.New("Subscription not matching customer")
 	}
+	if subscription.DefaultPaymentMethod == nil {
+		logger.Error("No default payment method found", zap.String("subscriptionID", request.ID))
+		return SubscriptionPaymentMethodReply{}, errors.New("No default payment method found")
+	}
 	paymentMethodID := subscription.DefaultPaymentMethod.ID
 	if paymentMethodID == "" {
 		logger.Error("No default payment method found", zap.String("subscriptionID", request.ID))
