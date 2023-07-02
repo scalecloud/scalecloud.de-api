@@ -67,29 +67,29 @@ func GetSubscriptionPaymentMethod(c context.Context, token string, request Subsc
 	return SubscriptionPaymentMethodReply{}, errors.New("Payment method not found")
 }
 
-func ChangeSubscriptionPaymentMethod(c context.Context, token string, request SubscriptionSetupIntentRequest) (SubscriptionSetupIntentReply, error) {
+func GetChangePaymentSetupIntent(c context.Context, token string, request ChangePaymentRequest) (ChangePaymentReply, error) {
 	if request.SubscriptionID == "" {
-		return SubscriptionSetupIntentReply{}, errors.New("Subscription ID is empty")
+		return ChangePaymentReply{}, errors.New("Subscription ID is empty")
 	}
 	tokenDetails, err := firebase.GetTokenDetails(c, token)
 	if err != nil {
 		logger.Error("Error getting token details", zap.Error(err))
-		return SubscriptionSetupIntentReply{}, err
+		return ChangePaymentReply{}, err
 	}
 	customerID, err := getCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
 		logger.Error("Error getting customer ID", zap.Error(err))
-		return SubscriptionSetupIntentReply{}, err
+		return ChangePaymentReply{}, err
 	}
 	stripe.Key = getStripeKey()
 	subscription, error := getSubscriptionByID(c, request.SubscriptionID)
 	if error != nil {
 		logger.Warn("Error getting subscription", zap.Error(error))
-		return SubscriptionSetupIntentReply{}, errors.New("Subscription not found")
+		return ChangePaymentReply{}, errors.New("Subscription not found")
 	}
 	if subscription.Customer.ID != customerID {
 		logger.Error("Tried to request subscription for wrong customer", zap.String("customerID", customerID), zap.String("subscriptionID", request.SubscriptionID))
-		return SubscriptionSetupIntentReply{}, errors.New("Subscription not matching customer")
+		return ChangePaymentReply{}, errors.New("Subscription not matching customer")
 	}
 
 	params := &stripe.SetupIntentParams{
@@ -103,10 +103,10 @@ func ChangeSubscriptionPaymentMethod(c context.Context, token string, request Su
 	si, err := setupintent.New(params)
 	if err != nil {
 		logger.Error("Error creating setup intent", zap.Error(err))
-		return SubscriptionSetupIntentReply{}, err
+		return ChangePaymentReply{}, err
 	}
 
-	reply := SubscriptionSetupIntentReply{
+	reply := ChangePaymentReply{
 		SetupIntentID: si.ID,
 		ClientSecret:  si.ClientSecret,
 	}

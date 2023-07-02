@@ -142,28 +142,28 @@ func getSubscriptionPaymentMethod(c *gin.Context) {
 	c.IndentedJSON(http.StatusOK, reply)
 }
 
-func changeSubscriptionPaymentMethod(c *gin.Context) {
+func getChangePaymentSetupIntent(c *gin.Context) {
 	token, ok := getBearerToken(c)
 	if !ok {
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": messageBearer})
 		return
 	}
 
-	var changeSubscriptionPaymentMethodRequest stripe.SubscriptionSetupIntentRequest
-	if err := c.BindJSON(&changeSubscriptionPaymentMethodRequest); err != nil {
+	var changePaymentRequest stripe.ChangePaymentRequest
+	if err := c.BindJSON(&changePaymentRequest); err != nil {
 		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
 		return
 	}
 
-	if changeSubscriptionPaymentMethodRequest.SubscriptionID == "" {
+	if changePaymentRequest.SubscriptionID == "" {
 		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "SubscriptionID not found"})
 		return
 	}
-	reply, error := scalecloud.ChangeSubscriptionPaymentMethod(c, token, changeSubscriptionPaymentMethodRequest)
+	reply, error := scalecloud.GetChangePaymentSetupIntent(c, token, changePaymentRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
 	}
-	logger.Info("ChangeSubscriptionPaymentMethod", zap.Any("ChangeSubscriptionPaymentMethodRequest", reply))
+	logger.Info("getChangePaymentSetupIntent", zap.Any("getChangePaymentSetupIntent", reply))
 	c.IndentedJSON(http.StatusOK, reply)
 }

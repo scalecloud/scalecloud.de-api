@@ -59,7 +59,7 @@ func initRoutes(router *gin.Engine) {
 		dashboard.GET("/subscriptions", getSubscriptionsOverview)
 		dashboard.GET("/subscription/:id", getSubscriptionByID)
 		dashboard.POST("/get-subscription-payment-method", getSubscriptionPaymentMethod)
-		dashboard.POST("/change-subscription-payment-method", changeSubscriptionPaymentMethod)
+		dashboard.POST("/get-change-payment-setup-intent", getChangePaymentSetupIntent)
 		dashboard.POST("/resume-subscription", resumeSubscription)
 		dashboard.POST("/cancel-subscription", cancelSubscription)
 		dashboard.GET("/billing-portal", getBillingPortal)

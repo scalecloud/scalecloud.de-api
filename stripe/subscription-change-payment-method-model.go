@@ -1,10 +1,11 @@
 package stripe
 
-type SubscriptionSetupIntentRequest struct {
+type ChangePaymentRequest struct {
 	SubscriptionID string `json:"subscriptionid"`
 }
 
-type SubscriptionSetupIntentReply struct {
+type ChangePaymentReply struct {
 	SetupIntentID string `json:"setupintentid"`
 	ClientSecret  string `json:"clientsecret"`
+	EMail         string `json:"email"`
 }
