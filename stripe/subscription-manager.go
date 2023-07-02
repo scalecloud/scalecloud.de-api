@@ -35,28 +35,26 @@ func ResumeSubscription(c context.Context, token string, request SubscriptionRes
 		logger.Warn("Error getting subscription", zap.Error(error))
 		return SubscriptionResumeReply{}, errors.New("Subscription not found")
 	}
-	if subscription.Status == stripe.SubscriptionStatusCanceled || subscription.Status == stripe.SubscriptionStatusTrialing {
-		logger.Info("Subscription is canceled or trialing", zap.String("status", string(subscription.Status)))
-		if subscription.Customer.ID != customerID {
-			logger.Error("Tried to request subscription for wrong customer", zap.String("customerID", customerID), zap.String("subscriptionID", request.ID))
-			return SubscriptionResumeReply{}, errors.New("Subscription not matching customer")
-		} else {
-			subscriptionParams := &stripe.SubscriptionParams{CancelAtPeriodEnd: stripe.Bool(false)}
-			result, err := sub.Update(request.ID, subscriptionParams)
-			if err != nil {
-				logger.Error("Error updating subscription", zap.Error(err))
-				return SubscriptionResumeReply{}, err
-			}
-
-			reply := SubscriptionResumeReply{
-				ID:                result.ID,
-				CancelAtPeriodEnd: result.CancelAtPeriodEnd,
-			}
-			return reply, nil
-		}
+	if !subscription.CancelAtPeriodEnd {
+		logger.Info("Subscription is not canceled", zap.String("status", string(subscription.Status)))
+		return SubscriptionResumeReply{}, errors.New("Subscription is not canceled")
+	}
+	if subscription.Customer.ID != customerID {
+		logger.Error("Tried to request subscription for wrong customer", zap.String("customerID", customerID), zap.String("subscriptionID", request.ID))
+		return SubscriptionResumeReply{}, errors.New("Subscription not matching customer")
 	} else {
-		logger.Info("Subscription is not canceled or trialing", zap.String("status", string(subscription.Status)))
-		return SubscriptionResumeReply{}, errors.New("Subscription is not canceled or trialing")
+		subscriptionParams := &stripe.SubscriptionParams{CancelAtPeriodEnd: stripe.Bool(false)}
+		result, err := sub.Update(request.ID, subscriptionParams)
+		if err != nil {
+			logger.Error("Error updating subscription", zap.Error(err))
+			return SubscriptionResumeReply{}, err
+		}
+
+		reply := SubscriptionResumeReply{
+			ID:                result.ID,
+			CancelAtPeriodEnd: result.CancelAtPeriodEnd,
+		}
+		return reply, nil
 	}
 }
 
@@ -80,28 +78,26 @@ func CancelSubscription(c context.Context, token string, request SubscriptionCan
 		logger.Warn("Error getting subscription", zap.Error(error))
 		return SubscriptionCancelReply{}, errors.New("Subscription not found")
 	}
-	if subscription.Status == stripe.SubscriptionStatusActive || subscription.Status == stripe.SubscriptionStatusTrialing {
-		logger.Info("Subscription is active", zap.String("status", string(subscription.Status)))
-		if subscription.Customer.ID != customerID {
-			logger.Error("Tried to request subscription for wrong customer", zap.String("customerID", customerID), zap.String("subscriptionID", request.ID))
-			return SubscriptionCancelReply{}, errors.New("Subscription not matching customer")
-		} else {
-			subscriptionParams := &stripe.SubscriptionParams{CancelAtPeriodEnd: stripe.Bool(true)}
-			result, err := sub.Update(request.ID, subscriptionParams)
-			if err != nil {
-				logger.Error("Error updating subscription", zap.Error(err))
-				return SubscriptionCancelReply{}, err
-			}
-
-			reply := SubscriptionCancelReply{
-				ID:                result.ID,
-				CancelAtPeriodEnd: result.CancelAtPeriodEnd,
-				CancelAt:          result.CancelAt,
-			}
-			return reply, nil
-		}
+	if subscription.CancelAtPeriodEnd {
+		logger.Info("Subscription is already canceled", zap.String("status", string(subscription.Status)))
+		return SubscriptionCancelReply{}, errors.New("Subscription is already canceled")
+	}
+	if subscription.Customer.ID != customerID {
+		logger.Error("Tried to request subscription for wrong customer", zap.String("customerID", customerID), zap.String("subscriptionID", request.ID))
+		return SubscriptionCancelReply{}, errors.New("Subscription not matching customer")
 	} else {
-		logger.Info("Subscription is not active", zap.String("status", string(subscription.Status)))
-		return SubscriptionCancelReply{}, errors.New("Subscription is not active")
+		subscriptionParams := &stripe.SubscriptionParams{CancelAtPeriodEnd: stripe.Bool(true)}
+		result, err := sub.Update(request.ID, subscriptionParams)
+		if err != nil {
+			logger.Error("Error updating subscription", zap.Error(err))
+			return SubscriptionCancelReply{}, err
+		}
+
+		reply := SubscriptionCancelReply{
+			ID:                result.ID,
+			CancelAtPeriodEnd: result.CancelAtPeriodEnd,
+			CancelAt:          result.CancelAt,
+		}
+		return reply, nil
 	}
 }
