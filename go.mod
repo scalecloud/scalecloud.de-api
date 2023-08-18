@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/gin-contrib/cors v1.4.0
 	go.uber.org/zap v1.25.0
-	google.golang.org/api v0.137.0
+	google.golang.org/api v0.138.0
 )
 
 require (
