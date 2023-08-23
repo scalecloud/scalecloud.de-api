@@ -93,11 +93,6 @@ func GetChangePaymentSetupIntent(c context.Context, token string, request Change
 	}
 
 	params := &stripe.SetupIntentParams{
-		PaymentMethodTypes: []*string{
-			stripe.String("card"),
-			stripe.String("sepa_debit"),
-			stripe.String("paypal"),
-		},
 		Customer: stripe.String(customerID),
 	}
 	si, err := setupintent.New(params)
