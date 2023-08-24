@@ -8,8 +8,8 @@ import (
 
 	"github.com/scalecloud/scalecloud.de-api/firebase"
 	"github.com/scalecloud/scalecloud.de-api/mongo"
-	"github.com/stripe/stripe-go/v72"
-	"github.com/stripe/stripe-go/v72/sub"
+	"github.com/stripe/stripe-go/v75"
+	"github.com/stripe/stripe-go/v75/subscription"
 	"go.uber.org/zap"
 )
 
@@ -77,25 +77,25 @@ func CreateCheckoutSubscription(c context.Context, token string, checkoutIntegra
 	}
 	subscriptionParams.AddExpand("latest_invoice.payment_intent")
 	subscriptionParams.AddExpand("pending_setup_intent")
-	subscription, err := sub.New(subscriptionParams)
+	sub, err := subscription.New(subscriptionParams)
 	if err != nil {
 		logger.Error("Error creating subscription", zap.Error(err))
 		return CheckoutPaymentIntentReply{}, err
 	}
-	logger.Info("Subscription created and waiting for payment.", zap.Any("subscriptionID", subscription.ID))
-	if subscription.PendingSetupIntent == nil {
+	logger.Info("Subscription created and waiting for payment.", zap.Any("subscriptionID", sub.ID))
+	if sub.PendingSetupIntent == nil {
 		logger.Error("Pending setup intent is nil")
 		return CheckoutPaymentIntentReply{}, errors.New("Pending setup intent is nil")
 	}
-	if subscription.PendingSetupIntent.ClientSecret == "" {
+	if sub.PendingSetupIntent.ClientSecret == "" {
 		logger.Error("Pending setup intent client secret is nil")
 		return CheckoutPaymentIntentReply{}, errors.New("Pending setup intent client secret is nil")
 	}
 
 	checkoutSubscriptionModel := CheckoutPaymentIntentReply{
-		SubscriptionID: subscription.ID,
-		ClientSecret:   subscription.PendingSetupIntent.ClientSecret,
-		Quantity:       subscription.Quantity,
+		SubscriptionID: sub.ID,
+		ClientSecret:   sub.PendingSetupIntent.ClientSecret,
+		Quantity:       sub.Items.Data[0].Quantity,
 		EMail:          tokenDetails.EMail,
 	}
 	return checkoutSubscriptionModel, nil
@@ -115,16 +115,16 @@ func UpdateCheckoutSubscription(c context.Context, token string, checkoutIntegra
 
 	stripe.Key = getStripeKey()
 
-	subscription, err := getSubscriptionByID(c, checkoutIntegrationUpdateRequest.SubscriptionID)
+	sub, err := getSubscriptionByID(c, checkoutIntegrationUpdateRequest.SubscriptionID)
 	if err != nil {
 		logger.Error("Error getting subscription", zap.Error(err))
 		return CheckoutPaymentIntentUpdateReply{}, err
 	}
-	if subscription.Customer == nil {
+	if sub.Customer == nil {
 		logger.Error("Customer is nil")
 		return CheckoutPaymentIntentUpdateReply{}, errors.New("Customer is nil")
 	}
-	customerIDFromSubscription := *&subscription.Customer.ID
+	customerIDFromSubscription := *&sub.Customer.ID
 	if customerIDFromSubscription == "" {
 		logger.Error("Customer ID is empty")
 		return CheckoutPaymentIntentUpdateReply{}, errors.New("Customer ID is empty")
@@ -134,15 +134,21 @@ func UpdateCheckoutSubscription(c context.Context, token string, checkoutIntegra
 		return CheckoutPaymentIntentUpdateReply{}, errors.New("CustomerID from UID does not match customerID from subscription")
 	}
 
-	subscriptionItemID := subscription.Items.Data[0].ID
+	subscriptionItemID := sub.Items.Data[0].ID
 	if subscriptionItemID == "" {
 		logger.Error("Subscription item ID is empty")
 		return CheckoutPaymentIntentUpdateReply{}, errors.New("Subscription item ID is empty")
 	}
 	params := &stripe.SubscriptionParams{
-		Quantity: stripe.Int64(checkoutIntegrationUpdateRequest.Quantity),
+		Items: []*stripe.SubscriptionItemsParams{
+			{
+				ID:       stripe.String(subscriptionItemID),
+				Quantity: stripe.Int64(checkoutIntegrationUpdateRequest.Quantity),
+			},
+		},
 	}
-	subscriptionUpdated, err := sub.Update(
+
+	subscriptionUpdated, err := subscription.Update(
 		checkoutIntegrationUpdateRequest.SubscriptionID,
 		params,
 	)
@@ -150,14 +156,14 @@ func UpdateCheckoutSubscription(c context.Context, token string, checkoutIntegra
 		logger.Error("Error updating subscription", zap.Error(err))
 		return CheckoutPaymentIntentUpdateReply{}, err
 	}
-	if checkoutIntegrationUpdateRequest.Quantity != subscriptionUpdated.Quantity {
+	if checkoutIntegrationUpdateRequest.Quantity != subscriptionUpdated.Items.Data[0].Quantity {
 		logger.Error("Requested Quantity does not match updated qantity")
 		return CheckoutPaymentIntentUpdateReply{}, errors.New("Requested Quantity does not match updated qantity")
 	}
 	checkoutIntegrationUpdateReturn := CheckoutPaymentIntentUpdateReply{
 		SubscriptionID: subscriptionUpdated.ID,
 		ClientSecret:   subscriptionUpdated.PendingSetupIntent.ClientSecret,
-		Quantity:       subscriptionUpdated.Quantity,
+		Quantity:       subscriptionUpdated.Items.Data[0].Quantity,
 	}
 	return checkoutIntegrationUpdateReturn, nil
 }

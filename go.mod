@@ -44,6 +44,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.9 // indirect
+	github.com/stripe/stripe-go/v75 v75.2.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
@@ -73,8 +74,6 @@ require (
 require (
 	firebase.google.com/go/v4 v4.12.0
 	github.com/gin-gonic/gin v1.9.1
-	github.com/stripe/stripe-go v70.15.0+incompatible
-	github.com/stripe/stripe-go/v72 v72.122.0
 	go.mongodb.org/mongo-driver v1.12.1
 	go.uber.org/multierr v1.11.0 // indirect
 )

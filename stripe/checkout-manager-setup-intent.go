@@ -6,8 +6,8 @@ import (
 
 	"github.com/scalecloud/scalecloud.de-api/firebase"
 	"github.com/scalecloud/scalecloud.de-api/mongo"
-	"github.com/stripe/stripe-go"
-	"github.com/stripe/stripe-go/setupintent"
+	"github.com/stripe/stripe-go/v75"
+	"github.com/stripe/stripe-go/v75/setupintent"
 	"go.uber.org/zap"
 )
 

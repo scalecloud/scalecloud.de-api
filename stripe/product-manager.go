@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/stripe/stripe-go"
-	"github.com/stripe/stripe-go/product"
+	"github.com/stripe/stripe-go/v75"
+	"github.com/stripe/stripe-go/v75/product"
 	"go.uber.org/zap"
 )
 

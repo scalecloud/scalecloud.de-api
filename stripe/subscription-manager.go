@@ -5,14 +5,14 @@ import (
 	"errors"
 
 	"github.com/scalecloud/scalecloud.de-api/firebase"
-	"github.com/stripe/stripe-go/v72"
-	"github.com/stripe/stripe-go/v72/sub"
+	"github.com/stripe/stripe-go/v75"
+	"github.com/stripe/stripe-go/v75/subscription"
 	"go.uber.org/zap"
 )
 
 func getSubscriptionByID(c context.Context, subscriptionID string) (*stripe.Subscription, error) {
 	stripe.Key = getStripeKey()
-	return sub.Get(subscriptionID, nil)
+	return subscription.Get(subscriptionID, nil)
 }
 
 func ResumeSubscription(c context.Context, token string, request SubscriptionResumeRequest) (SubscriptionResumeReply, error) {
@@ -30,21 +30,21 @@ func ResumeSubscription(c context.Context, token string, request SubscriptionRes
 		return SubscriptionResumeReply{}, err
 	}
 	stripe.Key = getStripeKey()
-	subscription, error := getSubscriptionByID(c, request.ID)
+	sub, error := getSubscriptionByID(c, request.ID)
 	if error != nil {
 		logger.Warn("Error getting subscription", zap.Error(error))
 		return SubscriptionResumeReply{}, errors.New("Subscription not found")
 	}
-	if !subscription.CancelAtPeriodEnd {
-		logger.Info("Subscription is not canceled", zap.String("status", string(subscription.Status)))
+	if !sub.CancelAtPeriodEnd {
+		logger.Info("Subscription is not canceled", zap.String("status", string(sub.Status)))
 		return SubscriptionResumeReply{}, errors.New("Subscription is not canceled")
 	}
-	if subscription.Customer.ID != customerID {
+	if sub.Customer.ID != customerID {
 		logger.Error("Tried to request subscription for wrong customer", zap.String("customerID", customerID), zap.String("subscriptionID", request.ID))
 		return SubscriptionResumeReply{}, errors.New("Subscription not matching customer")
 	} else {
 		subscriptionParams := &stripe.SubscriptionParams{CancelAtPeriodEnd: stripe.Bool(false)}
-		result, err := sub.Update(request.ID, subscriptionParams)
+		result, err := subscription.Update(request.ID, subscriptionParams)
 		if err != nil {
 			logger.Error("Error updating subscription", zap.Error(err))
 			return SubscriptionResumeReply{}, err
@@ -73,21 +73,21 @@ func CancelSubscription(c context.Context, token string, request SubscriptionCan
 		return SubscriptionCancelReply{}, err
 	}
 	stripe.Key = getStripeKey()
-	subscription, error := getSubscriptionByID(c, request.ID)
+	sub, error := getSubscriptionByID(c, request.ID)
 	if error != nil {
 		logger.Warn("Error getting subscription", zap.Error(error))
 		return SubscriptionCancelReply{}, errors.New("Subscription not found")
 	}
-	if subscription.CancelAtPeriodEnd {
-		logger.Info("Subscription is already canceled", zap.String("status", string(subscription.Status)))
+	if sub.CancelAtPeriodEnd {
+		logger.Info("Subscription is already canceled", zap.String("status", string(sub.Status)))
 		return SubscriptionCancelReply{}, errors.New("Subscription is already canceled")
 	}
-	if subscription.Customer.ID != customerID {
+	if sub.Customer.ID != customerID {
 		logger.Error("Tried to request subscription for wrong customer", zap.String("customerID", customerID), zap.String("subscriptionID", request.ID))
 		return SubscriptionCancelReply{}, errors.New("Subscription not matching customer")
 	} else {
 		subscriptionParams := &stripe.SubscriptionParams{CancelAtPeriodEnd: stripe.Bool(true)}
-		result, err := sub.Update(request.ID, subscriptionParams)
+		result, err := subscription.Update(request.ID, subscriptionParams)
 		if err != nil {
 			logger.Error("Error updating subscription", zap.Error(err))
 			return SubscriptionCancelReply{}, err

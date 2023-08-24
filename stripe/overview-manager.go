@@ -6,8 +6,8 @@ import (
 	"strconv"
 
 	"github.com/scalecloud/scalecloud.de-api/firebase"
-	"github.com/stripe/stripe-go"
-	"github.com/stripe/stripe-go/sub"
+	"github.com/stripe/stripe-go/v75"
+	"github.com/stripe/stripe-go/v75/subscription"
 	"go.uber.org/zap"
 )
 
@@ -25,9 +25,9 @@ func GetSubscriptionsOverview(c context.Context, token string) (subscriptionOver
 	subscriptions := []SubscriptionOverview{}
 	stripe.Key = getStripeKey()
 	params := &stripe.SubscriptionListParams{
-		Customer: customerID,
+		Customer: stripe.String(customerID),
 	}
-	iter := sub.List(params)
+	iter := subscription.List(params)
 	for iter.Next() {
 		subscription := iter.Subscription()
 		logger.Debug("Subscription", zap.Any("subscription", subscription.Customer.ID))
@@ -47,7 +47,7 @@ func GetSubscriptionsOverview(c context.Context, token string) (subscriptionOver
 
 func mapSubscriptionToSubscriptionOverview(c context.Context, subscription *stripe.Subscription) (subscriptionOverview SubscriptionOverview, err error) {
 	subscriptionOverview.ID = subscription.ID
-	productID := subscription.Plan.Product.ID
+	productID := subscription.Items.Data[0].Price.Product.ID
 	logger.Debug("Product ID", zap.String("productID", productID))
 
 	product, err := getProduct(c, productID)
@@ -82,6 +82,6 @@ func mapSubscriptionToSubscriptionOverview(c context.Context, subscription *stri
 	}
 	subscriptionOverview.ProductType = productType
 
-	subscriptionOverview.UserCount = subscription.Quantity
+	subscriptionOverview.UserCount = subscription.Items.Data[0].Quantity
 	return subscriptionOverview, nil
 }

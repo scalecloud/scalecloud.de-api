@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/scalecloud/scalecloud.de-api/firebase"
-	"github.com/stripe/stripe-go/v72"
+	"github.com/stripe/stripe-go/v75"
 	"go.uber.org/zap"
 )
 
@@ -47,7 +47,7 @@ func GetSubscriptionByID(c context.Context, token, subscriptionID string) (subsc
 
 func mapSubscriptionItemToSubscriptionDetail(c context.Context, subscription *stripe.Subscription) (subscriptionDetail SubscriptionDetail, err error) {
 	subscriptionDetail.ID = subscription.ID
-	productID := subscription.Plan.Product.ID
+	productID := subscription.Items.Data[0].Price.Product.ID
 	logger.Debug("Product ID", zap.String("productID", productID))
 
 	product, err := getProduct(c, productID)
@@ -82,16 +82,17 @@ func mapSubscriptionItemToSubscriptionDetail(c context.Context, subscription *st
 	}
 	subscriptionDetail.ProductType = productType
 
-	subscriptionDetail.UserCount = subscription.Quantity
+	subscriptionDetail.UserCount = subscription.Items.Data[0].Quantity
 
-	plan, err := getPlan(c, subscription.Plan.ID)
+	price, err := getPrice(c, subscription.Items.Data[0].Price.ID)
 	if err != nil {
-		logger.Warn("Error getting plan", zap.Error(err))
-		return SubscriptionDetail{}, errors.New("Plan not found")
+		logger.Warn("Error getting price", zap.Error(err))
+		return SubscriptionDetail{}, errors.New("Price not found")
 	}
-	subscriptionDetail.PricePerMonth = plan.Amount
 
-	subscriptionDetail.Currency = string(plan.Currency)
+	subscriptionDetail.PricePerMonth = price.UnitAmount
+
+	subscriptionDetail.Currency = string(price.Currency)
 
 	subscriptionDetail.CancelAtPeriodEnd = subscription.CancelAtPeriodEnd
 

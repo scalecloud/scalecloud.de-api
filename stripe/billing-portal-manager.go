@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	"github.com/scalecloud/scalecloud.de-api/firebase"
-	"github.com/stripe/stripe-go/v72"
-	"github.com/stripe/stripe-go/v72/billingportal/session"
+	"github.com/stripe/stripe-go/v75"
+	"github.com/stripe/stripe-go/v75/billingportal/session"
 	"go.uber.org/zap"
 )
 

@@ -5,9 +5,9 @@ import (
 	"errors"
 
 	"github.com/scalecloud/scalecloud.de-api/firebase"
-	"github.com/stripe/stripe-go"
-	"github.com/stripe/stripe-go/paymentmethod"
-	"github.com/stripe/stripe-go/setupintent"
+	"github.com/stripe/stripe-go/v75"
+	"github.com/stripe/stripe-go/v75/paymentmethod"
+	"github.com/stripe/stripe-go/v75/setupintent"
 	"go.uber.org/zap"
 )
 
@@ -59,8 +59,8 @@ func GetSubscriptionPaymentMethod(c context.Context, token string, request Subsc
 			Type:     string(pm.Type),
 			Brand:    brand,
 			Last4:    pm.Card.Last4,
-			ExpMonth: pm.Card.ExpMonth,
-			ExpYear:  pm.Card.ExpYear,
+			ExpMonth: uint64(pm.Card.ExpMonth),
+			ExpYear:  uint64(pm.Card.ExpYear),
 		}
 		return reply, nil
 	}
@@ -93,11 +93,6 @@ func GetChangePaymentSetupIntent(c context.Context, token string, request Change
 	}
 
 	params := &stripe.SetupIntentParams{
-		PaymentMethodTypes: []*string{
-			stripe.String("card"),
-			stripe.String("sepa_debit"),
-			stripe.String("paypal"),
-		},
 		Customer: stripe.String(customerID),
 	}
 	si, err := setupintent.New(params)

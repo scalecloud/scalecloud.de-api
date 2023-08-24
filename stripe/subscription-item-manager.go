@@ -3,15 +3,15 @@ package stripe
 import (
 	"context"
 
-	"github.com/stripe/stripe-go"
-	"github.com/stripe/stripe-go/subitem"
+	"github.com/stripe/stripe-go/v75"
+	"github.com/stripe/stripe-go/v75/subscriptionitem"
 )
 
 func updateSubscriptionItem(c context.Context, subscriptionItemID string, quantity int64) (*stripe.SubscriptionItem, error) {
 	params := &stripe.SubscriptionItemParams{
 		Quantity: stripe.Int64(quantity),
 	}
-	si, err := subitem.Update(
+	si, err := subscriptionitem.Update(
 		subscriptionItemID,
 		params,
 	)

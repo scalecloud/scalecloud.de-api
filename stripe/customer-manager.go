@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	"github.com/scalecloud/scalecloud.de-api/mongo"
-	"github.com/stripe/stripe-go/v72"
-	"github.com/stripe/stripe-go/v72/customer"
+	"github.com/stripe/stripe-go/v75"
+	"github.com/stripe/stripe-go/v75/customer"
 	"go.uber.org/zap"
 )
 
