@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/scalecloud/scalecloud.de-api/scalecloud.de-api"
 	"github.com/scalecloud/scalecloud.de-api/stripe"
 	"go.uber.org/zap"
 )
@@ -32,7 +31,7 @@ func CreateCheckoutSubscription(c *gin.Context) {
 		return
 	}
 	logger.Debug("quantity", zap.Any("quantity", checkoutIntegrationRequest.Quantity))
-	secret, error := scalecloud.CreateCheckoutSubscription(c, token, checkoutIntegrationRequest)
+	secret, error := stripe.CreateCheckoutSubscription(c, token, checkoutIntegrationRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
@@ -64,7 +63,7 @@ func updateCheckoutSubscription(c *gin.Context) {
 		return
 	}
 	logger.Debug("quantity", zap.Any("quantity", checkoutIntegrationUpdateRequest.Quantity))
-	secret, error := scalecloud.UpdateCheckoutSubscription(c, token, checkoutIntegrationUpdateRequest)
+	secret, error := stripe.UpdateCheckoutSubscription(c, token, checkoutIntegrationUpdateRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
@@ -92,7 +91,7 @@ func getCheckoutProduct(c *gin.Context) {
 		return
 	}
 	logger.Debug("subscriptionID", zap.Any("subscriptionID", checkoutProductRequest.SubscriptionID))
-	checkoutProductReply, error := scalecloud.GetCheckoutProduct(c, token, checkoutProductRequest)
+	checkoutProductReply, error := stripe.GetCheckoutProduct(c, token, checkoutProductRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return

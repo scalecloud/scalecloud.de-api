@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/scalecloud/scalecloud.de-api/scalecloud.de-api"
 	"github.com/scalecloud/scalecloud.de-api/stripe"
 	"go.uber.org/zap"
 )
@@ -32,7 +31,7 @@ func createCheckoutSession(c *gin.Context) {
 		return
 	}
 	logger.Debug("quantity", zap.Any("quantity", checkoutModelPortalRequest.Quantity))
-	checkout, error := scalecloud.CreateCheckoutSession(c, token, checkoutModelPortalRequest)
+	checkout, error := stripe.CreateCheckoutSession(c, token, checkoutModelPortalRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return

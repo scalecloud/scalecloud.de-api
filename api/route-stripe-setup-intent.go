@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/scalecloud/scalecloud.de-api/scalecloud.de-api"
 	"github.com/scalecloud/scalecloud.de-api/stripe"
 	"go.uber.org/zap"
 )
@@ -32,7 +31,7 @@ func CreateCheckoutSetupIntent(c *gin.Context) {
 		return
 	}
 	logger.Debug("quantity", zap.Any("quantity", checkoutSetupIntentRequest.Quantity))
-	secret, error := scalecloud.CreateCheckoutSetupIntent(c, token, checkoutSetupIntentRequest)
+	secret, error := stripe.CreateCheckoutSetupIntent(c, token, checkoutSetupIntentRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return

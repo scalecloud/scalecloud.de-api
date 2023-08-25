@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/scalecloud/scalecloud.de-api/scalecloud.de-api"
 	"github.com/scalecloud/scalecloud.de-api/stripe"
 	"go.uber.org/zap"
 )
@@ -15,7 +14,7 @@ func getSubscriptionsOverview(c *gin.Context) {
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": messageBearer})
 		return
 	}
-	subscriptionsOverview, error := scalecloud.GetSubscriptionsOverview(c, token)
+	subscriptionsOverview, error := stripe.GetSubscriptionsOverview(c, token)
 	if error != nil {
 		c.IndentedJSON(http.StatusNoContent, gin.H{"error": error.Error()})
 		return
@@ -36,7 +35,7 @@ func getSubscriptionByID(c *gin.Context) {
 	}
 	subscriptionID := c.Param("id")
 	logger.Debug("getSubscriptionByID", zap.String("subscriptionID", subscriptionID))
-	subscriptionDetail, error := scalecloud.GetSubscriptionByID(c, token, subscriptionID)
+	subscriptionDetail, error := stripe.GetSubscriptionByID(c, token, subscriptionID)
 	if error != nil {
 		c.IndentedJSON(http.StatusNoContent, gin.H{"error": error.Error()})
 		return
@@ -55,7 +54,7 @@ func getBillingPortal(c *gin.Context) {
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": messageBearer})
 		return
 	}
-	billingPortal, error := scalecloud.GetBillingPortal(c, token)
+	billingPortal, error := stripe.GetBillingPortal(c, token)
 	if error != nil {
 		c.IndentedJSON(http.StatusNoContent, gin.H{"error": error.Error()})
 		return
@@ -81,7 +80,7 @@ func resumeSubscription(c *gin.Context) {
 		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "ID not found"})
 		return
 	}
-	reply, error := scalecloud.ResumeSubscription(c, token, subscriptionResumeRequest)
+	reply, error := stripe.ResumeSubscription(c, token, subscriptionResumeRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
@@ -107,7 +106,7 @@ func cancelSubscription(c *gin.Context) {
 		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "ID not found"})
 		return
 	}
-	reply, error := scalecloud.CancelSubscription(c, token, subscriptionCancelRequest)
+	reply, error := stripe.CancelSubscription(c, token, subscriptionCancelRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
@@ -133,7 +132,7 @@ func getSubscriptionPaymentMethod(c *gin.Context) {
 		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "ID not found"})
 		return
 	}
-	reply, error := scalecloud.GetSubscriptionPaymentMethod(c, token, subscriptionPaymentMethodRequest)
+	reply, error := stripe.GetSubscriptionPaymentMethod(c, token, subscriptionPaymentMethodRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
@@ -149,17 +148,17 @@ func getChangePaymentSetupIntent(c *gin.Context) {
 		return
 	}
 
-	var changePaymentRequest stripe.ChangePaymentRequest
-	if err := c.BindJSON(&changePaymentRequest); err != nil {
+	var request stripe.ChangePaymentRequest
+	if err := c.BindJSON(&request); err != nil {
 		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
 		return
 	}
 
-	if changePaymentRequest.SubscriptionID == "" {
+	if request.SubscriptionID == "" {
 		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "SubscriptionID not found"})
 		return
 	}
-	reply, error := scalecloud.GetChangePaymentSetupIntent(c, token, changePaymentRequest)
+	reply, error := stripe.GetChangePaymentSetupIntent(c, token, request)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
