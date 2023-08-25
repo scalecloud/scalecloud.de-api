@@ -84,7 +84,7 @@ func mapSubscriptionItemToSubscriptionDetail(c context.Context, subscription *st
 
 	subscriptionDetail.UserCount = subscription.Items.Data[0].Quantity
 
-	price, err := getPrice(c, subscription.Items.Data[0].Price.ID)
+	price, err := getPrice(c, subscription.Items.Data[0].Price.Product.ID)
 	if err != nil {
 		logger.Warn("Error getting price", zap.Error(err))
 		return SubscriptionDetail{}, errors.New("Price not found")
