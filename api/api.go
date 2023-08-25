@@ -14,8 +14,8 @@ const messageBearer = "Bearer token not found"
 
 var logger, _ = zap.NewProduction()
 
-func StartAPI() {
-	logger.Info("Start api")
+func InitAPI() {
+	logger.Info("Init api")
 	router := gin.Default()
 	initHeaders(router)
 	initRoutes(router)

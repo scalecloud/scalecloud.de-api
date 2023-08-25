@@ -15,6 +15,6 @@ func main() {
 	firebase.InitFirebase()
 	mongo.InitMongo()
 	stripe.InitStripe()
-	api.StartAPI()
+	api.InitAPI()
 	logger.Info("App ended.")
 }
