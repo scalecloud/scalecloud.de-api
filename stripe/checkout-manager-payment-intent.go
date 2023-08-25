@@ -205,7 +205,7 @@ func GetCheckoutProduct(c context.Context, token string, checkoutProductRequest 
 		logger.Error("Subscription item is nill")
 		return CheckoutProductReply{}, errors.New("Subscription item is nill")
 	}
-	productID := subscriptionItem.Plan.Product.ID
+	productID := subscriptionItem.Price.Product.ID
 
 	price, err := getPrice(c, productID)
 	if err != nil {
