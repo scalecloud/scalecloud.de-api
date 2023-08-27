@@ -45,9 +45,13 @@ func startListening(router *gin.Engine) {
 
 func initRoutes(router *gin.Engine) {
 	logger.Info("Setting up routes...")
-	// Subscription
 
-	// Account
+	webhook := router.Group("/webhook/")
+	webhook.Use(StripeRequired)
+	{
+		webhook.POST("/stripe", handleStripeWebhook)
+	}
+
 	dashboard := router.Group("/dashboard")
 	dashboard.Use(AuthRequired)
 	{
