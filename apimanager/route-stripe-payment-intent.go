@@ -1,4 +1,4 @@
-package api
+package apimanager
 
 import (
 	"net/http"

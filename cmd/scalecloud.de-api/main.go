@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/scalecloud/scalecloud.de-api/api"
+	"github.com/scalecloud/scalecloud.de-api/apimanager"
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 	"github.com/scalecloud/scalecloud.de-api/stripemanager"
@@ -15,6 +15,6 @@ func main() {
 	firebasemanager.InitFirebase()
 	mongomanager.InitMongo()
 	stripemanager.InitStripe()
-	api.InitAPI()
+	apimanager.InitAPI()
 	logger.Info("App ended.")
 }
