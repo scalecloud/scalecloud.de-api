@@ -6,7 +6,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/scalecloud/scalecloud.de-api/firebase"
+	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"go.uber.org/zap"
 )
 
@@ -100,7 +100,7 @@ func initTrustedPlatform(router *gin.Engine) {
 func AuthRequired(c *gin.Context) {
 	token, hasAuth := getBearerToken(c)
 
-	if hasAuth && token != "" && firebase.VerifyIDToken(c, token) {
+	if hasAuth && token != "" && firebasemanager.VerifyIDToken(c, token) {
 		logger.Debug("Authenticated", zap.String("token:", token))
 		c.Next()
 	} else {

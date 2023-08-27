@@ -5,14 +5,14 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/scalecloud/scalecloud.de-api/firebase"
+	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/stripe/stripe-go/v75"
 	"github.com/stripe/stripe-go/v75/subscription"
 	"go.uber.org/zap"
 )
 
 func GetSubscriptionsOverview(c context.Context, token string) (subscriptionOverview []SubscriptionOverview, err error) {
-	tokenDetails, err := firebase.GetTokenDetails(c, token)
+	tokenDetails, err := firebasemanager.GetTokenDetails(c, token)
 	if err != nil {
 		logger.Error("Error getting token details", zap.Error(err))
 		return []SubscriptionOverview{}, err

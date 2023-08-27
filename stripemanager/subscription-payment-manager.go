@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/scalecloud/scalecloud.de-api/firebase"
+	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/stripe/stripe-go/v75"
 	"github.com/stripe/stripe-go/v75/paymentmethod"
 	"github.com/stripe/stripe-go/v75/setupintent"
@@ -15,7 +15,7 @@ func GetSubscriptionPaymentMethod(c context.Context, token string, request Subsc
 	if request.ID == "" {
 		return SubscriptionPaymentMethodReply{}, errors.New("Subscription ID is empty")
 	}
-	tokenDetails, err := firebase.GetTokenDetails(c, token)
+	tokenDetails, err := firebasemanager.GetTokenDetails(c, token)
 	if err != nil {
 		logger.Error("Error getting token details", zap.Error(err))
 		return SubscriptionPaymentMethodReply{}, err
@@ -71,7 +71,7 @@ func GetChangePaymentSetupIntent(c context.Context, token string, request Change
 	if request.SubscriptionID == "" {
 		return ChangePaymentReply{}, errors.New("Subscription ID is empty")
 	}
-	tokenDetails, err := firebase.GetTokenDetails(c, token)
+	tokenDetails, err := firebasemanager.GetTokenDetails(c, token)
 	if err != nil {
 		logger.Error("Error getting token details", zap.Error(err))
 		return ChangePaymentReply{}, err

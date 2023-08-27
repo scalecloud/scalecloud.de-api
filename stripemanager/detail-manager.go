@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/scalecloud/scalecloud.de-api/firebase"
+	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/stripe/stripe-go/v75"
 	"go.uber.org/zap"
 )
@@ -15,7 +15,7 @@ func GetSubscriptionByID(c context.Context, token, subscriptionID string) (subsc
 		logger.Error("Subscription ID is empty")
 		return SubscriptionDetail{}, errors.New("Subscription ID is empty")
 	}
-	tokenDetails, err := firebase.GetTokenDetails(c, token)
+	tokenDetails, err := firebasemanager.GetTokenDetails(c, token)
 	if err != nil {
 		logger.Error("Error getting token details", zap.Error(err))
 		return SubscriptionDetail{}, err

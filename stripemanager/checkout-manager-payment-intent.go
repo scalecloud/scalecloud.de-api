@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/scalecloud/scalecloud.de-api/firebase"
+	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/scalecloud/scalecloud.de-api/mongo"
 	"github.com/stripe/stripe-go/v75"
 	"github.com/stripe/stripe-go/v75/subscription"
@@ -14,7 +14,7 @@ import (
 )
 
 func CreateCheckoutSubscription(c context.Context, token string, checkoutIntegrationRequest CheckoutPaymentIntentRequest) (CheckoutPaymentIntentReply, error) {
-	tokenDetails, err := firebase.GetTokenDetails(c, token)
+	tokenDetails, err := firebasemanager.GetTokenDetails(c, token)
 	if err != nil {
 		logger.Error("Error getting token details", zap.Error(err))
 		return CheckoutPaymentIntentReply{}, err
@@ -102,7 +102,7 @@ func CreateCheckoutSubscription(c context.Context, token string, checkoutIntegra
 }
 
 func UpdateCheckoutSubscription(c context.Context, token string, checkoutIntegrationUpdateRequest CheckoutPaymentIntentUpdateRequest) (CheckoutPaymentIntentUpdateReply, error) {
-	tokenDetails, err := firebase.GetTokenDetails(c, token)
+	tokenDetails, err := firebasemanager.GetTokenDetails(c, token)
 	if err != nil {
 		logger.Error("Error getting token details", zap.Error(err))
 		return CheckoutPaymentIntentUpdateReply{}, err
@@ -169,7 +169,7 @@ func UpdateCheckoutSubscription(c context.Context, token string, checkoutIntegra
 }
 
 func GetCheckoutProduct(c context.Context, token string, checkoutProductRequest CheckoutProductRequest) (CheckoutProductReply, error) {
-	tokenDetails, err := firebase.GetTokenDetails(c, token)
+	tokenDetails, err := firebasemanager.GetTokenDetails(c, token)
 	if err != nil {
 		logger.Error("Error getting token details", zap.Error(err))
 		return CheckoutProductReply{}, err

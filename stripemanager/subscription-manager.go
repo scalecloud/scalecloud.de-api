@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/scalecloud/scalecloud.de-api/firebase"
+	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/stripe/stripe-go/v75"
 	"github.com/stripe/stripe-go/v75/subscription"
 	"go.uber.org/zap"
@@ -19,7 +19,7 @@ func ResumeSubscription(c context.Context, token string, request SubscriptionRes
 	if request.ID == "" {
 		return SubscriptionResumeReply{}, errors.New("Subscription ID is empty")
 	}
-	tokenDetails, err := firebase.GetTokenDetails(c, token)
+	tokenDetails, err := firebasemanager.GetTokenDetails(c, token)
 	if err != nil {
 		logger.Error("Error getting token details", zap.Error(err))
 		return SubscriptionResumeReply{}, err
@@ -62,7 +62,7 @@ func CancelSubscription(c context.Context, token string, request SubscriptionCan
 	if request.ID == "" {
 		return SubscriptionCancelReply{}, errors.New("Subscription ID is empty")
 	}
-	tokenDetails, err := firebase.GetTokenDetails(c, token)
+	tokenDetails, err := firebasemanager.GetTokenDetails(c, token)
 	if err != nil {
 		logger.Error("Error getting token details", zap.Error(err))
 		return SubscriptionCancelReply{}, err

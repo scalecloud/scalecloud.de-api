@@ -1,4 +1,4 @@
-package firebase
+package firebasemanager
 
 type TokenDetails struct {
 	UID   string `bson:"uid,omitempty"`

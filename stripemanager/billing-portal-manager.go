@@ -4,14 +4,14 @@ import (
 	"context"
 	"errors"
 
-	"github.com/scalecloud/scalecloud.de-api/firebase"
+	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/stripe/stripe-go/v75"
 	"github.com/stripe/stripe-go/v75/billingportal/session"
 	"go.uber.org/zap"
 )
 
 func GetBillingPortal(c context.Context, token string) (billingPortalModel BillingPortalModel, err error) {
-	tokenDetails, err := firebase.GetTokenDetails(c, token)
+	tokenDetails, err := firebasemanager.GetTokenDetails(c, token)
 	if err != nil {
 		logger.Error("Error getting token details", zap.Error(err))
 		return BillingPortalModel{}, err
