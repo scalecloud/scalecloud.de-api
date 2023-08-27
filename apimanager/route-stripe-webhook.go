@@ -1,10 +1,13 @@
 package apimanager
 
 import (
+	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/scalecloud/scalecloud.de-api/stripemanager"
+	"github.com/stripe/stripe-go/v75"
 	"github.com/stripe/stripe-go/v75/webhook"
 	"go.uber.org/zap"
 )
@@ -59,37 +62,51 @@ func handleStripeWebhook(c *gin.Context) {
 
 	switch event.Type {
 	case "payment_method.attached":
-		//var paymentMethod stripe.Payment
-	case "setup_intent.succeeded":
-		/*  var set stripe.
-		err = json.Unmarshal(event.Data.Raw, &setupIntent)
+		err := handlePaymentMethodAttached(event)
 		if err != nil {
-			logger.Error("Error unmarshalling setupIntent", zap.Error(err))
-			c.SecureJSON(http.StatusBadRequest, gin.H{"message": "Error unmarshalling setupIntent"})
-		}  */
-
-		// Then define and call a function to handle the event setup_intent.succeeded
-	// ... handle other event types
+			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
+		}
+	case "setup_intent.succeeded":
+		err := handleSetupIntentSucceeded(event)
+		if err != nil {
+			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
+		}
 	default:
 		logger.Warn("Unhandled event type", zap.String("event.Type", event.Type))
 		c.SecureJSON(http.StatusNotImplemented, gin.H{"message": "Unhandled event type"})
 	}
-
-	var request stripemanager.ChangePaymentRequest
-	if err := c.BindJSON(&request); err != nil {
-		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
-		return
-	}
-
-	if request.SubscriptionID == "" {
-		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "SubscriptionID not found"})
-		return
-	}
-	/* reply, error := stripe.GetChangePaymentSetupIntent(c, token, request)
-	if error != nil {
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
-		return
-	} */
-	/* logger.Info("Handled webhook", zap.Any("Handled webhook", reply)) */
+	logger.Info("Handled webhook", zap.Any("Handled webhook", event.Type))
 	c.Status(http.StatusOK)
+}
+
+func handlePaymentMethodAttached(event stripe.Event) error {
+	var paymentMethod stripe.PaymentMethod
+	err := json.Unmarshal(event.Data.Raw, &paymentMethod)
+	if err != nil {
+		logger.Error("Error unmarshalling setupIntent", zap.Error(err))
+		return errors.New("Error unmarshalling setupIntent")
+	}
+
+	if paymentMethod.ID == "" {
+		logger.Error("ID not set")
+		return errors.New("ID not set")
+	}
+	logger.Debug("paymentMethod was updated", zap.Any("paymentMethodID", paymentMethod.ID))
+	return nil
+}
+
+func handleSetupIntentSucceeded(event stripe.Event) error {
+	var setupIntent stripe.SetupIntent
+	err := json.Unmarshal(event.Data.Raw, &setupIntent)
+	if err != nil {
+		logger.Error("Error unmarshalling setupIntent", zap.Error(err))
+		return errors.New("Error unmarshalling setupIntent")
+	}
+
+	if setupIntent.ID == "" {
+		logger.Error("ID not set")
+		return errors.New("ID not set")
+	}
+	logger.Debug("setupIntentID succeeded", zap.Any("setupIntentID", setupIntent.ID))
+	return nil
 }
