@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/scalecloud/scalecloud.de-api/mongo"
+	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 	"github.com/stripe/stripe-go/v75"
 	"github.com/stripe/stripe-go/v75/customer"
 	"go.uber.org/zap"
@@ -24,10 +24,10 @@ func getCustomerByID(ctx context.Context, customerID string) (customerDetails *s
 }
 
 func getCustomerIDByUID(ctx context.Context, uid string) (string, error) {
-	filter := mongo.User{
+	filter := mongomanager.User{
 		UID: uid,
 	}
-	userSearch, err := mongo.GetUser(ctx, filter)
+	userSearch, err := mongomanager.GetUser(ctx, filter)
 	if err != nil {
 		logger.Error("Error getting user", zap.Error(err))
 		return "", err

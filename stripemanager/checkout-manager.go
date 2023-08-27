@@ -4,25 +4,25 @@ import (
 	"context"
 
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
-	"github.com/scalecloud/scalecloud.de-api/mongo"
+	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 	"go.uber.org/zap"
 )
 
-func createCustomerAndUser(c context.Context, tokenDetails firebasemanager.TokenDetails) (mongo.User, error) {
+func createCustomerAndUser(c context.Context, tokenDetails firebasemanager.TokenDetails) (mongomanager.User, error) {
 	customer, err := CreateCustomer(c, tokenDetails.EMail)
 	if err != nil {
 		logger.Error("Error creating customer", zap.Error(err))
-		return mongo.User{}, err
+		return mongomanager.User{}, err
 	} else {
 		logger.Info("New Customer was created with Customer.ID", zap.Any("customer.ID", customer.ID))
-		newUser := mongo.User{
+		newUser := mongomanager.User{
 			UID:        tokenDetails.UID,
 			CustomerID: customer.ID,
 		}
-		err := mongo.CreateUser(c, newUser)
+		err := mongomanager.CreateUser(c, newUser)
 		if err != nil {
 			logger.Error("Error creating user in MongoDB.", zap.Error(err))
-			return mongo.User{}, err
+			return mongomanager.User{}, err
 		} else {
 			logger.Info("New User was created in MongoDB with User.ID", zap.Any("user.ID", newUser.UID))
 			return newUser, nil
@@ -30,7 +30,7 @@ func createCustomerAndUser(c context.Context, tokenDetails firebasemanager.Token
 	}
 }
 
-func searchOrCreateCustomer(c context.Context, filter mongo.User, tokenDetails firebasemanager.TokenDetails) (string, error) {
+func searchOrCreateCustomer(c context.Context, filter mongomanager.User, tokenDetails firebasemanager.TokenDetails) (string, error) {
 	customerID, err := getCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
 		logger.Info("Could not find user in MongoDB. Going to create new Customer in MongoDB Database 'stripe' collection 'users'.")

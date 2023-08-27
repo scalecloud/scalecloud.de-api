@@ -1,4 +1,4 @@
-package mongo
+package mongomanager
 
 type User struct {
 	UID        string `bson:"uid,omitempty"`

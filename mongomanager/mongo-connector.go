@@ -1,4 +1,4 @@
-package mongo
+package mongomanager
 
 import (
 	"bufio"

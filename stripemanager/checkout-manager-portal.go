@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
-	"github.com/scalecloud/scalecloud.de-api/mongo"
+	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 	"github.com/stripe/stripe-go/v75"
 	"github.com/stripe/stripe-go/v75/checkout/session"
 	"go.uber.org/zap"
@@ -18,7 +18,7 @@ func CreateCheckoutSession(c context.Context, token string, checkoutModelPortalR
 		logger.Error("Error getting token details", zap.Error(err))
 		return CheckoutModelPortalReply{}, err
 	}
-	filter := mongo.User{
+	filter := mongomanager.User{
 		UID: tokenDetails.UID,
 	}
 	customerID, err := searchOrCreateCustomer(c, filter, tokenDetails)
