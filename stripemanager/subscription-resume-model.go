@@ -1,4 +1,4 @@
-package stripe
+package stripemanager
 
 type SubscriptionResumeRequest struct {
 	ID string `json:"id"`

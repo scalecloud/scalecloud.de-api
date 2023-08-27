@@ -1,4 +1,4 @@
-package stripe
+package stripemanager
 
 type SubscriptionDetail struct {
 	ID                string `json:"id"`

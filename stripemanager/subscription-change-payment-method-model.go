@@ -1,4 +1,4 @@
-package stripe
+package stripemanager
 
 type ChangePaymentRequest struct {
 	SubscriptionID string `json:"subscriptionid"`

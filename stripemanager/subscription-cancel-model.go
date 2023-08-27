@@ -1,4 +1,4 @@
-package stripe
+package stripemanager
 
 type SubscriptionCancelRequest struct {
 	ID string `json:"id"`

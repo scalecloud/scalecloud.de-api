@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/scalecloud/scalecloud.de-api/stripe"
+	"github.com/scalecloud/scalecloud.de-api/stripemanager"
 	"github.com/stripe/stripe-go/v75/webhook"
 	"go.uber.org/zap"
 )
@@ -40,7 +40,7 @@ func getStripeToken(c *gin.Context) (string, bool) {
 
 func handleStripeWebhook(c *gin.Context) {
 
-	var endpointSecret = stripe.GetStripeEndpointSecret()
+	var endpointSecret = stripemanager.GetStripeEndpointSecret()
 	if endpointSecret == "" {
 		logger.Error("Missing endpoint secret")
 		c.SecureJSON(http.StatusServiceUnavailable, gin.H{"message": "Service unavailable"})
@@ -75,7 +75,7 @@ func handleStripeWebhook(c *gin.Context) {
 		c.SecureJSON(http.StatusNotImplemented, gin.H{"message": "Unhandled event type"})
 	}
 
-	var request stripe.ChangePaymentRequest
+	var request stripemanager.ChangePaymentRequest
 	if err := c.BindJSON(&request); err != nil {
 		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
 		return
