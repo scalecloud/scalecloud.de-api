@@ -12,6 +12,13 @@ import (
 	"go.uber.org/zap"
 )
 
+type SetupIntentMeta string
+
+const (
+	CreateSubscription SetupIntentMeta = "createSubscription"
+	ChangePayment      SetupIntentMeta = "changePayment"
+)
+
 func StripeRequired(c *gin.Context) {
 	isPost(c)
 
@@ -128,6 +135,35 @@ func handleSetupIntentSucceeded(event stripe.Event) error {
 		logger.Error("ID not set")
 		return errors.New("ID not set")
 	}
-	logger.Info("setupIntentID succeeded", zap.Any("setupIntentID", setupIntent.ID))
+	logger.Debug("setupIntentID succeeded", zap.Any("setupIntentID", setupIntent.ID))
+	cus := setupIntent.Customer
+	if cus == nil {
+		logger.Error("Customer not set")
+		return errors.New("Customer not set")
+	}
+	if cus.ID == "" {
+		logger.Error("Customer ID not set")
+		return errors.New("Customer ID not set")
+	}
+	logger.Debug("Customer", zap.Any("Customer", cus.ID))
+
+	meta := setupIntent.Metadata
+	if meta == nil {
+		logger.Error("Metadata not set")
+		return errors.New("Metadata not set")
+	}
+	metaType := meta["metaType"]
+	if metaType == "" {
+		logger.Error("Metadata type not set")
+		return errors.New("Metadata type not set")
+	}
+	if metaType == string(CreateSubscription) {
+		logger.Info("CreateSubscription")
+	} else if metaType == string(ChangePayment) {
+		logger.Info("ChangePayment")
+	} else {
+		logger.Error("Unknown metadata type")
+		return errors.New("Unknown metadata type")
+	}
 	return nil
 }
