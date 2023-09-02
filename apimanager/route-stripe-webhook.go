@@ -72,7 +72,7 @@ func handleStripeWebhook(c *gin.Context) {
 			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
 		}
 	default:
-		logger.Warn("Unhandled event type", zap.String("event.Type", event.Type))
+		logger.Warn("Unhandled event type", zap.Any("Unhandled event type", event.Type))
 		c.SecureJSON(http.StatusNotImplemented, gin.H{"message": "Unhandled event type"})
 	}
 	logger.Info("Handled webhook", zap.Any("Handled webhook", event.Type))
