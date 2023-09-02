@@ -45,7 +45,7 @@ func getStripeKey() string {
 }
 
 func GetStripeEndpointSecret() string {
-	content, err := os.ReadFile(keyFile)
+	content, err := os.ReadFile(endpointSecretFile)
 	if err != nil {
 		logger.Error("Error reading file", zap.Error(err))
 	}

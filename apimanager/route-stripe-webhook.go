@@ -66,6 +66,11 @@ func handleStripeWebhook(c *gin.Context) {
 		if err != nil {
 			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
 		}
+	case "setup_intent.created":
+		err := handleSetupIntentCreated(event)
+		if err != nil {
+			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
+		}
 	case "setup_intent.succeeded":
 		err := handleSetupIntentSucceeded(event)
 		if err != nil {
@@ -95,6 +100,22 @@ func handlePaymentMethodAttached(event stripe.Event) error {
 	return nil
 }
 
+func handleSetupIntentCreated(event stripe.Event) error {
+	var setupIntent stripe.SetupIntent
+	err := json.Unmarshal(event.Data.Raw, &setupIntent)
+	if err != nil {
+		logger.Error("Error unmarshalling setupIntent", zap.Error(err))
+		return errors.New("Error unmarshalling setupIntent")
+	}
+
+	if setupIntent.ID == "" {
+		logger.Error("ID not set")
+		return errors.New("ID not set")
+	}
+	logger.Info("SetupIntentCreated", zap.Any("setupIntentID", setupIntent.ID))
+	return nil
+}
+
 func handleSetupIntentSucceeded(event stripe.Event) error {
 	var setupIntent stripe.SetupIntent
 	err := json.Unmarshal(event.Data.Raw, &setupIntent)
@@ -107,6 +128,6 @@ func handleSetupIntentSucceeded(event stripe.Event) error {
 		logger.Error("ID not set")
 		return errors.New("ID not set")
 	}
-	logger.Debug("setupIntentID succeeded", zap.Any("setupIntentID", setupIntent.ID))
+	logger.Info("setupIntentID succeeded", zap.Any("setupIntentID", setupIntent.ID))
 	return nil
 }
