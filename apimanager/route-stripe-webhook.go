@@ -112,7 +112,7 @@ func handleSetupIntentCreated(event stripe.Event) error {
 		logger.Error("ID not set")
 		return errors.New("ID not set")
 	}
-	logger.Info("SetupIntentCreated", zap.Any("setupIntentID", setupIntent.ID))
+	logger.Debug("SetupIntentCreated", zap.Any("setupIntentID", setupIntent.ID))
 	return nil
 }
 
