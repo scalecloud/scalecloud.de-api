@@ -35,7 +35,7 @@ node() {
       cleanWs()
     }
     stage('Docker remove not needed images') {
-        sh 'docker rmi calecloudde/scalecloud.de-api:beta'
+        sh 'docker rmi scalecloudde/scalecloud.de-api:beta'
         sh 'docker rmi golang:1.20'
         sh 'docker rmi gcr.io/distroless/base-debian11:latest'
     }
