@@ -11,6 +11,15 @@ import (
 	"go.uber.org/zap"
 )
 
+type SetupIntentMeta string
+
+const SetupIntentMetaKey SetupIntentMeta = "setupIntentMeta"
+
+const (
+	CreateSubscription SetupIntentMeta = "createSubscription"
+	ChangePayment      SetupIntentMeta = "changePayment"
+)
+
 func GetSubscriptionPaymentMethod(c context.Context, token string, request SubscriptionPaymentMethodRequest) (SubscriptionPaymentMethodReply, error) {
 	if request.ID == "" {
 		return SubscriptionPaymentMethodReply{}, errors.New("Subscription ID is empty")
@@ -95,6 +104,9 @@ func GetChangePaymentSetupIntent(c context.Context, token string, request Change
 	params := &stripe.SetupIntentParams{
 		Customer: stripe.String(customerID),
 	}
+
+	params.AddMetadata(string(SetupIntentMetaKey), string(ChangePayment))
+
 	si, err := setupintent.New(params)
 	if err != nil {
 		logger.Error("Error creating setup intent", zap.Error(err))
