@@ -6,7 +6,7 @@ require (
 	github.com/gin-contrib/cors v1.4.0
 	github.com/stripe/stripe-go/v75 v75.4.0
 	go.uber.org/zap v1.25.0
-	google.golang.org/api v0.138.0
+	google.golang.org/api v0.139.0
 )
 
 require (
@@ -16,7 +16,7 @@ require (
 	cloud.google.com/go/firestore v1.12.0 // indirect
 	cloud.google.com/go/iam v1.1.2 // indirect
 	cloud.google.com/go/longrunning v0.5.1 // indirect
-	cloud.google.com/go/storage v1.32.0 // indirect
+	cloud.google.com/go/storage v1.33.0 // indirect
 	github.com/MicahParks/keyfunc v1.9.0 // indirect
 	github.com/bytedance/sonic v1.10.0 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d // indirect
