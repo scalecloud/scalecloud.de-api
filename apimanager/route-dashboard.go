@@ -4,7 +4,10 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/scalecloud/scalecloud.de-api/stripemanager"
+	"github.com/scalecloud/scalecloud.de-api/stripebillingportal"
+	"github.com/scalecloud/scalecloud.de-api/stripechangepayment"
+	"github.com/scalecloud/scalecloud.de-api/stripepaymentintent"
+	"github.com/scalecloud/scalecloud.de-api/stripesubscription"
 	"go.uber.org/zap"
 )
 
@@ -14,7 +17,7 @@ func getSubscriptionsOverview(c *gin.Context) {
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": messageBearer})
 		return
 	}
-	subscriptionsOverview, error := stripemanager.GetSubscriptionsOverview(c, token)
+	subscriptionsOverview, error := stripesubscription.GetSubscriptionsOverview(c, token)
 	if error != nil {
 		c.IndentedJSON(http.StatusNoContent, gin.H{"error": error.Error()})
 		return
@@ -35,13 +38,13 @@ func getSubscriptionByID(c *gin.Context) {
 	}
 	subscriptionID := c.Param("id")
 	logger.Debug("getSubscriptionByID", zap.String("subscriptionID", subscriptionID))
-	subscriptionDetail, error := stripemanager.GetSubscriptionByID(c, token, subscriptionID)
+	subscriptionDetail, error := stripesubscription.GetSubscriptionDetailByID(c, token, subscriptionID)
 	if error != nil {
 		c.IndentedJSON(http.StatusNoContent, gin.H{"error": error.Error()})
 		return
 	}
 	logger.Info("Found subscriptionDetail", zap.Any("subscriptionDetail", subscriptionDetail))
-	if subscriptionDetail != (stripemanager.SubscriptionDetail{}) {
+	if subscriptionDetail != (stripesubscription.SubscriptionDetail{}) {
 		c.IndentedJSON(http.StatusOK, subscriptionDetail)
 	} else {
 		c.SecureJSON(http.StatusNotFound, gin.H{"message": "subscriptionDetail not found"})
@@ -54,7 +57,7 @@ func getBillingPortal(c *gin.Context) {
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": messageBearer})
 		return
 	}
-	billingPortal, error := stripemanager.GetBillingPortal(c, token)
+	billingPortal, error := stripebillingportal.GetBillingPortal(c, token)
 	if error != nil {
 		c.IndentedJSON(http.StatusNoContent, gin.H{"error": error.Error()})
 		return
@@ -70,7 +73,7 @@ func resumeSubscription(c *gin.Context) {
 		return
 	}
 
-	var subscriptionResumeRequest stripemanager.SubscriptionResumeRequest
+	var subscriptionResumeRequest stripesubscription.SubscriptionResumeRequest
 	if err := c.BindJSON(&subscriptionResumeRequest); err != nil {
 		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
 		return
@@ -80,7 +83,7 @@ func resumeSubscription(c *gin.Context) {
 		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "ID not found"})
 		return
 	}
-	reply, error := stripemanager.ResumeSubscription(c, token, subscriptionResumeRequest)
+	reply, error := stripesubscription.ResumeSubscription(c, token, subscriptionResumeRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
@@ -96,7 +99,7 @@ func cancelSubscription(c *gin.Context) {
 		return
 	}
 
-	var subscriptionCancelRequest stripemanager.SubscriptionCancelRequest
+	var subscriptionCancelRequest stripesubscription.SubscriptionCancelRequest
 	if err := c.BindJSON(&subscriptionCancelRequest); err != nil {
 		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
 		return
@@ -106,7 +109,7 @@ func cancelSubscription(c *gin.Context) {
 		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "ID not found"})
 		return
 	}
-	reply, error := stripemanager.CancelSubscription(c, token, subscriptionCancelRequest)
+	reply, error := stripesubscription.CancelSubscription(c, token, subscriptionCancelRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
@@ -122,7 +125,7 @@ func getSubscriptionPaymentMethod(c *gin.Context) {
 		return
 	}
 
-	var subscriptionPaymentMethodRequest stripemanager.SubscriptionPaymentMethodRequest
+	var subscriptionPaymentMethodRequest stripepaymentintent.SubscriptionPaymentMethodRequest
 	if err := c.BindJSON(&subscriptionPaymentMethodRequest); err != nil {
 		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
 		return
@@ -132,7 +135,7 @@ func getSubscriptionPaymentMethod(c *gin.Context) {
 		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "ID not found"})
 		return
 	}
-	reply, error := stripemanager.GetSubscriptionPaymentMethod(c, token, subscriptionPaymentMethodRequest)
+	reply, error := stripepaymentintent.GetSubscriptionPaymentMethod(c, token, subscriptionPaymentMethodRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
@@ -148,7 +151,7 @@ func getChangePaymentSetupIntent(c *gin.Context) {
 		return
 	}
 
-	var request stripemanager.ChangePaymentRequest
+	var request stripechangepayment.ChangePaymentRequest
 	if err := c.BindJSON(&request); err != nil {
 		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
 		return
@@ -158,7 +161,7 @@ func getChangePaymentSetupIntent(c *gin.Context) {
 		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "SubscriptionID not found"})
 		return
 	}
-	reply, error := stripemanager.GetChangePaymentSetupIntent(c, token, request)
+	reply, error := stripechangepayment.GetChangePaymentSetupIntent(c, token, request)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return

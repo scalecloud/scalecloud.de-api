@@ -1,4 +1,4 @@
-package stripemanager
+package stripecheckout
 
 type CheckoutModelPortalRequest struct {
 	ProductID string `json:"productID"`

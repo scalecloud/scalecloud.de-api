@@ -1,4 +1,4 @@
-package stripemanager
+package stripecheckout
 
 import (
 	"context"
@@ -8,6 +8,11 @@ import (
 
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
+	"github.com/scalecloud/scalecloud.de-api/stripecustomer"
+	"github.com/scalecloud/scalecloud.de-api/stripeprice"
+	"github.com/scalecloud/scalecloud.de-api/stripeproduct"
+	"github.com/scalecloud/scalecloud.de-api/stripesecret"
+	"github.com/scalecloud/scalecloud.de-api/stripesubscription"
 	"github.com/stripe/stripe-go/v75"
 	"github.com/stripe/stripe-go/v75/subscription"
 	"go.uber.org/zap"
@@ -31,9 +36,9 @@ func CreateCheckoutSubscription(c context.Context, token string, checkoutIntegra
 		logger.Error("Customer ID is empty")
 		return CheckoutPaymentIntentReply{}, errors.New("Customer ID is empty")
 	}
-	stripe.Key = getStripeKey()
+	stripe.Key = stripesecret.GetStripeKey()
 
-	price, err := getPrice(c, checkoutIntegrationRequest.ProductID)
+	price, err := stripeprice.GetPrice(c, checkoutIntegrationRequest.ProductID)
 	if err != nil {
 		logger.Error("Error getting price", zap.Error(err))
 		return CheckoutPaymentIntentReply{}, err
@@ -107,15 +112,15 @@ func UpdateCheckoutSubscription(c context.Context, token string, checkoutIntegra
 		logger.Error("Error getting token details", zap.Error(err))
 		return CheckoutPaymentIntentUpdateReply{}, err
 	}
-	customerIDFromUID, err := getCustomerIDByUID(c, tokenDetails.UID)
+	customerIDFromUID, err := stripecustomer.GetCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
 		logger.Error("Error getting customerID", zap.Error(err))
 		return CheckoutPaymentIntentUpdateReply{}, err
 	}
 
-	stripe.Key = getStripeKey()
+	stripe.Key = stripesecret.GetStripeKey()
 
-	sub, err := getSubscriptionByID(c, checkoutIntegrationUpdateRequest.SubscriptionID)
+	sub, err := stripesubscription.GetSubscriptionByID(c, checkoutIntegrationUpdateRequest.SubscriptionID)
 	if err != nil {
 		logger.Error("Error getting subscription", zap.Error(err))
 		return CheckoutPaymentIntentUpdateReply{}, err
@@ -174,15 +179,15 @@ func GetCheckoutProduct(c context.Context, token string, checkoutProductRequest 
 		logger.Error("Error getting token details", zap.Error(err))
 		return CheckoutProductReply{}, err
 	}
-	customerIDFromUID, err := getCustomerIDByUID(c, tokenDetails.UID)
+	customerIDFromUID, err := stripecustomer.GetCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
 		logger.Error("Error getting customerID", zap.Error(err))
 		return CheckoutProductReply{}, err
 	}
 
-	stripe.Key = getStripeKey()
+	stripe.Key = stripesecret.GetStripeKey()
 
-	subscription, err := getSubscriptionByID(c, checkoutProductRequest.SubscriptionID)
+	subscription, err := stripesubscription.GetSubscriptionByID(c, checkoutProductRequest.SubscriptionID)
 	if err != nil {
 		logger.Error("Error getting subscription", zap.Error(err))
 		return CheckoutProductReply{}, err
@@ -207,7 +212,7 @@ func GetCheckoutProduct(c context.Context, token string, checkoutProductRequest 
 	}
 	productID := subscriptionItem.Price.Product.ID
 
-	price, err := getPrice(c, productID)
+	price, err := stripeprice.GetPrice(c, productID)
 	if err != nil {
 		logger.Error("Error getting price", zap.Error(err))
 		return CheckoutProductReply{}, err
@@ -231,7 +236,7 @@ func GetCheckoutProduct(c context.Context, token string, checkoutProductRequest 
 		return CheckoutProductReply{}, errors.New("Error converting trialPeriodDays to int")
 	}
 
-	product, err := getProduct(c, productID)
+	product, err := stripeproduct.GetProduct(c, productID)
 	if err != nil {
 		logger.Error("Error getting product", zap.Error(err))
 		return CheckoutProductReply{}, err

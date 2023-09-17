@@ -4,7 +4,7 @@ import (
 	"github.com/scalecloud/scalecloud.de-api/apimanager"
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
-	"github.com/scalecloud/scalecloud.de-api/stripemanager"
+	"github.com/scalecloud/scalecloud.de-api/stripesecret"
 	"go.uber.org/zap"
 )
 
@@ -14,7 +14,7 @@ func main() {
 	logger.Info("Starting App.")
 	firebasemanager.InitFirebase()
 	mongomanager.InitMongo()
-	stripemanager.InitStripe()
+	stripesecret.InitStripe()
 	apimanager.InitAPI()
 	logger.Info("App ended.")
 }

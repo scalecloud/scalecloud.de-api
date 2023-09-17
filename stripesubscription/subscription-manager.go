@@ -1,17 +1,21 @@
-package stripemanager
+package stripesubscription
 
 import (
 	"context"
 	"errors"
 
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
+	"github.com/scalecloud/scalecloud.de-api/stripecustomer"
+	"github.com/scalecloud/scalecloud.de-api/stripesecret"
 	"github.com/stripe/stripe-go/v75"
 	"github.com/stripe/stripe-go/v75/subscription"
 	"go.uber.org/zap"
 )
 
-func getSubscriptionByID(c context.Context, subscriptionID string) (*stripe.Subscription, error) {
-	stripe.Key = getStripeKey()
+var logger, _ = zap.NewProduction()
+
+func GetSubscriptionByID(c context.Context, subscriptionID string) (*stripe.Subscription, error) {
+	stripe.Key = stripesecret.GetStripeKey()
 	return subscription.Get(subscriptionID, nil)
 }
 
@@ -24,13 +28,13 @@ func ResumeSubscription(c context.Context, token string, request SubscriptionRes
 		logger.Error("Error getting token details", zap.Error(err))
 		return SubscriptionResumeReply{}, err
 	}
-	customerID, err := getCustomerIDByUID(c, tokenDetails.UID)
+	customerID, err := stripecustomer.GetCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
 		logger.Error("Error getting customer ID", zap.Error(err))
 		return SubscriptionResumeReply{}, err
 	}
-	stripe.Key = getStripeKey()
-	sub, error := getSubscriptionByID(c, request.ID)
+	stripe.Key = stripesecret.GetStripeKey()
+	sub, error := GetSubscriptionByID(c, request.ID)
 	if error != nil {
 		logger.Warn("Error getting subscription", zap.Error(error))
 		return SubscriptionResumeReply{}, errors.New("Subscription not found")
@@ -67,13 +71,13 @@ func CancelSubscription(c context.Context, token string, request SubscriptionCan
 		logger.Error("Error getting token details", zap.Error(err))
 		return SubscriptionCancelReply{}, err
 	}
-	customerID, err := getCustomerIDByUID(c, tokenDetails.UID)
+	customerID, err := stripecustomer.GetCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
 		logger.Error("Error getting customer ID", zap.Error(err))
 		return SubscriptionCancelReply{}, err
 	}
-	stripe.Key = getStripeKey()
-	sub, error := getSubscriptionByID(c, request.ID)
+	stripe.Key = stripesecret.GetStripeKey()
+	sub, error := GetSubscriptionByID(c, request.ID)
 	if error != nil {
 		logger.Warn("Error getting subscription", zap.Error(error))
 		return SubscriptionCancelReply{}, errors.New("Subscription not found")

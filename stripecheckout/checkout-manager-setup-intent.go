@@ -1,4 +1,4 @@
-package stripemanager
+package stripecheckout
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
+	"github.com/scalecloud/scalecloud.de-api/stripesecret"
 	"github.com/stripe/stripe-go/v75"
 	"github.com/stripe/stripe-go/v75/setupintent"
 	"go.uber.org/zap"
@@ -29,7 +30,7 @@ func CreateCheckoutSetupIntent(c context.Context, token string, checkoutSetupInt
 		logger.Error("Customer ID is empty")
 		return CheckoutSetupIntentReply{}, errors.New("Customer ID is empty")
 	}
-	stripe.Key = getStripeKey()
+	stripe.Key = stripesecret.GetStripeKey()
 
 	setupIntentParam := &stripe.SetupIntentParams{
 		Customer: stripe.String(customerID),

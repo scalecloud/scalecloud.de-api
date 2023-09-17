@@ -1,18 +1,21 @@
-package stripemanager
+package stripeprice
 
 import (
 	"context"
 	"errors"
 
+	"github.com/scalecloud/scalecloud.de-api/stripesecret"
 	"github.com/stripe/stripe-go/v75"
 	"github.com/stripe/stripe-go/v75/price"
 	"go.uber.org/zap"
 	"google.golang.org/api/iterator"
 )
 
-func getPrice(c context.Context, productID string) (*stripe.Price, error) {
+var logger, _ = zap.NewProduction()
+
+func GetPrice(c context.Context, productID string) (*stripe.Price, error) {
 	priceSearch := &stripe.Price{}
-	stripe.Key = getStripeKey()
+	stripe.Key = stripesecret.GetStripeKey()
 	params := &stripe.PriceListParams{
 		Product: stripe.String(productID),
 		Active:  stripe.Bool(true),

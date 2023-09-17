@@ -1,14 +1,17 @@
-package stripemanager
+package stripecustomer
 
 import (
 	"context"
 	"errors"
 
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
+	"github.com/scalecloud/scalecloud.de-api/stripesecret"
 	"github.com/stripe/stripe-go/v75"
 	"github.com/stripe/stripe-go/v75/customer"
 	"go.uber.org/zap"
 )
+
+var logger, _ = zap.NewProduction()
 
 func getCustomerByID(ctx context.Context, customerID string) (customerDetails *stripe.Customer, err error) {
 	customer, error := customer.Get(
@@ -23,7 +26,7 @@ func getCustomerByID(ctx context.Context, customerID string) (customerDetails *s
 	return customer, nil
 }
 
-func getCustomerIDByUID(ctx context.Context, uid string) (string, error) {
+func GetCustomerIDByUID(ctx context.Context, uid string) (string, error) {
 	filter := mongomanager.User{
 		UID: uid,
 	}
@@ -41,7 +44,7 @@ func getCustomerIDByUID(ctx context.Context, uid string) (string, error) {
 }
 
 func CreateCustomer(ctx context.Context, email string) (*stripe.Customer, error) {
-	stripe.Key = getStripeKey()
+	stripe.Key = stripesecret.GetStripeKey()
 	if email == "" {
 		return nil, errors.New("E-Mail is required")
 	}

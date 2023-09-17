@@ -1,4 +1,4 @@
-package stripemanager
+package stripecheckout
 
 type CheckoutPaymentIntentRequest struct {
 	ProductID string `json:"productID"`

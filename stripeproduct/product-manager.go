@@ -1,16 +1,19 @@
-package stripemanager
+package stripeproduct
 
 import (
 	"context"
 	"errors"
 
+	"github.com/scalecloud/scalecloud.de-api/stripesecret"
 	"github.com/stripe/stripe-go/v75"
 	"github.com/stripe/stripe-go/v75/product"
 	"go.uber.org/zap"
 )
 
-func getProduct(c context.Context, productID string) (*stripe.Product, error) {
-	stripe.Key = getStripeKey()
+var logger, _ = zap.NewProduction()
+
+func GetProduct(c context.Context, productID string) (*stripe.Product, error) {
+	stripe.Key = stripesecret.GetStripeKey()
 	params := &stripe.ProductParams{}
 	product, err := product.Get(productID, params)
 	if err != nil {

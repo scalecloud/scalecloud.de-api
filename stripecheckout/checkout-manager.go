@@ -1,15 +1,18 @@
-package stripemanager
+package stripecheckout
 
 import (
 	"context"
 
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
+	"github.com/scalecloud/scalecloud.de-api/stripecustomer"
 	"go.uber.org/zap"
 )
 
+var logger, _ = zap.NewProduction()
+
 func createCustomerAndUser(c context.Context, tokenDetails firebasemanager.TokenDetails) (mongomanager.User, error) {
-	customer, err := CreateCustomer(c, tokenDetails.EMail)
+	customer, err := stripecustomer.CreateCustomer(c, tokenDetails.EMail)
 	if err != nil {
 		logger.Error("Error creating customer", zap.Error(err))
 		return mongomanager.User{}, err
@@ -31,7 +34,7 @@ func createCustomerAndUser(c context.Context, tokenDetails firebasemanager.Token
 }
 
 func searchOrCreateCustomer(c context.Context, filter mongomanager.User, tokenDetails firebasemanager.TokenDetails) (string, error) {
-	customerID, err := getCustomerIDByUID(c, tokenDetails.UID)
+	customerID, err := stripecustomer.GetCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
 		logger.Info("Could not find user in MongoDB. Going to create new Customer in MongoDB Database 'stripe' collection 'users'.")
 		logger.Debug("err", zap.Error(err))

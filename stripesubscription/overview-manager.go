@@ -1,4 +1,4 @@
-package stripemanager
+package stripesubscription
 
 import (
 	"context"
@@ -6,6 +6,9 @@ import (
 	"strconv"
 
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
+	"github.com/scalecloud/scalecloud.de-api/stripecustomer"
+	"github.com/scalecloud/scalecloud.de-api/stripeproduct"
+	"github.com/scalecloud/scalecloud.de-api/stripesecret"
 	"github.com/stripe/stripe-go/v75"
 	"github.com/stripe/stripe-go/v75/subscription"
 	"go.uber.org/zap"
@@ -17,13 +20,13 @@ func GetSubscriptionsOverview(c context.Context, token string) (subscriptionOver
 		logger.Error("Error getting token details", zap.Error(err))
 		return []SubscriptionOverview{}, err
 	}
-	customerID, err := getCustomerIDByUID(c, tokenDetails.UID)
+	customerID, err := stripecustomer.GetCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
 		logger.Error("Error getting customer ID", zap.Error(err))
 		return []SubscriptionOverview{}, err
 	}
 	subscriptions := []SubscriptionOverview{}
-	stripe.Key = getStripeKey()
+	stripe.Key = stripesecret.GetStripeKey()
 	params := &stripe.SubscriptionListParams{
 		Customer: stripe.String(customerID),
 	}
@@ -50,7 +53,7 @@ func mapSubscriptionToSubscriptionOverview(c context.Context, subscription *stri
 	productID := subscription.Items.Data[0].Price.Product.ID
 	logger.Debug("Product ID", zap.String("productID", productID))
 
-	product, err := getProduct(c, productID)
+	product, err := stripeproduct.GetProduct(c, productID)
 	if err != nil {
 		logger.Warn("Error getting product", zap.Error(err))
 		return SubscriptionOverview{}, errors.New("Product not found")

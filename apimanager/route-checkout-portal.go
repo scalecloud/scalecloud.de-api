@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/scalecloud/scalecloud.de-api/stripemanager"
+	"github.com/scalecloud/scalecloud.de-api/stripecheckout"
 	"go.uber.org/zap"
 )
 
@@ -15,7 +15,7 @@ func createCheckoutSession(c *gin.Context) {
 		return
 	}
 
-	var checkoutModelPortalRequest stripemanager.CheckoutModelPortalRequest
+	var checkoutModelPortalRequest stripecheckout.CheckoutModelPortalRequest
 	if err := c.BindJSON(&checkoutModelPortalRequest); err != nil {
 		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
 		return
@@ -31,7 +31,7 @@ func createCheckoutSession(c *gin.Context) {
 		return
 	}
 	logger.Debug("quantity", zap.Any("quantity", checkoutModelPortalRequest.Quantity))
-	checkout, error := stripemanager.CreateCheckoutSession(c, token, checkoutModelPortalRequest)
+	checkout, error := stripecheckout.CreateCheckoutSession(c, token, checkoutModelPortalRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return

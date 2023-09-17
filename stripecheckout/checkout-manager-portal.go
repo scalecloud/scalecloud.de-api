@@ -1,4 +1,4 @@
-package stripemanager
+package stripecheckout
 
 import (
 	"context"
@@ -7,6 +7,8 @@ import (
 
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
+	"github.com/scalecloud/scalecloud.de-api/stripeprice"
+	"github.com/scalecloud/scalecloud.de-api/stripesecret"
 	"github.com/stripe/stripe-go/v75"
 	"github.com/stripe/stripe-go/v75/checkout/session"
 	"go.uber.org/zap"
@@ -30,9 +32,9 @@ func CreateCheckoutSession(c context.Context, token string, checkoutModelPortalR
 		logger.Error("Customer ID is empty")
 		return CheckoutModelPortalReply{}, errors.New("Customer ID is empty")
 	}
-	stripe.Key = getStripeKey()
+	stripe.Key = stripesecret.GetStripeKey()
 
-	price, err := getPrice(c, checkoutModelPortalRequest.ProductID)
+	price, err := stripeprice.GetPrice(c, checkoutModelPortalRequest.ProductID)
 	if err != nil {
 		logger.Error("Error getting price", zap.Error(err))
 		return CheckoutModelPortalReply{}, err

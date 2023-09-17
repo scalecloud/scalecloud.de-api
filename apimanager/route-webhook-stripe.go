@@ -6,7 +6,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/scalecloud/scalecloud.de-api/stripemanager"
+	"github.com/scalecloud/scalecloud.de-api/stripechangepayment"
+	"github.com/scalecloud/scalecloud.de-api/stripesecret"
 	"github.com/stripe/stripe-go/v75"
 	"github.com/stripe/stripe-go/v75/webhook"
 	"go.uber.org/zap"
@@ -43,7 +44,7 @@ func getStripeToken(c *gin.Context) (string, bool) {
 
 func handleStripeWebhook(c *gin.Context) {
 
-	var endpointSecret = stripemanager.GetStripeEndpointSecret()
+	var endpointSecret = stripesecret.GetStripeEndpointSecret()
 	if endpointSecret == "" {
 		logger.Error("Missing endpoint secret")
 		c.SecureJSON(http.StatusServiceUnavailable, gin.H{"message": "Service unavailable"})
@@ -150,9 +151,9 @@ func handleSetupIntentSucceeded(event stripe.Event) error {
 		logger.Error("Metadata type not set")
 		return errors.New("Metadata type not set")
 	}
-	if metaType == string(stripemanager.CreateSubscription) {
+	if metaType == string(stripechangepayment.CreateSubscription) {
 		logger.Info("CreateSubscription")
-	} else if metaType == string(stripemanager.ChangePayment) {
+	} else if metaType == string(stripechangepayment.ChangePayment) {
 		logger.Info("ChangePayment")
 	} else {
 		logger.Error("Unknown metadata type")

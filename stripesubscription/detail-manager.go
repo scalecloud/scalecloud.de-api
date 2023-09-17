@@ -1,4 +1,4 @@
-package stripemanager
+package stripesubscription
 
 import (
 	"context"
@@ -6,11 +6,15 @@ import (
 	"strconv"
 
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
+	"github.com/scalecloud/scalecloud.de-api/stripecustomer"
+	"github.com/scalecloud/scalecloud.de-api/stripeprice"
+	"github.com/scalecloud/scalecloud.de-api/stripeproduct"
+	"github.com/scalecloud/scalecloud.de-api/stripesecret"
 	"github.com/stripe/stripe-go/v75"
 	"go.uber.org/zap"
 )
 
-func GetSubscriptionByID(c context.Context, token, subscriptionID string) (subscriptionDetail SubscriptionDetail, err error) {
+func GetSubscriptionDetailByID(c context.Context, token, subscriptionID string) (subscriptionDetail SubscriptionDetail, err error) {
 	if subscriptionID == "" {
 		logger.Error("Subscription ID is empty")
 		return SubscriptionDetail{}, errors.New("Subscription ID is empty")
@@ -20,13 +24,13 @@ func GetSubscriptionByID(c context.Context, token, subscriptionID string) (subsc
 		logger.Error("Error getting token details", zap.Error(err))
 		return SubscriptionDetail{}, err
 	}
-	customerID, err := getCustomerIDByUID(c, tokenDetails.UID)
+	customerID, err := stripecustomer.GetCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
 		logger.Error("Error getting customer ID", zap.Error(err))
 		return SubscriptionDetail{}, err
 	}
-	stripe.Key = getStripeKey()
-	subscription, error := getSubscriptionByID(c, subscriptionID)
+	stripe.Key = stripesecret.GetStripeKey()
+	subscription, error := GetSubscriptionByID(c, subscriptionID)
 	if error != nil {
 		logger.Warn("Error getting subscription", zap.Error(error))
 		return SubscriptionDetail{}, errors.New("Subscription not found")
@@ -50,7 +54,7 @@ func mapSubscriptionItemToSubscriptionDetail(c context.Context, subscription *st
 	productID := subscription.Items.Data[0].Price.Product.ID
 	logger.Debug("Product ID", zap.String("productID", productID))
 
-	product, err := getProduct(c, productID)
+	product, err := stripeproduct.GetProduct(c, productID)
 	if err != nil {
 		logger.Warn("Error getting product", zap.Error(err))
 		return SubscriptionDetail{}, errors.New("Product not found")
@@ -84,7 +88,7 @@ func mapSubscriptionItemToSubscriptionDetail(c context.Context, subscription *st
 
 	subscriptionDetail.UserCount = subscription.Items.Data[0].Quantity
 
-	price, err := getPrice(c, subscription.Items.Data[0].Price.Product.ID)
+	price, err := stripeprice.GetPrice(c, subscription.Items.Data[0].Price.Product.ID)
 	if err != nil {
 		logger.Warn("Error getting price", zap.Error(err))
 		return SubscriptionDetail{}, errors.New("Price not found")
