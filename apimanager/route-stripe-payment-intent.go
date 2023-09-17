@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/scalecloud/scalecloud.de-api/stripecheckout"
+	"github.com/scalecloud/scalecloud.de-api/stripe/checkout"
 	"go.uber.org/zap"
 )
 
@@ -15,7 +15,7 @@ func CreateCheckoutSubscription(c *gin.Context) {
 		return
 	}
 
-	var checkoutIntegrationRequest stripecheckout.CheckoutPaymentIntentRequest
+	var checkoutIntegrationRequest checkout.CheckoutPaymentIntentRequest
 	if err := c.BindJSON(&checkoutIntegrationRequest); err != nil {
 		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
 		return
@@ -31,7 +31,7 @@ func CreateCheckoutSubscription(c *gin.Context) {
 		return
 	}
 	logger.Debug("quantity", zap.Any("quantity", checkoutIntegrationRequest.Quantity))
-	secret, error := stripecheckout.CreateCheckoutSubscription(c, token, checkoutIntegrationRequest)
+	secret, error := checkout.CreateCheckoutSubscription(c, token, checkoutIntegrationRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
@@ -47,7 +47,7 @@ func updateCheckoutSubscription(c *gin.Context) {
 		return
 	}
 
-	var checkoutIntegrationUpdateRequest stripecheckout.CheckoutPaymentIntentUpdateRequest
+	var checkoutIntegrationUpdateRequest checkout.CheckoutPaymentIntentUpdateRequest
 	if err := c.BindJSON(&checkoutIntegrationUpdateRequest); err != nil {
 		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
 		return
@@ -63,7 +63,7 @@ func updateCheckoutSubscription(c *gin.Context) {
 		return
 	}
 	logger.Debug("quantity", zap.Any("quantity", checkoutIntegrationUpdateRequest.Quantity))
-	secret, error := stripecheckout.UpdateCheckoutSubscription(c, token, checkoutIntegrationUpdateRequest)
+	secret, error := checkout.UpdateCheckoutSubscription(c, token, checkoutIntegrationUpdateRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
@@ -80,7 +80,7 @@ func getCheckoutProduct(c *gin.Context) {
 		return
 	}
 
-	var checkoutProductRequest stripecheckout.CheckoutProductRequest
+	var checkoutProductRequest checkout.CheckoutProductRequest
 	if err := c.BindJSON(&checkoutProductRequest); err != nil {
 		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
 		return
@@ -91,7 +91,7 @@ func getCheckoutProduct(c *gin.Context) {
 		return
 	}
 	logger.Debug("subscriptionID", zap.Any("subscriptionID", checkoutProductRequest.SubscriptionID))
-	checkoutProductReply, error := stripecheckout.GetCheckoutProduct(c, token, checkoutProductRequest)
+	checkoutProductReply, error := checkout.GetCheckoutProduct(c, token, checkoutProductRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return

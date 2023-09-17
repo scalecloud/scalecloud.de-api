@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/scalecloud/scalecloud.de-api/stripecheckout"
+	"github.com/scalecloud/scalecloud.de-api/stripe/checkout"
 	"go.uber.org/zap"
 )
 
@@ -15,7 +15,7 @@ func CreateCheckoutSetupIntent(c *gin.Context) {
 		return
 	}
 
-	var checkoutSetupIntentRequest stripecheckout.CheckoutSetupIntentRequest
+	var checkoutSetupIntentRequest checkout.CheckoutSetupIntentRequest
 	if err := c.BindJSON(&checkoutSetupIntentRequest); err != nil {
 		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
 		return
@@ -31,7 +31,7 @@ func CreateCheckoutSetupIntent(c *gin.Context) {
 		return
 	}
 	logger.Debug("quantity", zap.Any("quantity", checkoutSetupIntentRequest.Quantity))
-	secret, error := stripecheckout.CreateCheckoutSetupIntent(c, token, checkoutSetupIntentRequest)
+	secret, error := checkout.CreateCheckoutSetupIntent(c, token, checkoutSetupIntentRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
