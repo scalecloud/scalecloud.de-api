@@ -1,4 +1,4 @@
-package stripemanager
+package stripesubscriptionitem
 
 import (
 	"context"
