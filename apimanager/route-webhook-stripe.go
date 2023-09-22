@@ -6,29 +6,30 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/scalecloud/scalecloud.de-api/stripe/changepayment"
-	"github.com/scalecloud/scalecloud.de-api/stripe/secret"
+	"github.com/scalecloud/scalecloud.de-api/stripemanager"
 	"github.com/stripe/stripe-go/v75"
 	"github.com/stripe/stripe-go/v75/webhook"
 	"go.uber.org/zap"
 )
 
-func StripeRequired(c *gin.Context) {
-	isPost(c)
+var log, _ = zap.NewProduction()
+
+func (api *Api) StripeRequired(c *gin.Context) {
+	isPost(c, api.log)
 
 	token, hasAuth := getStripeToken(c)
 	if hasAuth && token != "" {
-		logger.Debug("Has Stripe Signature", zap.String("token:", token))
+		api.log.Debug("Has Stripe Signature", zap.String("token:", token))
 		c.Next()
 	} else {
-		logger.Warn("Unauthorized")
+		api.log.Warn("Unauthorized")
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 	}
 }
 
-func isPost(c *gin.Context) {
+func isPost(c *gin.Context, log *zap.Logger) {
 	if c.Request.Method != http.MethodPost {
-		logger.Warn("Method not allowed", zap.String("Method", c.Request.Method))
+		log.Warn("Method not allowed", zap.String("Method", c.Request.Method))
 		c.AbortWithStatusJSON(http.StatusMethodNotAllowed, gin.H{"error": "Method not allowed"})
 	}
 }
@@ -42,121 +43,121 @@ func getStripeToken(c *gin.Context) (string, bool) {
 	}
 }
 
-func handleStripeWebhook(c *gin.Context) {
+func (webhookHandler *WebhookHandler) handleStripeWebhook(c *gin.Context) {
 
-	var endpointSecret = secret.GetStripeEndpointSecret()
+	var endpointSecret = webhookHandler.StripeConnection.EndpointSecret
 	if endpointSecret == "" {
-		logger.Error("Missing endpoint secret")
+		log.Error("Missing endpoint secret")
 		c.SecureJSON(http.StatusServiceUnavailable, gin.H{"message": "Service unavailable"})
 	}
 
 	payload, err := c.GetRawData()
 	if err != nil {
-		logger.Error("Error getting raw data", zap.Error(err))
+		log.Error("Error getting raw data", zap.Error(err))
 		c.SecureJSON(http.StatusNoContent, gin.H{"message": "Error getting raw data"})
 	}
 	event, err := webhook.ConstructEvent(payload, c.Request.Header.Get("Stripe-Signature"), endpointSecret)
 	if err != nil {
-		logger.Error("Signature verification failed", zap.Error(err))
+		log.Error("Signature verification failed", zap.Error(err))
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Signature verification failed"})
 	}
 
 	switch event.Type {
 	case "payment_method.attached":
-		err := handlePaymentMethodAttached(event)
+		err := handlePaymentMethodAttached(event, log)
 		if err != nil {
 			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
 		}
 	case "setup_intent.created":
-		err := handleSetupIntentCreated(event)
+		err := handleSetupIntentCreated(event, log)
 		if err != nil {
 			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
 		}
 	case "setup_intent.succeeded":
-		err := handleSetupIntentSucceeded(event)
+		err := handleSetupIntentSucceeded(event, log)
 		if err != nil {
 			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
 		}
 	default:
-		logger.Warn("Unhandled event type", zap.Any("Unhandled event type", event.Type))
+		log.Warn("Unhandled event type", zap.Any("Unhandled event type", event.Type))
 		c.SecureJSON(http.StatusNotImplemented, gin.H{"message": "Unhandled event type"})
 	}
-	logger.Info("Handled webhook", zap.Any("Handled webhook", event.Type))
+	log.Info("Handled webhook", zap.Any("Handled webhook", event.Type))
 	c.Status(http.StatusOK)
 }
 
-func handlePaymentMethodAttached(event stripe.Event) error {
+func handlePaymentMethodAttached(event stripe.Event, log *zap.Logger) error {
 	var paymentMethod stripe.PaymentMethod
 	err := json.Unmarshal(event.Data.Raw, &paymentMethod)
 	if err != nil {
-		logger.Error("Error unmarshalling setupIntent", zap.Error(err))
+		log.Error("Error unmarshalling setupIntent", zap.Error(err))
 		return errors.New("Error unmarshalling setupIntent")
 	}
 
 	if paymentMethod.ID == "" {
-		logger.Error("ID not set")
+		log.Error("ID not set")
 		return errors.New("ID not set")
 	}
-	logger.Debug("paymentMethod was updated", zap.Any("paymentMethodID", paymentMethod.ID))
+	log.Debug("paymentMethod was updated", zap.Any("paymentMethodID", paymentMethod.ID))
 	return nil
 }
 
-func handleSetupIntentCreated(event stripe.Event) error {
+func handleSetupIntentCreated(event stripe.Event, log *zap.Logger) error {
 	var setupIntent stripe.SetupIntent
 	err := json.Unmarshal(event.Data.Raw, &setupIntent)
 	if err != nil {
-		logger.Error("Error unmarshalling setupIntent", zap.Error(err))
+		log.Error("Error unmarshalling setupIntent", zap.Error(err))
 		return errors.New("Error unmarshalling setupIntent")
 	}
 
 	if setupIntent.ID == "" {
-		logger.Error("ID not set")
+		log.Error("ID not set")
 		return errors.New("ID not set")
 	}
-	logger.Debug("SetupIntentCreated", zap.Any("setupIntentID", setupIntent.ID))
+	log.Debug("SetupIntentCreated", zap.Any("setupIntentID", setupIntent.ID))
 	return nil
 }
 
-func handleSetupIntentSucceeded(event stripe.Event) error {
+func handleSetupIntentSucceeded(event stripe.Event, log *zap.Logger) error {
 	var setupIntent stripe.SetupIntent
 	err := json.Unmarshal(event.Data.Raw, &setupIntent)
 	if err != nil {
-		logger.Error("Error unmarshalling setupIntent", zap.Error(err))
+		log.Error("Error unmarshalling setupIntent", zap.Error(err))
 		return errors.New("Error unmarshalling setupIntent")
 	}
 
 	if setupIntent.ID == "" {
-		logger.Error("ID not set")
+		log.Error("ID not set")
 		return errors.New("ID not set")
 	}
-	logger.Debug("setupIntentID succeeded", zap.Any("setupIntentID", setupIntent.ID))
+	log.Debug("setupIntentID succeeded", zap.Any("setupIntentID", setupIntent.ID))
 	cus := setupIntent.Customer
 	if cus == nil {
-		logger.Error("Customer not set")
+		log.Error("Customer not set")
 		return errors.New("Customer not set")
 	}
 	if cus.ID == "" {
-		logger.Error("Customer ID not set")
+		log.Error("Customer ID not set")
 		return errors.New("Customer ID not set")
 	}
-	logger.Debug("Customer", zap.Any("Customer", cus.ID))
+	log.Debug("Customer", zap.Any("Customer", cus.ID))
 
 	meta := setupIntent.Metadata
 	if meta == nil {
-		logger.Error("Metadata not set")
+		log.Error("Metadata not set")
 		return errors.New("Metadata not set")
 	}
 	metaType := meta["metaType"]
 	if metaType == "" {
-		logger.Error("Metadata type not set")
+		log.Error("Metadata type not set")
 		return errors.New("Metadata type not set")
 	}
-	if metaType == string(changepayment.CreateSubscription) {
-		logger.Info("CreateSubscription")
-	} else if metaType == string(changepayment.ChangePayment) {
-		logger.Info("ChangePayment")
+	if metaType == string(stripemanager.CreateSubscription) {
+		log.Info("CreateSubscription")
+	} else if metaType == string(stripemanager.ChangePayment) {
+		log.Info("ChangePayment")
 	} else {
-		logger.Error("Unknown metadata type")
+		log.Error("Unknown metadata type")
 		return errors.New("Unknown metadata type")
 	}
 	return nil

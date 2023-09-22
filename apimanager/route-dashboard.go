@@ -4,25 +4,22 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/scalecloud/scalecloud.de-api/stripe/billingportal"
-	"github.com/scalecloud/scalecloud.de-api/stripe/changepayment"
-	"github.com/scalecloud/scalecloud.de-api/stripe/paymentintent"
-	"github.com/scalecloud/scalecloud.de-api/stripe/subscriptionmanager"
+	"github.com/scalecloud/scalecloud.de-api/stripemanager"
 	"go.uber.org/zap"
 )
 
-func getSubscriptionsOverview(c *gin.Context) {
-	token, ok := getBearerToken(c)
-	if !ok {
-		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": messageBearer})
+func (api *Api) getSubscriptionsOverview(c *gin.Context) {
+	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c, getBearerToken(c))
+	if err != nil {
+		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Error getting token details"})
 		return
 	}
-	subscriptionsOverview, error := subscriptionmanager.GetSubscriptionsOverview(c, token)
+	subscriptionsOverview, error := api.paymentHandler.StripeConnection.GetSubscriptionsOverview(c, tokenDetails)
 	if error != nil {
 		c.IndentedJSON(http.StatusNoContent, gin.H{"error": error.Error()})
 		return
 	}
-	logger.Info("getSubscriptionsOverview", zap.Any("subscriptionsOverview", subscriptionsOverview))
+	api.log.Info("getSubscriptionsOverview", zap.Any("subscriptionsOverview", subscriptionsOverview))
 	if subscriptionsOverview != nil {
 		c.IndentedJSON(http.StatusOK, subscriptionsOverview)
 	} else {
@@ -30,50 +27,50 @@ func getSubscriptionsOverview(c *gin.Context) {
 	}
 }
 
-func getSubscriptionByID(c *gin.Context) {
-	token, ok := getBearerToken(c)
-	if !ok {
-		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": messageBearer})
+func (api *Api) getSubscriptionByID(c *gin.Context) {
+	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c, getBearerToken(c))
+	if err != nil {
+		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Error getting token details"})
 		return
 	}
 	subscriptionID := c.Param("id")
-	logger.Debug("getSubscriptionByID", zap.String("subscriptionID", subscriptionID))
-	subscriptionDetail, error := subscriptionmanager.GetSubscriptionDetailByID(c, token, subscriptionID)
+	api.log.Debug("getSubscriptionByID", zap.String("subscriptionID", subscriptionID))
+	subscriptionDetail, error := api.paymentHandler.StripeConnection.GetSubscriptionDetailByID(c, tokenDetails, subscriptionID)
 	if error != nil {
 		c.IndentedJSON(http.StatusNoContent, gin.H{"error": error.Error()})
 		return
 	}
-	logger.Info("Found subscriptionDetail", zap.Any("subscriptionDetail", subscriptionDetail))
-	if subscriptionDetail != (subscriptionmanager.SubscriptionDetail{}) {
+	api.log.Info("Found subscriptionDetail", zap.Any("subscriptionDetail", subscriptionDetail))
+	if subscriptionDetail != (stripemanager.SubscriptionDetail{}) {
 		c.IndentedJSON(http.StatusOK, subscriptionDetail)
 	} else {
 		c.SecureJSON(http.StatusNotFound, gin.H{"message": "subscriptionDetail not found"})
 	}
 }
 
-func getBillingPortal(c *gin.Context) {
-	token, ok := getBearerToken(c)
-	if !ok {
-		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": messageBearer})
+func (api *Api) handleBillingPortal(c *gin.Context) {
+	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c, getBearerToken(c))
+	if err != nil {
+		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Error getting token details"})
 		return
 	}
-	billingPortal, error := billingportal.GetBillingPortal(c, token)
+	billingPortal, error := api.paymentHandler.GetBillingPortal(c, tokenDetails)
 	if error != nil {
 		c.IndentedJSON(http.StatusNoContent, gin.H{"error": error.Error()})
 		return
 	}
-	logger.Info("getBillingPortal", zap.Any("billingPortal", billingPortal))
+	api.log.Info("getBillingPortal", zap.Any("billingPortal", billingPortal))
 	c.IndentedJSON(http.StatusOK, billingPortal)
 }
 
-func resumeSubscription(c *gin.Context) {
-	token, ok := getBearerToken(c)
-	if !ok {
-		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": messageBearer})
+func (api *Api) resumeSubscription(c *gin.Context) {
+	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c, getBearerToken(c))
+	if err != nil {
+		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Error getting token details"})
 		return
 	}
 
-	var subscriptionResumeRequest subscriptionmanager.SubscriptionResumeRequest
+	var subscriptionResumeRequest stripemanager.SubscriptionResumeRequest
 	if err := c.BindJSON(&subscriptionResumeRequest); err != nil {
 		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
 		return
@@ -83,23 +80,23 @@ func resumeSubscription(c *gin.Context) {
 		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "ID not found"})
 		return
 	}
-	reply, error := subscriptionmanager.ResumeSubscription(c, token, subscriptionResumeRequest)
+	reply, error := api.paymentHandler.ResumeSubscription(c, tokenDetails, subscriptionResumeRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
 	}
-	logger.Info("resumeSubscription", zap.Any("Resume", reply))
+	api.log.Info("resumeSubscription", zap.Any("Resume", reply))
 	c.IndentedJSON(http.StatusOK, reply)
 }
 
-func cancelSubscription(c *gin.Context) {
-	token, ok := getBearerToken(c)
-	if !ok {
-		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": messageBearer})
+func (api *Api) cancelSubscription(c *gin.Context) {
+	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c, getBearerToken(c))
+	if err != nil {
+		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Error getting token details"})
 		return
 	}
 
-	var subscriptionCancelRequest subscriptionmanager.SubscriptionCancelRequest
+	var subscriptionCancelRequest stripemanager.SubscriptionCancelRequest
 	if err := c.BindJSON(&subscriptionCancelRequest); err != nil {
 		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
 		return
@@ -109,23 +106,23 @@ func cancelSubscription(c *gin.Context) {
 		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "ID not found"})
 		return
 	}
-	reply, error := subscriptionmanager.CancelSubscription(c, token, subscriptionCancelRequest)
+	reply, error := api.paymentHandler.CancelSubscription(c, tokenDetails, subscriptionCancelRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
 	}
-	logger.Info("CancelSubscription", zap.Any("Cancel", reply))
+	api.log.Info("CancelSubscription", zap.Any("Cancel", reply))
 	c.IndentedJSON(http.StatusOK, reply)
 }
 
-func getSubscriptionPaymentMethod(c *gin.Context) {
-	token, ok := getBearerToken(c)
-	if !ok {
-		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": messageBearer})
+func (api *Api) getSubscriptionPaymentMethod(c *gin.Context) {
+	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c, getBearerToken(c))
+	if err != nil {
+		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Error getting token details"})
 		return
 	}
 
-	var subscriptionPaymentMethodRequest paymentintent.SubscriptionPaymentMethodRequest
+	var subscriptionPaymentMethodRequest stripemanager.SubscriptionPaymentMethodRequest
 	if err := c.BindJSON(&subscriptionPaymentMethodRequest); err != nil {
 		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
 		return
@@ -135,23 +132,23 @@ func getSubscriptionPaymentMethod(c *gin.Context) {
 		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "ID not found"})
 		return
 	}
-	reply, error := paymentintent.GetSubscriptionPaymentMethod(c, token, subscriptionPaymentMethodRequest)
+	reply, error := api.paymentHandler.StripeConnection.GetSubscriptionPaymentMethod(c, tokenDetails, subscriptionPaymentMethodRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
 	}
-	logger.Info("getSubscriptionPaymentMethod", zap.Any("SubscriptionPaymentMethodRequest", reply))
+	api.log.Info("getSubscriptionPaymentMethod", zap.Any("SubscriptionPaymentMethodRequest", reply))
 	c.IndentedJSON(http.StatusOK, reply)
 }
 
-func getChangePaymentSetupIntent(c *gin.Context) {
-	token, ok := getBearerToken(c)
-	if !ok {
-		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": messageBearer})
+func (api *Api) getChangePaymentSetupIntent(c *gin.Context) {
+	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c, getBearerToken(c))
+	if err != nil {
+		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Error getting token details"})
 		return
 	}
 
-	var request changepayment.ChangePaymentRequest
+	var request stripemanager.ChangePaymentRequest
 	if err := c.BindJSON(&request); err != nil {
 		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
 		return
@@ -161,11 +158,11 @@ func getChangePaymentSetupIntent(c *gin.Context) {
 		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "SubscriptionID not found"})
 		return
 	}
-	reply, error := changepayment.GetChangePaymentSetupIntent(c, token, request)
+	reply, error := api.paymentHandler.StripeConnection.GetChangePaymentSetupIntent(c, tokenDetails, request)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
 	}
-	logger.Info("getChangePaymentSetupIntent", zap.Any("getChangePaymentSetupIntent", reply))
+	api.log.Info("getChangePaymentSetupIntent", zap.Any("getChangePaymentSetupIntent", reply))
 	c.IndentedJSON(http.StatusOK, reply)
 }

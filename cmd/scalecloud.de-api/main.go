@@ -1,20 +1,22 @@
 package main
 
 import (
+	"os"
+
 	"github.com/scalecloud/scalecloud.de-api/apimanager"
-	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
-	"github.com/scalecloud/scalecloud.de-api/mongomanager"
-	"github.com/scalecloud/scalecloud.de-api/stripe/secret"
 	"go.uber.org/zap"
 )
 
-var logger, _ = zap.NewProduction()
-
 func main() {
-	logger.Info("Starting App.")
-	firebasemanager.InitFirebase()
-	mongomanager.InitMongo()
-	secret.InitStripe()
-	apimanager.InitAPI()
-	logger.Info("App ended.")
+	var log, err = zap.NewProduction()
+	if err != nil {
+		os.Exit(1)
+	}
+	log.Info("Starting App.")
+	api, err := apimanager.InitAPI(log)
+	if err != nil {
+		log.Fatal("Error initializing API", zap.Error(err))
+	}
+	api.RunAPI()
+	log.Info("App ended.")
 }

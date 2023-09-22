@@ -1,30 +1,88 @@
 package apimanager
 
 import (
+	"context"
 	"net/http"
 	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
+	"github.com/scalecloud/scalecloud.de-api/mongomanager"
+	"github.com/scalecloud/scalecloud.de-api/stripemanager"
+	"github.com/scalecloud/scalecloud.de-api/stripemanager/secret"
 	"go.uber.org/zap"
 )
 
 const messageBearer = "Bearer token not found"
 
-var logger, _ = zap.NewProduction()
-
-func InitAPI() {
-	logger.Info("Init api")
-	router := gin.Default()
-	initHeaders(router)
-	initRoutes(router)
-	initCertificate(router)
-	initTrustedPlatform(router)
-	startListening(router)
+type Api struct {
+	router         *gin.Engine
+	paymentHandler *stripemanager.PaymentHandler
+	webhookHandler *WebhookHandler
+	log            *zap.Logger
 }
 
-func initHeaders(router *gin.Engine) {
+type WebhookHandler struct {
+	StripeConnection *stripemanager.StripeConnection
+	Log              *zap.Logger
+}
+
+func InitAPI(log *zap.Logger) (*Api, error) {
+	log.Info("Init api")
+
+	err := mongomanager.InitMongo(log)
+	if err != nil {
+		return &Api{}, err
+	}
+	err = secret.InitStripe(log)
+	if err != nil {
+		return &Api{}, err
+	}
+
+	router := gin.Default()
+
+	firebaseConnection, err := firebasemanager.InitFirebaseConnection(context.Background(), log)
+	if err != nil {
+		return &Api{}, err
+	}
+
+	mongoConnection, err := mongomanager.InitMongoConnection(context.Background(), log)
+	if err != nil {
+		return &Api{}, err
+	}
+
+	stripeConnection, err := stripemanager.InitStripeConnection(context.Background(), log)
+	if err != nil {
+		return &Api{}, err
+	}
+
+	api := &Api{
+		router: router,
+		paymentHandler: &stripemanager.PaymentHandler{
+			FirebaseConnection: firebaseConnection,
+			MongoConnection:    mongoConnection,
+			StripeConnection:   stripeConnection,
+			Log:                log.Named("paymenthandler"),
+		},
+		webhookHandler: &WebhookHandler{
+			StripeConnection: stripeConnection,
+			Log:              log.Named("webhookhandler"),
+		},
+		log: log.Named("apimanager"),
+	}
+	return api, nil
+}
+
+func (a *Api) RunAPI() {
+	a.initHeaders()
+	a.initRoutes()
+	a.initCertificate()
+	a.initTrustedPlatform()
+	a.startListening()
+}
+
+func (api *Api) initHeaders() {
 	config := cors.DefaultConfig()
 	config.AllowOrigins = []string{"http://localhost:4200"}
 	config.AllowMethods = []string{"GET"}
@@ -32,88 +90,88 @@ func initHeaders(router *gin.Engine) {
 	config.AllowCredentials = true
 	config.ExposeHeaders = []string{"Content-Length"}
 	config.MaxAge = 12 * time.Hour
-	router.Use(cors.New(config))
+	api.router.Use(cors.New(config))
 }
 
-func startListening(router *gin.Engine) {
-	logger.Info("Starting listening for requests")
-	err := router.Run(":15000")
+func (api *Api) startListening() {
+	api.log.Info("Starting listening for requests")
+	err := api.router.Run(":15000")
 	if err != nil {
-		logger.Error("Could not start listening for requests", zap.Error(err))
+		api.log.Error("Could not start listening for requests", zap.Error(err))
 	}
 }
 
-func initRoutes(router *gin.Engine) {
-	logger.Info("Setting up routes...")
+func (api *Api) initRoutes() {
+	api.log.Info("Setting up routes...")
 
-	webhook := router.Group("/webhook/")
-	webhook.Use(StripeRequired)
+	webhook := api.router.Group("/webhook/")
+	webhook.Use(api.StripeRequired)
 	{
-		webhook.POST("/stripe", handleStripeWebhook)
+		webhook.POST("/stripe", api.webhookHandler.handleStripeWebhook)
 	}
 
-	dashboard := router.Group("/dashboard")
-	dashboard.Use(AuthRequired)
+	dashboard := api.router.Group("/dashboard")
+	dashboard.Use(api.authRequired)
 	{
-		dashboard.GET("/subscriptions", getSubscriptionsOverview)
-		dashboard.GET("/subscription/:id", getSubscriptionByID)
-		dashboard.POST("/get-subscription-payment-method", getSubscriptionPaymentMethod)
-		dashboard.POST("/get-change-payment-setup-intent", getChangePaymentSetupIntent)
-		dashboard.POST("/resume-subscription", resumeSubscription)
-		dashboard.POST("/cancel-subscription", cancelSubscription)
-		dashboard.GET("/billing-portal", getBillingPortal)
+		dashboard.GET("/subscriptions", api.getSubscriptionsOverview)
+		dashboard.GET("/subscription/:id", api.getSubscriptionByID)
+		dashboard.POST("/get-subscription-payment-method", api.getSubscriptionPaymentMethod)
+		dashboard.POST("/get-change-payment-setup-intent", api.getChangePaymentSetupIntent)
+		dashboard.POST("/resume-subscription", api.resumeSubscription)
+		dashboard.POST("/cancel-subscription", api.cancelSubscription)
+		dashboard.GET("/billing-portal", api.handleBillingPortal)
 	}
-	checkoutPortal := router.Group("/checkout-portal")
-	checkoutPortal.Use(AuthRequired)
+	checkoutPortal := api.router.Group("/checkout-portal")
+	checkoutPortal.Use(api.authRequired)
 	{
-		checkoutPortal.POST("/create-checkout-session", createCheckoutSession)
+		checkoutPortal.POST("/create-checkout-session", api.createCheckoutSession)
 
 	}
-	checkoutIntegration := router.Group("/checkout-integration")
-	checkoutIntegration.Use(AuthRequired)
+	checkoutIntegration := api.router.Group("/checkout-integration")
+	checkoutIntegration.Use(api.authRequired)
 	{
-		checkoutIntegration.POST("/create-checkout-subscription", CreateCheckoutSubscription)
-		checkoutIntegration.POST("/update-checkout-subscription", updateCheckoutSubscription)
-		checkoutIntegration.POST("/get-checkout-product", getCheckoutProduct)
+		checkoutIntegration.POST("/create-checkout-subscription", api.createCheckoutSubscription)
+		checkoutIntegration.POST("/update-checkout-subscription", api.updateCheckoutSubscription)
+		checkoutIntegration.POST("/get-checkout-product", api.getCheckoutProduct)
 	}
-	checkoutSetupIntent := router.Group("/checkout-setup-intent")
-	checkoutSetupIntent.Use(AuthRequired)
+	checkoutSetupIntent := api.router.Group("/checkout-setup-intent")
+	checkoutSetupIntent.Use(api.authRequired)
 	{
-		checkoutSetupIntent.POST("/create-setup-intent", CreateCheckoutSetupIntent)
+		checkoutSetupIntent.POST("/create-setup-intent", api.createCheckoutSetupIntent)
 	}
 }
 
-func initCertificate(router *gin.Engine) {
-	logger.Warn("init certificate not implemented yet.")
+func (api *Api) initCertificate() {
+	api.log.Warn("init certificate not implemented yet.")
 	/* error := autotls.Run(router, "api.scalecloud.de")
 	if error != nil {
 		logger.Error("Could not setup certificate", zap.Error(error))
 	} */
 }
 
-func initTrustedPlatform(router *gin.Engine) {
-	logger.Info("init trusted platform not implemented yet.")
+func (api *Api) initTrustedPlatform() {
+	api.log.Info("init trusted platform not implemented yet.")
 	/* router.TrustedPlatform = gin.PlatformGoogleAppEngine */
 }
 
 // Authentication
-func AuthRequired(c *gin.Context) {
-	token, hasAuth := getBearerToken(c)
+func (api *Api) authRequired(c *gin.Context) {
+	token := getBearerToken(c)
 
-	if hasAuth && token != "" && firebasemanager.VerifyIDToken(c, token) {
-		logger.Debug("Authenticated", zap.String("token:", token))
+	if token != "" && api.paymentHandler.FirebaseConnection.VerifyIDToken(c, token) {
+		api.log.Debug("Authenticated", zap.String("token:", token))
 		c.Next()
 	} else {
-		logger.Warn("Unauthorized", zap.String("token:", token))
+		api.log.Warn("Unauthorized", zap.String("token:", token))
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 	}
 }
 
-func getBearerToken(c *gin.Context) (token string, ok bool) {
+func getBearerToken(c *gin.Context) (token string) {
 	jwtToken := c.Request.Header.Get("Authorization")
 	if jwtToken == "" {
-		return "", false
+		return ""
 	} else {
-		return jwtToken, true
+		return jwtToken
 	}
 }

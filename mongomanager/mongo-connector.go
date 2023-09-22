@@ -8,7 +8,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.uber.org/zap"
 )
 
 func fileExists(filename string) bool {
@@ -19,11 +18,10 @@ func fileExists(filename string) bool {
 	return !info.IsDir()
 }
 
-func getConnectionString() string {
+func getConnectionString() (string, error) {
 	file, err := os.Open(connectionString)
 	if err != nil {
-		logger.Error("Error opening file", zap.String("file", connectionString), zap.Error(err))
-		os.Exit(1)
+		return "", errors.New("connectionString does not exist")
 	}
 	defer file.Close()
 	var result string
@@ -31,26 +29,29 @@ func getConnectionString() string {
 	for scanner.Scan() {
 		result = scanner.Text()
 	}
-	return result
+	return result, nil
 }
 
-func getClient(ctx context.Context) *mongo.Client {
-	uri := getConnectionString() + x509
+func getClient(ctx context.Context) (*mongo.Client, error) {
+	uri, err := getConnectionString()
+	if err != nil {
+		return nil, err
+	}
 	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1)
 	clientOptions := options.Client().
-		ApplyURI(uri).
+		ApplyURI(uri + x509).
 		SetServerAPIOptions(serverAPIOptions)
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
-		logger.Error("Error connecting to MongoDB", zap.Error(err))
+		return nil, err
 	}
-	return client
+	return client, nil
 }
 
 func getCollection(context context.Context, databaseName, collectionName string) (*mongo.Client, *mongo.Collection, error) {
-	client := getClient(context)
-	if client == nil {
-		return nil, nil, errors.New("client is nil")
+	client, err := getClient(context)
+	if err != nil {
+		return nil, nil, err
 	}
 	collection := client.Database(databaseName).Collection(collectionName)
 	if collection == nil {
@@ -62,90 +63,67 @@ func getCollection(context context.Context, databaseName, collectionName string)
 func createDocument(ctx context.Context, databaseName, collectionName string, document interface{}) error {
 	client, collection, err := getCollection(ctx, databaseName, collectionName)
 	if err != nil {
-		logger.Error("Error getting collection", zap.Error(err))
 		return err
 	}
 	defer disconnect(ctx, client)
-	result, err := collection.InsertOne(ctx, document)
+	_, err = collection.InsertOne(ctx, document)
 	if err != nil {
-		logger.Error("Error creating document", zap.Error(err))
 		return err
-	} else {
-		logger.Info("Created document", zap.Any("result", result))
-		return nil
 	}
+	return nil
 }
 
 func updateDocument(ctx context.Context, databaseName, collectionName string, filter, update interface{}) error {
 	client, collection, err := getCollection(ctx, databaseName, collectionName)
 	if err != nil {
-		logger.Error("Error getting collection", zap.Error(err))
 		return err
 	}
 	defer disconnect(ctx, client)
 	if filter == nil {
-		logger.Error("filter is nil")
 		return errors.New("filter is nil")
 	}
 	if update == nil {
-		logger.Error("update is nil")
 		return errors.New("update is nil")
 	}
-	result, err := collection.UpdateOne(ctx, filter, update)
+	_, err = collection.UpdateOne(ctx, filter, update)
 	if err != nil {
-		logger.Error("Error updating document", zap.Error(err))
 		return err
-	} else {
-		logger.Info("Updated document", zap.Any("result", result))
-		return nil
 	}
+	return nil
 }
 
 func deleteDocument(ctx context.Context, databaseName, collectionName string, filter interface{}) error {
 	client, collection, err := getCollection(ctx, databaseName, collectionName)
 	if err != nil {
-		logger.Error("Error getting collection", zap.Error(err))
 		return err
 	}
 	defer disconnect(ctx, client)
 	if filter == nil {
-		logger.Error("filter is nil")
 		return errors.New("filter is nil")
 	}
-	result, err := collection.DeleteOne(ctx, filter)
+	_, err = collection.DeleteOne(ctx, filter)
 	if err != nil {
-		logger.Error("Error deleting document", zap.Error(err))
 		return err
-	} else {
-		logger.Info("Deleted document", zap.Any("result", result))
-		return nil
 	}
+	return nil
 }
 
 func findDocument(ctx context.Context, databaseName, collectionName string, filter interface{}) (*mongo.SingleResult, error) {
 	client, collection, err := getCollection(ctx, databaseName, collectionName)
 	if err != nil {
-		logger.Error("Error getting collection", zap.Error(err))
 		return nil, err
 	}
 	defer disconnect(ctx, client)
 	if filter == nil {
-		logger.Error("filter is nil")
 		return nil, errors.New("filter is nil")
 	}
-	logger.Debug("filter", zap.Any("filter", filter))
-
 	singleResult := collection.FindOne(ctx, filter)
 	if singleResult.Err() != nil {
-		logger.Warn("Did not findDocument", zap.Error(singleResult.Err()))
 		return nil, singleResult.Err()
 	}
 	return singleResult, nil
-
 }
 
-func disconnect(ctx context.Context, client *mongo.Client) {
-	if err := client.Disconnect(ctx); err != nil {
-		logger.Error("Error disconnecting from MongoDB", zap.Error(err))
-	}
+func disconnect(ctx context.Context, client *mongo.Client) error {
+	return client.Disconnect(ctx)
 }

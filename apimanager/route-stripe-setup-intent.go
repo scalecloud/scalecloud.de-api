@@ -4,18 +4,18 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/scalecloud/scalecloud.de-api/stripe/checkout"
+	"github.com/scalecloud/scalecloud.de-api/stripemanager"
 	"go.uber.org/zap"
 )
 
-func CreateCheckoutSetupIntent(c *gin.Context) {
-	token, ok := getBearerToken(c)
-	if !ok {
-		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": messageBearer})
+func (api *Api) createCheckoutSetupIntent(c *gin.Context) {
+	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c, getBearerToken(c))
+	if err != nil {
+		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Error getting token details"})
 		return
 	}
 
-	var checkoutSetupIntentRequest checkout.CheckoutSetupIntentRequest
+	var checkoutSetupIntentRequest stripemanager.CheckoutSetupIntentRequest
 	if err := c.BindJSON(&checkoutSetupIntentRequest); err != nil {
 		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
 		return
@@ -25,17 +25,17 @@ func CreateCheckoutSetupIntent(c *gin.Context) {
 		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "productID not found"})
 		return
 	}
-	logger.Debug("productID", zap.Any("productID", checkoutSetupIntentRequest.ProductID))
+	api.log.Debug("productID", zap.Any("productID", checkoutSetupIntentRequest.ProductID))
 	if checkoutSetupIntentRequest.Quantity == 0 {
 		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "quantity not found"})
 		return
 	}
-	logger.Debug("quantity", zap.Any("quantity", checkoutSetupIntentRequest.Quantity))
-	secret, error := checkout.CreateCheckoutSetupIntent(c, token, checkoutSetupIntentRequest)
+	api.log.Debug("quantity", zap.Any("quantity", checkoutSetupIntentRequest.Quantity))
+	secret, error := api.paymentHandler.StripeConnection.CreateCheckoutSetupIntent(c, tokenDetails, checkoutSetupIntentRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
 	}
-	logger.Info("CreateSubscription", zap.Any("secret", secret))
+	api.log.Info("CreateSubscription", zap.Any("secret", secret))
 	c.IndentedJSON(http.StatusOK, secret)
 }

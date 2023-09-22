@@ -1,29 +1,49 @@
 package mongomanager
 
 import (
-	"os"
+	"context"
+	"errors"
 
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
 )
-
-var logger, _ = zap.NewProduction()
 
 const x509 = "keys/mongodb-atlas.pem"
 const connectionString = "keys/mongodb-atlas-connection-string.txt"
 
-func InitMongo() {
-	logger.Info("Init Mongo")
+type MongoConnection struct {
+	Client *mongo.Client
+	Log    *zap.Logger
+}
+
+func InitMongoConnection(ctx context.Context, log *zap.Logger) (*MongoConnection, error) {
+	log.Info("Init MongoManager")
+	client, err := getClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	mongoManager := &MongoConnection{
+		Log:    log.Named("firebasemanager"),
+		Client: client,
+	}
+	return mongoManager, nil
+}
+
+func InitMongo(log *zap.Logger) error {
+	log.Info("Init Mongo")
 	if fileExists(connectionString) {
-		logger.Debug("connectionString exists. ", zap.String("file", connectionString))
+		log.Debug("connectionString exists. ", zap.String("file", connectionString))
 	} else {
-		logger.Error("connectionString does not exist. ", zap.String("file", connectionString))
-		os.Exit(1)
+		return errors.New("connectionString does not exist")
 	}
 	if fileExists(x509) {
-		logger.Debug("x509 exists. ", zap.String("file", x509))
+		log.Debug("x509 exists. ", zap.String("file", x509))
 	} else {
-		logger.Error("x509 does not exist. ", zap.String("file", x509))
-		os.Exit(1)
+		return errors.New("x509 does not exist")
 	}
-	initMongoStripe()
+	err := initMongoStripe(log)
+	if err != nil {
+		return err
+	}
+	return nil
 }
