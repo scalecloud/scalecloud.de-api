@@ -12,8 +12,6 @@ import (
 	"go.uber.org/zap"
 )
 
-var log, _ = zap.NewProduction()
-
 func (api *Api) StripeRequired(c *gin.Context) {
 	isPost(c, api.log)
 
@@ -47,42 +45,42 @@ func (webhookHandler *WebhookHandler) handleStripeWebhook(c *gin.Context) {
 
 	var endpointSecret = webhookHandler.StripeConnection.EndpointSecret
 	if endpointSecret == "" {
-		log.Error("Missing endpoint secret")
+		webhookHandler.Log.Error("Missing endpoint secret")
 		c.SecureJSON(http.StatusServiceUnavailable, gin.H{"message": "Service unavailable"})
 	}
 
 	payload, err := c.GetRawData()
 	if err != nil {
-		log.Error("Error getting raw data", zap.Error(err))
+		webhookHandler.Log.Error("Error getting raw data", zap.Error(err))
 		c.SecureJSON(http.StatusNoContent, gin.H{"message": "Error getting raw data"})
 	}
 	event, err := webhook.ConstructEvent(payload, c.Request.Header.Get("Stripe-Signature"), endpointSecret)
 	if err != nil {
-		log.Error("Signature verification failed", zap.Error(err))
+		webhookHandler.Log.Error("Signature verification failed", zap.Error(err))
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Signature verification failed"})
 	}
 
 	switch event.Type {
 	case "payment_method.attached":
-		err := handlePaymentMethodAttached(event, log)
+		err := handlePaymentMethodAttached(event, webhookHandler.Log)
 		if err != nil {
 			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
 		}
 	case "setup_intent.created":
-		err := handleSetupIntentCreated(event, log)
+		err := handleSetupIntentCreated(event, webhookHandler.Log)
 		if err != nil {
 			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
 		}
 	case "setup_intent.succeeded":
-		err := handleSetupIntentSucceeded(event, log)
+		err := handleSetupIntentSucceeded(event, webhookHandler.Log)
 		if err != nil {
 			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
 		}
 	default:
-		log.Warn("Unhandled event type", zap.Any("Unhandled event type", event.Type))
+		webhookHandler.Log.Warn("Unhandled event type", zap.Any("Unhandled event type", event.Type))
 		c.SecureJSON(http.StatusNotImplemented, gin.H{"message": "Unhandled event type"})
 	}
-	log.Info("Handled webhook", zap.Any("Handled webhook", event.Type))
+	webhookHandler.Log.Info("Handled webhook", zap.Any("Handled webhook", event.Type))
 	c.Status(http.StatusOK)
 }
 

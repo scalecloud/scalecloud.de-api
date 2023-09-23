@@ -14,8 +14,6 @@ import (
 	"go.uber.org/zap"
 )
 
-const messageBearer = "Bearer token not found"
-
 type Api struct {
 	router         *gin.Engine
 	paymentHandler *stripemanager.PaymentHandler
