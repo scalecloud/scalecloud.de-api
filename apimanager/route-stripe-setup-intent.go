@@ -15,32 +15,31 @@ func (api *Api) createCheckoutSetupIntent(c *gin.Context) {
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
 		return
 	}
-
-	var checkoutSetupIntentRequest stripemanager.CheckoutSetupIntentRequest
-	if err := c.BindJSON(&checkoutSetupIntentRequest); err != nil {
-		api.log.Error("Error binding JSON", zap.Error(err))
-		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
+	var request stripemanager.CheckoutSetupIntentRequest
+	err = c.BindJSON(&request)
+	if err != nil {
+		api.log.Warn("Error binding JSON", zap.Error(err))
+		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": err.Error()})
 		return
 	}
-
-	if checkoutSetupIntentRequest.ProductID == "" {
-		api.log.Error("productID not found")
-		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "productID not found"})
+	err = validateStruct(request)
+	if err != nil {
+		api.log.Warn("Error validating struct", zap.Error(err))
+		c.SecureJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
-	api.log.Debug("productID", zap.Any("productID", checkoutSetupIntentRequest.ProductID))
-	if checkoutSetupIntentRequest.Quantity == 0 {
-		api.log.Error("quantity not found")
-		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "quantity not found"})
+	reply, err := api.paymentHandler.CreateCheckoutSetupIntent(c, tokenDetails, request)
+	if err != nil {
+		api.log.Error("Error creating checkout setup intent", zap.Error(err))
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	api.log.Debug("quantity", zap.Any("quantity", checkoutSetupIntentRequest.Quantity))
-	secret, error := api.paymentHandler.CreateCheckoutSetupIntent(c, tokenDetails, checkoutSetupIntentRequest)
-	if error != nil {
-		api.log.Error("Error creating checkout setup intent", zap.Error(error))
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
+	err = validateStruct(reply)
+	if err != nil {
+		api.log.Warn("Reply", zap.Error(err))
+		c.SecureJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
-	api.log.Info("CreateSubscription", zap.Any("secret", secret))
-	c.IndentedJSON(http.StatusOK, secret)
+	api.log.Info("CreateSubscription", zap.Any("secret", reply))
+	c.IndentedJSON(http.StatusOK, reply)
 }

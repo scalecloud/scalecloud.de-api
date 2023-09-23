@@ -16,30 +16,30 @@ func (api *Api) createCheckoutSession(c *gin.Context) {
 		return
 	}
 	var request stripemanager.CheckoutModelPortalRequest
-	if err := c.BindJSON(&request); err != nil {
-		api.log.Error("Error binding JSON", zap.Error(err))
-		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
+	err = c.BindJSON(&request)
+	if err != nil {
+		api.log.Warn("Error binding JSON", zap.Error(err))
+		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": err.Error()})
 		return
 	}
-
-	if request.ProductID == "" {
-		api.log.Error("productID not found")
-		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "productID not found"})
+	err = validateStruct(request)
+	if err != nil {
+		api.log.Warn("Error validating struct", zap.Error(err))
+		c.SecureJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
-	api.log.Debug("productID", zap.Any("productID", request.ProductID))
-	if request.Quantity == 0 {
-		api.log.Error("quantity not found")
-		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "quantity not found"})
-		return
-	}
-	api.log.Debug("quantity", zap.Any("quantity", request.Quantity))
-	checkout, err := api.paymentHandler.CreateCheckoutSession(c, tokenDetails, request)
+	reply, err := api.paymentHandler.CreateCheckoutSession(c, tokenDetails, request)
 	if err != nil {
 		api.log.Error("Error creating checkout session", zap.Error(err))
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
-	api.log.Info("CreateCheckoutSession", zap.Any("checkout", checkout))
-	c.IndentedJSON(http.StatusOK, checkout)
+	err = validateStruct(reply)
+	if err != nil {
+		api.log.Warn("Reply", zap.Error(err))
+		c.SecureJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+	api.log.Info("CreateCheckoutSession", zap.Any("checkout", reply))
+	c.IndentedJSON(http.StatusOK, "checkout")
 }

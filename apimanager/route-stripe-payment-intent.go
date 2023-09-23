@@ -15,33 +15,32 @@ func (api *Api) createCheckoutSubscription(c *gin.Context) {
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
 		return
 	}
-
-	var checkoutIntegrationRequest stripemanager.CheckoutPaymentIntentRequest
-	if err := c.BindJSON(&checkoutIntegrationRequest); err != nil {
-		api.log.Error("Error binding JSON", zap.Error(err))
-		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
+	var request stripemanager.CheckoutPaymentIntentRequest
+	err = c.BindJSON(&request)
+	if err != nil {
+		api.log.Warn("Error binding JSON", zap.Error(err))
+		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": err.Error()})
 		return
 	}
-
-	if checkoutIntegrationRequest.ProductID == "" {
-		api.log.Error("productID not found")
-		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "productID not found"})
+	err = validateStruct(request)
+	if err != nil {
+		api.log.Warn("Error validating struct", zap.Error(err))
+		c.SecureJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
-	api.log.Debug("productID", zap.Any("productID", checkoutIntegrationRequest.ProductID))
-	if checkoutIntegrationRequest.Quantity == 0 {
-		api.log.Error("quantity not found")
-		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "quantity not found"})
-		return
-	}
-	api.log.Debug("quantity", zap.Any("quantity", checkoutIntegrationRequest.Quantity))
-	secret, err := api.paymentHandler.CreateCheckoutSubscription(c, tokenDetails, checkoutIntegrationRequest)
+	reply, err := api.paymentHandler.CreateCheckoutSubscription(c, tokenDetails, request)
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
-	api.log.Info("CreateSubscription", zap.Any("secret", secret))
-	c.IndentedJSON(http.StatusOK, secret)
+	err = validateStruct(reply)
+	if err != nil {
+		api.log.Warn("Reply", zap.Error(err))
+		c.SecureJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+	api.log.Info("CreateSubscription", zap.Any("secret", reply))
+	c.IndentedJSON(http.StatusOK, reply)
 }
 
 func (api *Api) updateCheckoutSubscription(c *gin.Context) {
@@ -51,33 +50,26 @@ func (api *Api) updateCheckoutSubscription(c *gin.Context) {
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
 		return
 	}
-
-	var checkoutIntegrationUpdateRequest stripemanager.CheckoutPaymentIntentUpdateRequest
-	if err := c.BindJSON(&checkoutIntegrationUpdateRequest); err != nil {
-		api.log.Error("Error binding JSON", zap.Error(err))
-		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
+	var request stripemanager.CheckoutPaymentIntentUpdateRequest
+	err = c.BindJSON(&request)
+	if err != nil {
+		api.log.Warn("Error binding JSON", zap.Error(err))
+		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": err.Error()})
 		return
 	}
-
-	if checkoutIntegrationUpdateRequest.SubscriptionID == "" {
-		api.log.Error("SubscriptionID not found")
-		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "SubscriptionID not found"})
-		return
-	}
-	api.log.Debug("subscriptionID", zap.Any("subscriptionID", checkoutIntegrationUpdateRequest.SubscriptionID))
-	if checkoutIntegrationUpdateRequest.Quantity == 0 {
-		api.log.Error("quantity not found")
-		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "quantity not found"})
-		return
-	}
-	api.log.Debug("quantity", zap.Any("quantity", checkoutIntegrationUpdateRequest.Quantity))
-	secret, err := api.paymentHandler.UpdateCheckoutSubscription(c, tokenDetails, checkoutIntegrationUpdateRequest)
+	reply, err := api.paymentHandler.UpdateCheckoutSubscription(c, tokenDetails, request)
 	if err != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
 		return
 	}
-	api.log.Info("UpdateCheckoutSubscription", zap.Any("secret", secret))
-	c.IndentedJSON(http.StatusOK, secret)
+	err = validateStruct(reply)
+	if err != nil {
+		api.log.Warn("Reply", zap.Error(err))
+		c.SecureJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+	api.log.Info("UpdateCheckoutSubscription", zap.Any("secret", reply))
+	c.IndentedJSON(http.StatusOK, reply)
 }
 
 func (api *Api) getCheckoutProduct(c *gin.Context) {
@@ -87,26 +79,31 @@ func (api *Api) getCheckoutProduct(c *gin.Context) {
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Error getting token details"})
 		return
 	}
-
-	var checkoutProductRequest stripemanager.CheckoutProductRequest
-	if err := c.BindJSON(&checkoutProductRequest); err != nil {
-		api.log.Error("Error binding JSON", zap.Error(err))
-		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
+	var request stripemanager.CheckoutProductRequest
+	err = c.BindJSON(&request)
+	if err != nil {
+		api.log.Warn("Error binding JSON", zap.Error(err))
+		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": err.Error()})
 		return
 	}
-
-	if checkoutProductRequest.SubscriptionID == "" {
-		api.log.Error("SubscriptionID not found")
-		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "SubscriptionID not found"})
+	err = validateStruct(request)
+	if err != nil {
+		api.log.Warn("Error validating struct", zap.Error(err))
+		c.SecureJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		return
 	}
-	api.log.Debug("subscriptionID", zap.Any("subscriptionID", checkoutProductRequest.SubscriptionID))
-	checkoutProductReply, err := api.paymentHandler.GetCheckoutProduct(c, tokenDetails, checkoutProductRequest)
+	reply, err := api.paymentHandler.GetCheckoutProduct(c, tokenDetails, request)
 	if err != nil {
 		api.log.Error("Error getting checkout product", zap.Error(err))
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	api.log.Info("GetCheckoutProduct", zap.Any("checkoutProductReply", checkoutProductReply))
-	c.IndentedJSON(http.StatusOK, checkoutProductReply)
+	err = validateStruct(reply)
+	if err != nil {
+		api.log.Warn("Reply", zap.Error(err))
+		c.SecureJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		return
+	}
+	api.log.Info("GetCheckoutProduct", zap.Any("checkoutProductReply", reply))
+	c.IndentedJSON(http.StatusOK, reply)
 }

@@ -84,49 +84,44 @@ func (webhookHandler *WebhookHandler) handleStripeWebhook(c *gin.Context) {
 }
 
 func handlePaymentMethodAttached(event stripe.Event, log *zap.Logger) error {
-	var paymentMethod stripe.PaymentMethod
-	err := json.Unmarshal(event.Data.Raw, &paymentMethod)
+	var request stripe.PaymentMethod
+	err := json.Unmarshal(event.Data.Raw, &request)
 	if err != nil {
-		log.Error("Error unmarshalling setupIntent", zap.Error(err))
-		return errors.New("Error unmarshalling setupIntent")
+		return err
 	}
-
-	if paymentMethod.ID == "" {
-		log.Error("ID not set")
-		return errors.New("ID not set")
+	err = validateStruct(request)
+	if err != nil {
+		return err
 	}
-	log.Debug("paymentMethod was updated", zap.Any("paymentMethodID", paymentMethod.ID))
+	log.Debug("paymentMethod was updated", zap.Any("paymentMethodID", request.ID))
 	return nil
 }
 
 func handleSetupIntentCreated(event stripe.Event, log *zap.Logger) error {
-	var setupIntent stripe.SetupIntent
-	err := json.Unmarshal(event.Data.Raw, &setupIntent)
+	var request stripe.SetupIntent
+	err := json.Unmarshal(event.Data.Raw, &request)
 	if err != nil {
-		log.Error("Error unmarshalling setupIntent", zap.Error(err))
-		return errors.New("Error unmarshalling setupIntent")
+		return err
 	}
-
-	if setupIntent.ID == "" {
-		return errors.New("ID not set")
+	err = validateStruct(request)
+	if err != nil {
+		return err
 	}
-	log.Debug("SetupIntentCreated", zap.Any("setupIntentID", setupIntent.ID))
+	log.Debug("SetupIntentCreated", zap.Any("setupIntentID", request.ID))
 	return nil
 }
 
 func handleSetupIntentSucceeded(event stripe.Event, log *zap.Logger) error {
-	var setupIntent stripe.SetupIntent
-	err := json.Unmarshal(event.Data.Raw, &setupIntent)
+	var request stripe.SetupIntent
+	err := json.Unmarshal(event.Data.Raw, &request)
 	if err != nil {
-		log.Error("Error unmarshalling setupIntent", zap.Error(err))
-		return errors.New("Error unmarshalling setupIntent")
+		return err
 	}
-
-	if setupIntent.ID == "" {
-		return errors.New("ID not set")
+	err = validateStruct(request)
+	if err != nil {
+		return err
 	}
-	log.Debug("setupIntentID succeeded", zap.Any("setupIntentID", setupIntent.ID))
-	cus := setupIntent.Customer
+	cus := request.Customer
 	if cus == nil {
 		return errors.New("Customer not set")
 	}
@@ -135,7 +130,7 @@ func handleSetupIntentSucceeded(event stripe.Event, log *zap.Logger) error {
 	}
 	log.Debug("Customer", zap.Any("Customer", cus.ID))
 
-	meta := setupIntent.Metadata
+	meta := request.Metadata
 	if meta == nil {
 		return errors.New("Metadata not set")
 	}
