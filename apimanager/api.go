@@ -184,7 +184,37 @@ func (api *Api) authRequired(c *gin.Context) {
 	c.Next()
 }
 
-func validateStruct(s interface{}) (err error) {
+func (api *Api) handleTokenDetails(c *gin.Context) (firebasemanager.TokenDetails, error) {
+	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c)
+	if err != nil {
+		api.log.Error("Error getting token details", zap.Error(err))
+		c.SecureJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return firebasemanager.TokenDetails{}, err
+	}
+	return tokenDetails, nil
+}
+
+func (api *Api) handleBind(c *gin.Context, s interface{}) bool {
+	err := c.BindJSON(s)
+	if err != nil {
+		api.log.Warn("Error binding json", zap.Error(err))
+		c.SecureJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return false
+	}
+	return api.handleStructFull(c, s)
+}
+
+func (api *Api) handleStructFull(c *gin.Context, s interface{}) bool {
+	err := isStructFull(s)
+	if err != nil {
+		api.log.Warn("Error validating struct", zap.Error(err))
+		c.SecureJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return false
+	}
+	return true
+}
+
+func isStructFull(s interface{}) (err error) {
 	if s == nil {
 		return errors.New("Input param should be a struct")
 	}
@@ -223,31 +253,14 @@ func validateStruct(s interface{}) (err error) {
 	return err
 }
 
-func (api *Api) handleTokenDetails(c *gin.Context) (firebasemanager.TokenDetails, error) {
-	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c)
-	if err != nil {
-		api.log.Error("Error getting token details", zap.Error(err))
-		c.SecureJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-		return firebasemanager.TokenDetails{}, err
-	}
-	return tokenDetails, nil
-}
-
-func (api *Api) hasNoError(c *gin.Context, err error) bool {
-	if err != nil {
-		api.log.Warn("Error", zap.Error(err))
-		c.SecureJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return false
-	}
-	return true
-}
-
 func (api *Api) writeReply(c *gin.Context, err error, reply interface{}) {
 	if err != nil {
 		api.log.Error("Error creating checkout session", zap.Error(err))
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	api.log.Info("Reply", zap.Any("reply", reply))
-	c.IndentedJSON(http.StatusOK, reply)
+	if api.handleStructFull(c, reply) {
+		api.log.Info("Reply", zap.Any("reply", reply))
+		c.IndentedJSON(http.StatusOK, reply)
+	}
 }

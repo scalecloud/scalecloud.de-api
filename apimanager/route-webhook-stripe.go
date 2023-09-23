@@ -89,7 +89,7 @@ func handlePaymentMethodAttached(event stripe.Event, log *zap.Logger) error {
 	if err != nil {
 		return err
 	}
-	err = validateStruct(request)
+	err = isStructFull(request)
 	if err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func handleSetupIntentCreated(event stripe.Event, log *zap.Logger) error {
 	if err != nil {
 		return err
 	}
-	err = validateStruct(request)
+	err = isStructFull(request)
 	if err != nil {
 		return err
 	}
@@ -117,7 +117,7 @@ func handleSetupIntentSucceeded(event stripe.Event, log *zap.Logger) error {
 	if err != nil {
 		return err
 	}
-	err = validateStruct(request)
+	err = isStructFull(request)
 	if err != nil {
 		return err
 	}
