@@ -18,34 +18,29 @@ func (stripeConnection *StripeConnection) CreateCheckoutSession(c context.Contex
 	}
 	customerID, err := stripeConnection.searchOrCreateCustomer(c, filter, tokenDetails)
 	if err != nil {
-		logger.Error("Error getting customer ID", zap.Error(err))
 		return CheckoutModelPortalReply{}, err
 	}
 	if customerID == "" {
-		logger.Error("Customer ID is empty")
 		return CheckoutModelPortalReply{}, errors.New("Customer ID is empty")
 	}
 	stripe.Key = stripeConnection.Key
 
 	price, err := stripeConnection.GetPrice(c, checkoutModelPortalRequest.ProductID)
 	if err != nil {
-		logger.Error("Error getting price", zap.Error(err))
 		return CheckoutModelPortalReply{}, err
 	}
 	metaData := price.Metadata
-	if err != nil {
-		logger.Warn("Error getting price metadata", zap.Error(err))
+	if metaData == nil {
 		return CheckoutModelPortalReply{}, errors.New("Price metadata not found")
 	}
 	trialPeriodDays, ok := metaData["trialPeriodDays"]
 	if !ok {
-		logger.Warn("trialPeriodDays not found", zap.Any("priceID", price.ID))
-		return CheckoutModelPortalReply{}, errors.New("trialPeriodDays not found")
+		return CheckoutModelPortalReply{}, errors.New("trialPeriodDays not found for priceID: " + price.ID)
 	}
 	iTrialPeriodDays, err := strconv.ParseInt(trialPeriodDays, 10, 64)
 	if err != nil {
-		logger.Warn("Error converting trialPeriodDays to int", zap.Error(err))
-		return CheckoutModelPortalReply{}, errors.New("Error converting trialPeriodDays to int")
+		stripeConnection.Log.Warn("Error converting trialPeriodDays to int", zap.Error(err))
+		return CheckoutModelPortalReply{}, errors.New("Error converting trialPeriodDays")
 	}
 
 	domain := "https://scalecloud.de/checkout"
@@ -69,7 +64,6 @@ func (stripeConnection *StripeConnection) CreateCheckoutSession(c context.Contex
 	}
 	session, err := session.New(params)
 	if err != nil {
-		logger.Error("Error creating session", zap.Error(err))
 		return CheckoutModelPortalReply{}, err
 	}
 

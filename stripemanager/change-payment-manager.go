@@ -25,17 +25,15 @@ func (stripeConnection *StripeConnection) GetChangePaymentSetupIntent(c context.
 	}
 	customerID, err := GetCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
-		logger.Error("Error getting customer ID", zap.Error(err))
 		return ChangePaymentReply{}, err
 	}
 	stripe.Key = stripeConnection.Key
-	subscription, error := stripeConnection.GetSubscriptionByID(c, request.SubscriptionID)
-	if error != nil {
-		logger.Warn("Error getting subscription", zap.Error(error))
-		return ChangePaymentReply{}, errors.New("Subscription not found")
+	subscription, err := stripeConnection.GetSubscriptionByID(c, request.SubscriptionID)
+	if err != nil {
+		return ChangePaymentReply{}, err
 	}
 	if subscription.Customer.ID != customerID {
-		logger.Error("Tried to request subscription for wrong customer", zap.String("customerID", customerID), zap.String("subscriptionID", request.SubscriptionID))
+		stripeConnection.Log.Error("Tried to request subscription for wrong customer", zap.String("customerID", customerID), zap.String("subscriptionID", request.SubscriptionID))
 		return ChangePaymentReply{}, errors.New("Subscription not matching customer")
 	}
 
@@ -47,7 +45,6 @@ func (stripeConnection *StripeConnection) GetChangePaymentSetupIntent(c context.
 
 	si, err := setupintent.New(params)
 	if err != nil {
-		logger.Error("Error creating setup intent", zap.Error(err))
 		return ChangePaymentReply{}, err
 	}
 

@@ -18,38 +18,38 @@ func (stripeConnection *StripeConnection) GetPrice(c context.Context, productID 
 		Active:  stripe.Bool(true),
 	}
 	iter := price.List(params)
-	priceSearch = searchPrice(iter, priceSearch, productID)
+	priceSearch = stripeConnection.searchPrice(iter, priceSearch, productID)
 	if priceSearch.ID == "" {
 		return nil, errors.New("No active price for productID" + productID)
 	}
 	return priceSearch, nil
 }
 
-func searchPrice(iter *price.Iter, ret *stripe.Price, productID string) *stripe.Price {
+func (stripeConnection *StripeConnection) searchPrice(iter *price.Iter, ret *stripe.Price, productID string) *stripe.Price {
 	for {
 		if iter.Next() {
 			if ret.ID != "" {
-				logger.Warn("More than one active price for productID"+productID, zap.Error(iter.Err()))
+				stripeConnection.Log.Warn("More than one active price for productID"+productID, zap.Error(iter.Err()))
 			} else {
 				ret = iter.Price()
-				logger.Info("Price", zap.Any("priceID", ret.ID))
+				stripeConnection.Log.Info("Price", zap.Any("priceID", ret.ID))
 			}
 		} else {
-			checkIterErrors(iter)
+			stripeConnection.checkIterErrors(iter)
 			break
 		}
 	}
 	return ret
 }
 
-func checkIterErrors(iter *price.Iter) {
+func (stripeConnection *StripeConnection) checkIterErrors(iter *price.Iter) {
 	if iter.Err() != nil {
 		if iter.Err() == iterator.Done {
-			logger.Debug("Iteration done")
+			stripeConnection.Log.Debug("Iteration done")
 		} else {
-			logger.Error("Error getting price", zap.Error(iter.Err()))
+			stripeConnection.Log.Error("Error getting price", zap.Error(iter.Err()))
 		}
 	} else {
-		logger.Debug("Iteration done with no error.")
+		stripeConnection.Log.Debug("Iteration done with no error.")
 	}
 }
