@@ -9,9 +9,11 @@ func (api *Api) createCheckoutSetupIntent(c *gin.Context) {
 	var request stripemanager.CheckoutSetupIntentRequest
 	tokenDetails, err := api.handleTokenDetails(c)
 	if err != nil &&
-		api.checkBind(c, c.BindJSON(&request)) &&
-		api.checkValidate(c, validateStruct(request)) {
+		api.hasNoError(c, c.BindJSON(&request)) &&
+		api.hasNoError(c, validateStruct(request)) {
 		reply, err := api.paymentHandler.CreateCheckoutSetupIntent(c, tokenDetails, request)
-		api.writeReply(err, c, reply)
+		if api.hasNoError(c, validateStruct(reply)) {
+			api.writeReply(c, err, reply)
+		}
 	}
 }

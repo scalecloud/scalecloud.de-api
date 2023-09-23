@@ -224,40 +224,25 @@ func (api *Api) handleTokenDetails(c *gin.Context) (firebasemanager.TokenDetails
 	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c)
 	if err != nil {
 		api.log.Error("Error getting token details", zap.Error(err))
-		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": err.Error()})
+		c.SecureJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return firebasemanager.TokenDetails{}, err
 	}
 	return tokenDetails, nil
 }
 
-func (api *Api) checkBind(c *gin.Context, err error) bool {
+func (api *Api) hasNoError(c *gin.Context, err error) bool {
 	if err != nil {
-		api.log.Warn("Error binding JSON", zap.Error(err))
-		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": err.Error()})
+		api.log.Warn("Error", zap.Error(err))
+		c.SecureJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return false
 	}
 	return true
 }
 
-func (api *Api) checkValidate(c *gin.Context, err error) bool {
-	if err != nil {
-		api.log.Warn("Error validating struct", zap.Error(err))
-		c.SecureJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
-		return false
-	}
-	return true
-}
-
-func (api *Api) writeReply(err error, c *gin.Context, reply interface{}) {
+func (api *Api) writeReply(c *gin.Context, err error, reply interface{}) {
 	if err != nil {
 		api.log.Error("Error creating checkout session", zap.Error(err))
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": err.Error()})
-		return
-	}
-	err = validateStruct(reply)
-	if err != nil {
-		api.log.Warn("Reply", zap.Error(err))
-		c.SecureJSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 	api.log.Info("Reply", zap.Any("reply", reply))
