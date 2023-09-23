@@ -20,11 +20,11 @@ func getCustomerByID(ctx context.Context, customerID string) (customerDetails *s
 	return customer, nil
 }
 
-func GetCustomerIDByUID(ctx context.Context, uid string) (string, error) {
+func (paymentHandler *PaymentHandler) GetCustomerIDByUID(ctx context.Context, uid string) (string, error) {
 	filter := mongomanager.User{
 		UID: uid,
 	}
-	userSearch, err := mongomanager.GetUser(ctx, filter)
+	userSearch, err := paymentHandler.MongoConnection.GetUser(ctx, filter)
 	if err != nil {
 		return "", err
 	}

@@ -19,7 +19,7 @@ func (paymentHandler *PaymentHandler) ResumeSubscription(c context.Context, toke
 	if request.ID == "" {
 		return SubscriptionResumeReply{}, errors.New("Subscription ID is empty")
 	}
-	customerID, err := GetCustomerIDByUID(c, tokenDetails.UID)
+	customerID, err := paymentHandler.GetCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
 		return SubscriptionResumeReply{}, err
 	}
@@ -53,7 +53,7 @@ func (paymentHandler *PaymentHandler) CancelSubscription(c context.Context, toke
 	if request.ID == "" {
 		return SubscriptionCancelReply{}, errors.New("Subscription ID is empty")
 	}
-	customerID, err := GetCustomerIDByUID(c, tokenDetails.UID)
+	customerID, err := paymentHandler.GetCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
 		return SubscriptionCancelReply{}, err
 	}

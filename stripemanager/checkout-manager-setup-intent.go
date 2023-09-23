@@ -10,18 +10,18 @@ import (
 	"github.com/stripe/stripe-go/v75/setupintent"
 )
 
-func (stripeConnection *StripeConnection) CreateCheckoutSetupIntent(c context.Context, tokenDetails firebasemanager.TokenDetails, checkoutSetupIntentRequest CheckoutSetupIntentRequest) (CheckoutSetupIntentReply, error) {
+func (paymentHandler *PaymentHandler) CreateCheckoutSetupIntent(c context.Context, tokenDetails firebasemanager.TokenDetails, checkoutSetupIntentRequest CheckoutSetupIntentRequest) (CheckoutSetupIntentReply, error) {
 	filter := mongomanager.User{
 		UID: tokenDetails.UID,
 	}
-	customerID, err := stripeConnection.searchOrCreateCustomer(c, filter, tokenDetails)
+	customerID, err := paymentHandler.searchOrCreateCustomer(c, filter, tokenDetails)
 	if err != nil {
 		return CheckoutSetupIntentReply{}, err
 	}
 	if customerID == "" {
 		return CheckoutSetupIntentReply{}, errors.New("Customer ID is empty")
 	}
-	stripe.Key = stripeConnection.Key
+	stripe.Key = paymentHandler.StripeConnection.Key
 
 	setupIntentParam := &stripe.SetupIntentParams{
 		Customer: stripe.String(customerID),

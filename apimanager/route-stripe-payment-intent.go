@@ -31,7 +31,7 @@ func (api *Api) createCheckoutSubscription(c *gin.Context) {
 		return
 	}
 	api.log.Debug("quantity", zap.Any("quantity", checkoutIntegrationRequest.Quantity))
-	secret, error := api.paymentHandler.StripeConnection.CreateCheckoutSubscription(c, tokenDetails, checkoutIntegrationRequest)
+	secret, error := api.paymentHandler.CreateCheckoutSubscription(c, tokenDetails, checkoutIntegrationRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
@@ -63,7 +63,7 @@ func (api *Api) updateCheckoutSubscription(c *gin.Context) {
 		return
 	}
 	api.log.Debug("quantity", zap.Any("quantity", checkoutIntegrationUpdateRequest.Quantity))
-	secret, error := api.paymentHandler.StripeConnection.UpdateCheckoutSubscription(c, tokenDetails, checkoutIntegrationUpdateRequest)
+	secret, error := api.paymentHandler.UpdateCheckoutSubscription(c, tokenDetails, checkoutIntegrationUpdateRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
@@ -91,7 +91,7 @@ func (api *Api) getCheckoutProduct(c *gin.Context) {
 		return
 	}
 	api.log.Debug("subscriptionID", zap.Any("subscriptionID", checkoutProductRequest.SubscriptionID))
-	checkoutProductReply, error := api.paymentHandler.StripeConnection.GetCheckoutProduct(c, tokenDetails, checkoutProductRequest)
+	checkoutProductReply, error := api.paymentHandler.GetCheckoutProduct(c, tokenDetails, checkoutProductRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return

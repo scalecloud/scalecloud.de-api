@@ -31,7 +31,7 @@ func (api *Api) createCheckoutSetupIntent(c *gin.Context) {
 		return
 	}
 	api.log.Debug("quantity", zap.Any("quantity", checkoutSetupIntentRequest.Quantity))
-	secret, error := api.paymentHandler.StripeConnection.CreateCheckoutSetupIntent(c, tokenDetails, checkoutSetupIntentRequest)
+	secret, error := api.paymentHandler.CreateCheckoutSetupIntent(c, tokenDetails, checkoutSetupIntentRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return

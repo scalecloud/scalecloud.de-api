@@ -14,7 +14,7 @@ func (api *Api) getSubscriptionsOverview(c *gin.Context) {
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Error getting token details"})
 		return
 	}
-	subscriptionsOverview, error := api.paymentHandler.StripeConnection.GetSubscriptionsOverview(c, tokenDetails)
+	subscriptionsOverview, error := api.paymentHandler.GetSubscriptionsOverview(c, tokenDetails)
 	if error != nil {
 		c.IndentedJSON(http.StatusNoContent, gin.H{"error": error.Error()})
 		return
@@ -35,7 +35,7 @@ func (api *Api) getSubscriptionByID(c *gin.Context) {
 	}
 	subscriptionID := c.Param("id")
 	api.log.Debug("getSubscriptionByID", zap.String("subscriptionID", subscriptionID))
-	subscriptionDetail, error := api.paymentHandler.StripeConnection.GetSubscriptionDetailByID(c, tokenDetails, subscriptionID)
+	subscriptionDetail, error := api.paymentHandler.GetSubscriptionDetailByID(c, tokenDetails, subscriptionID)
 	if error != nil {
 		c.IndentedJSON(http.StatusNoContent, gin.H{"error": error.Error()})
 		return
@@ -130,7 +130,7 @@ func (api *Api) getSubscriptionPaymentMethod(c *gin.Context) {
 		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "ID not found"})
 		return
 	}
-	reply, error := api.paymentHandler.StripeConnection.GetSubscriptionPaymentMethod(c, tokenDetails, subscriptionPaymentMethodRequest)
+	reply, error := api.paymentHandler.GetSubscriptionPaymentMethod(c, tokenDetails, subscriptionPaymentMethodRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return
@@ -156,7 +156,7 @@ func (api *Api) getChangePaymentSetupIntent(c *gin.Context) {
 		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "SubscriptionID not found"})
 		return
 	}
-	reply, error := api.paymentHandler.StripeConnection.GetChangePaymentSetupIntent(c, tokenDetails, request)
+	reply, error := api.paymentHandler.GetChangePaymentSetupIntent(c, tokenDetails, request)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return

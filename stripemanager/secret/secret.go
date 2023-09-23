@@ -10,7 +10,7 @@ import (
 const keyFile = "keys/stripe-secret-key.txt"
 const endpointSecretFile = "keys/stripe-endpoint-secrets.txt"
 
-func InitStripe(log *zap.Logger) error {
+func CheckStripeKeyFiles(log *zap.Logger) error {
 	log.Info("Init stripe")
 	if fileExists(keyFile) {
 		log.Info("Keyfile exists. ", zap.String("file", keyFile))

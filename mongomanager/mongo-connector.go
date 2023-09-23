@@ -48,24 +48,20 @@ func getClient(ctx context.Context) (*mongo.Client, error) {
 	return client, nil
 }
 
-func getCollection(context context.Context, databaseName, collectionName string) (*mongo.Client, *mongo.Collection, error) {
-	client, err := getClient(context)
-	if err != nil {
-		return nil, nil, err
-	}
+func (mongoConnection *MongoConnection) getCollection(context context.Context, databaseName, collectionName string) (*mongo.Collection, error) {
+	client := mongoConnection.Client
 	collection := client.Database(databaseName).Collection(collectionName)
 	if collection == nil {
-		return nil, nil, errors.New("collection is nil")
+		return nil, errors.New("collection is nil")
 	}
-	return client, collection, nil
+	return collection, nil
 }
 
-func createDocument(ctx context.Context, databaseName, collectionName string, document interface{}) error {
-	client, collection, err := getCollection(ctx, databaseName, collectionName)
+func (mongoConnection *MongoConnection) createDocument(ctx context.Context, databaseName, collectionName string, document interface{}) error {
+	collection, err := mongoConnection.getCollection(ctx, databaseName, collectionName)
 	if err != nil {
 		return err
 	}
-	defer disconnect(ctx, client)
 	_, err = collection.InsertOne(ctx, document)
 	if err != nil {
 		return err
@@ -73,12 +69,11 @@ func createDocument(ctx context.Context, databaseName, collectionName string, do
 	return nil
 }
 
-func updateDocument(ctx context.Context, databaseName, collectionName string, filter, update interface{}) error {
-	client, collection, err := getCollection(ctx, databaseName, collectionName)
+func (mongoConnection *MongoConnection) updateDocument(ctx context.Context, databaseName, collectionName string, filter, update interface{}) error {
+	collection, err := mongoConnection.getCollection(ctx, databaseName, collectionName)
 	if err != nil {
 		return err
 	}
-	defer disconnect(ctx, client)
 	if filter == nil {
 		return errors.New("filter is nil")
 	}
@@ -92,12 +87,11 @@ func updateDocument(ctx context.Context, databaseName, collectionName string, fi
 	return nil
 }
 
-func deleteDocument(ctx context.Context, databaseName, collectionName string, filter interface{}) error {
-	client, collection, err := getCollection(ctx, databaseName, collectionName)
+func (mongoConnection *MongoConnection) deleteDocument(ctx context.Context, databaseName, collectionName string, filter interface{}) error {
+	collection, err := mongoConnection.getCollection(ctx, databaseName, collectionName)
 	if err != nil {
 		return err
 	}
-	defer disconnect(ctx, client)
 	if filter == nil {
 		return errors.New("filter is nil")
 	}
@@ -108,12 +102,11 @@ func deleteDocument(ctx context.Context, databaseName, collectionName string, fi
 	return nil
 }
 
-func findDocument(ctx context.Context, databaseName, collectionName string, filter interface{}) (*mongo.SingleResult, error) {
-	client, collection, err := getCollection(ctx, databaseName, collectionName)
+func (mongoConnection *MongoConnection) findDocument(ctx context.Context, databaseName, collectionName string, filter interface{}) (*mongo.SingleResult, error) {
+	collection, err := mongoConnection.getCollection(ctx, databaseName, collectionName)
 	if err != nil {
 		return nil, err
 	}
-	defer disconnect(ctx, client)
 	if filter == nil {
 		return nil, errors.New("filter is nil")
 	}
@@ -122,8 +115,4 @@ func findDocument(ctx context.Context, databaseName, collectionName string, filt
 		return nil, singleResult.Err()
 	}
 	return singleResult, nil
-}
-
-func disconnect(ctx context.Context, client *mongo.Client) error {
-	return client.Disconnect(ctx)
 }

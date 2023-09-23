@@ -10,7 +10,7 @@ import (
 )
 
 func (paymentHandler *PaymentHandler) GetBillingPortal(c context.Context, tokenDetails firebasemanager.TokenDetails) (billingPortalModel BillingPortalModel, err error) {
-	customerID, err := GetCustomerIDByUID(c, tokenDetails.UID)
+	customerID, err := paymentHandler.GetCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
 		return BillingPortalModel{}, err
 	}

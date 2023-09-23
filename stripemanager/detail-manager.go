@@ -10,25 +10,25 @@ import (
 	"go.uber.org/zap"
 )
 
-func (stripeConnection *StripeConnection) GetSubscriptionDetailByID(c context.Context, tokenDetails firebasemanager.TokenDetails, subscriptionID string) (subscriptionDetail SubscriptionDetail, err error) {
+func (paymentHandler *PaymentHandler) GetSubscriptionDetailByID(c context.Context, tokenDetails firebasemanager.TokenDetails, subscriptionID string) (subscriptionDetail SubscriptionDetail, err error) {
 	if subscriptionID == "" {
 		return SubscriptionDetail{}, errors.New("Subscription ID is empty")
 	}
-	customerID, err := GetCustomerIDByUID(c, tokenDetails.UID)
+	customerID, err := paymentHandler.GetCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
 		return SubscriptionDetail{}, err
 	}
-	stripe.Key = stripeConnection.Key
-	subscription, err := stripeConnection.GetSubscriptionByID(c, subscriptionID)
+	stripe.Key = paymentHandler.StripeConnection.Key
+	subscription, err := paymentHandler.StripeConnection.GetSubscriptionByID(c, subscriptionID)
 	if err != nil {
 		return SubscriptionDetail{}, errors.New("Subscription not found")
 	}
-	stripeConnection.Log.Debug("subscription", zap.Any("subscription", subscription))
+	paymentHandler.Log.Debug("subscription", zap.Any("subscription", subscription))
 	if subscription.Customer.ID != customerID {
-		stripeConnection.Log.Error("Tried to request subscription for wrong customer", zap.String("customerID", customerID), zap.String("subscriptionID", subscriptionID))
+		paymentHandler.Log.Error("Tried to request subscription for wrong customer", zap.String("customerID", customerID), zap.String("subscriptionID", subscriptionID))
 		return SubscriptionDetail{}, errors.New("Subscription not matching customer")
 	} else {
-		subscriptionDetail, err = stripeConnection.mapSubscriptionItemToSubscriptionDetail(c, subscription)
+		subscriptionDetail, err = paymentHandler.StripeConnection.mapSubscriptionItemToSubscriptionDetail(c, subscription)
 		if err != nil {
 			return SubscriptionDetail{}, err
 		}

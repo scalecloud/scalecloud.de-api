@@ -17,6 +17,10 @@ func main() {
 	if err != nil {
 		log.Fatal("Error initializing API", zap.Error(err))
 	}
+	defer func() {
+		log.Info("Closing MongoDB Client.")
+		api.CloseMongoClient()
+	}()
 	api.RunAPI()
 	log.Info("App ended.")
 }

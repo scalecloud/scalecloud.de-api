@@ -13,20 +13,20 @@ import (
 	"go.uber.org/zap"
 )
 
-func (stripeConnection *StripeConnection) CreateCheckoutSubscription(c context.Context, tokenDetails firebasemanager.TokenDetails, checkoutIntegrationRequest CheckoutPaymentIntentRequest) (CheckoutPaymentIntentReply, error) {
+func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Context, tokenDetails firebasemanager.TokenDetails, checkoutIntegrationRequest CheckoutPaymentIntentRequest) (CheckoutPaymentIntentReply, error) {
 	filter := mongomanager.User{
 		UID: tokenDetails.UID,
 	}
-	customerID, err := stripeConnection.searchOrCreateCustomer(c, filter, tokenDetails)
+	customerID, err := paymentHandler.searchOrCreateCustomer(c, filter, tokenDetails)
 	if err != nil {
 		return CheckoutPaymentIntentReply{}, err
 	}
 	if customerID == "" {
 		return CheckoutPaymentIntentReply{}, errors.New("Customer ID is empty")
 	}
-	stripe.Key = stripeConnection.Key
+	stripe.Key = paymentHandler.StripeConnection.Key
 
-	price, err := stripeConnection.GetPrice(c, checkoutIntegrationRequest.ProductID)
+	price, err := paymentHandler.StripeConnection.GetPrice(c, checkoutIntegrationRequest.ProductID)
 	if err != nil {
 		return CheckoutPaymentIntentReply{}, err
 	}
@@ -40,7 +40,7 @@ func (stripeConnection *StripeConnection) CreateCheckoutSubscription(c context.C
 	}
 	iTrialPeriodDays, err := strconv.ParseInt(trialPeriodDays, 10, 64)
 	if err != nil {
-		stripeConnection.Log.Error("Error converting trialPeriodDays to int", zap.Error(err))
+		paymentHandler.Log.Error("Error converting trialPeriodDays to int", zap.Error(err))
 		return CheckoutPaymentIntentReply{}, errors.New("Error converting trialPeriodDays")
 	}
 
@@ -69,7 +69,7 @@ func (stripeConnection *StripeConnection) CreateCheckoutSubscription(c context.C
 	subscriptionParams.AddExpand("pending_setup_intent")
 	sub, err := subscription.New(subscriptionParams)
 	if err != nil {
-		stripeConnection.Log.Error("Error creating subscription", zap.Error(err))
+		paymentHandler.Log.Error("Error creating subscription", zap.Error(err))
 		return CheckoutPaymentIntentReply{}, err
 	}
 	if sub.PendingSetupIntent == nil {
@@ -78,7 +78,7 @@ func (stripeConnection *StripeConnection) CreateCheckoutSubscription(c context.C
 	if sub.PendingSetupIntent.ClientSecret == "" {
 		return CheckoutPaymentIntentReply{}, errors.New("Pending setup intent client secret is nil")
 	}
-	stripeConnection.Log.Info("Subscription created and waiting for payment.", zap.Any("subscriptionID", sub.ID))
+	paymentHandler.Log.Info("Subscription created and waiting for payment.", zap.Any("subscriptionID", sub.ID))
 
 	checkoutSubscriptionModel := CheckoutPaymentIntentReply{
 		SubscriptionID: sub.ID,
@@ -89,15 +89,15 @@ func (stripeConnection *StripeConnection) CreateCheckoutSubscription(c context.C
 	return checkoutSubscriptionModel, nil
 }
 
-func (stripeConnection *StripeConnection) UpdateCheckoutSubscription(c context.Context, tokenDetails firebasemanager.TokenDetails, checkoutIntegrationUpdateRequest CheckoutPaymentIntentUpdateRequest) (CheckoutPaymentIntentUpdateReply, error) {
-	customerIDFromUID, err := GetCustomerIDByUID(c, tokenDetails.UID)
+func (paymentHandler *PaymentHandler) UpdateCheckoutSubscription(c context.Context, tokenDetails firebasemanager.TokenDetails, checkoutIntegrationUpdateRequest CheckoutPaymentIntentUpdateRequest) (CheckoutPaymentIntentUpdateReply, error) {
+	customerIDFromUID, err := paymentHandler.GetCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
 		return CheckoutPaymentIntentUpdateReply{}, err
 	}
 
-	stripe.Key = stripeConnection.Key
+	stripe.Key = paymentHandler.StripeConnection.Key
 
-	sub, err := stripeConnection.GetSubscriptionByID(c, checkoutIntegrationUpdateRequest.SubscriptionID)
+	sub, err := paymentHandler.StripeConnection.GetSubscriptionByID(c, checkoutIntegrationUpdateRequest.SubscriptionID)
 	if err != nil {
 		return CheckoutPaymentIntentUpdateReply{}, err
 	}
@@ -143,15 +143,15 @@ func (stripeConnection *StripeConnection) UpdateCheckoutSubscription(c context.C
 	return checkoutIntegrationUpdateReturn, nil
 }
 
-func (stripeConnection *StripeConnection) GetCheckoutProduct(c context.Context, tokenDetails firebasemanager.TokenDetails, checkoutProductRequest CheckoutProductRequest) (CheckoutProductReply, error) {
-	customerIDFromUID, err := GetCustomerIDByUID(c, tokenDetails.UID)
+func (paymentHandler *PaymentHandler) GetCheckoutProduct(c context.Context, tokenDetails firebasemanager.TokenDetails, checkoutProductRequest CheckoutProductRequest) (CheckoutProductReply, error) {
+	customerIDFromUID, err := paymentHandler.GetCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
 		return CheckoutProductReply{}, err
 	}
 
-	stripe.Key = stripeConnection.Key
+	stripe.Key = paymentHandler.StripeConnection.Key
 
-	subscription, err := stripeConnection.GetSubscriptionByID(c, checkoutProductRequest.SubscriptionID)
+	subscription, err := paymentHandler.StripeConnection.GetSubscriptionByID(c, checkoutProductRequest.SubscriptionID)
 	if err != nil {
 		return CheckoutProductReply{}, err
 	}
@@ -171,7 +171,7 @@ func (stripeConnection *StripeConnection) GetCheckoutProduct(c context.Context, 
 	}
 	productID := subscriptionItem.Price.Product.ID
 
-	price, err := stripeConnection.GetPrice(c, productID)
+	price, err := paymentHandler.StripeConnection.GetPrice(c, productID)
 	if err != nil {
 		return CheckoutProductReply{}, err
 	}
@@ -188,11 +188,11 @@ func (stripeConnection *StripeConnection) GetCheckoutProduct(c context.Context, 
 	}
 	iTrialPeriodDays, err := strconv.ParseInt(trialPeriodDays, 10, 64)
 	if err != nil {
-		stripeConnection.Log.Warn("Error converting trialPeriodDays to int", zap.Error(err))
+		paymentHandler.Log.Warn("Error converting trialPeriodDays to int", zap.Error(err))
 		return CheckoutProductReply{}, errors.New("Error converting trialPeriodDays")
 	}
 
-	product, err := stripeConnection.GetProduct(c, productID)
+	product, err := paymentHandler.StripeConnection.GetProduct(c, productID)
 	if err != nil {
 		return CheckoutProductReply{}, err
 	}
@@ -207,7 +207,7 @@ func (stripeConnection *StripeConnection) GetCheckoutProduct(c context.Context, 
 	}
 	iStorageAmount, err := strconv.ParseInt(storageAmount, 10, 64)
 	if err != nil {
-		stripeConnection.Log.Warn("Error converting storageAmount to int", zap.Error(err))
+		paymentHandler.Log.Warn("Error converting storageAmount to int", zap.Error(err))
 		return CheckoutProductReply{}, errors.New("Error converting storageAmount")
 	}
 

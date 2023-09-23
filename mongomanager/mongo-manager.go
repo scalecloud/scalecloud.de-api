@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.uber.org/zap"
 )
@@ -29,7 +30,7 @@ func InitMongoConnection(ctx context.Context, log *zap.Logger) (*MongoConnection
 	return mongoManager, nil
 }
 
-func InitMongo(log *zap.Logger) error {
+func CheckMongoConnectionFiles(log *zap.Logger) error {
 	log.Info("Init Mongo")
 	if fileExists(connectionString) {
 		log.Debug("connectionString exists. ", zap.String("file", connectionString))
@@ -41,9 +42,22 @@ func InitMongo(log *zap.Logger) error {
 	} else {
 		return errors.New("x509 does not exist")
 	}
-	err := initMongoStripe(log)
+	log.Info("Required secrets for MongoDB are present.")
+	return nil
+}
+
+func (mongoConnection *MongoConnection) CheckMongoConnectability(ctx context.Context) error {
+	users, err := mongoConnection.getCollection(ctx, databaseStripe, collectionUsers)
 	if err != nil {
 		return err
+	}
+	usersCount, err := users.CountDocuments(ctx, bson.D{})
+	if err != nil {
+		return errors.New("Error counting documents: " + err.Error())
+	} else if usersCount == 0 {
+		mongoConnection.Log.Warn("Users collection is empty.")
+	} else {
+		mongoConnection.Log.Info("Users count: ", zap.Any("count", usersCount))
 	}
 	return nil
 }

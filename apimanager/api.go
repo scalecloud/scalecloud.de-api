@@ -29,11 +29,11 @@ type WebhookHandler struct {
 func InitAPI(log *zap.Logger) (*Api, error) {
 	log.Info("Init api")
 
-	err := mongomanager.InitMongo(log)
+	err := mongomanager.CheckMongoConnectionFiles(log)
 	if err != nil {
 		return &Api{}, err
 	}
-	err = secret.InitStripe(log)
+	err = secret.CheckStripeKeyFiles(log)
 	if err != nil {
 		return &Api{}, err
 	}
@@ -46,6 +46,11 @@ func InitAPI(log *zap.Logger) (*Api, error) {
 	}
 
 	mongoConnection, err := mongomanager.InitMongoConnection(context.Background(), log)
+	if err != nil {
+		return &Api{}, err
+	}
+
+	err = mongoConnection.CheckMongoConnectability(context.Background())
 	if err != nil {
 		return &Api{}, err
 	}
@@ -72,12 +77,19 @@ func InitAPI(log *zap.Logger) (*Api, error) {
 	return api, nil
 }
 
-func (a *Api) RunAPI() {
-	a.initHeaders()
-	a.initRoutes()
-	a.initCertificate()
-	a.initTrustedPlatform()
-	a.startListening()
+func (api *Api) CloseMongoClient() {
+	err := api.paymentHandler.MongoConnection.Client.Disconnect(context.Background())
+	if err != nil {
+		api.log.Fatal("Error closing MongoDB", zap.Error(err))
+	}
+}
+
+func (api *Api) RunAPI() {
+	api.initHeaders()
+	api.initRoutes()
+	api.initCertificate()
+	api.initTrustedPlatform()
+	api.startListening()
 }
 
 func (api *Api) initHeaders() {

@@ -31,7 +31,7 @@ func (api *Api) createCheckoutSession(c *gin.Context) {
 		return
 	}
 	api.log.Debug("quantity", zap.Any("quantity", checkoutModelPortalRequest.Quantity))
-	checkout, error := api.paymentHandler.StripeConnection.CreateCheckoutSession(c, tokenDetails, checkoutModelPortalRequest)
+	checkout, error := api.paymentHandler.CreateCheckoutSession(c, tokenDetails, checkoutModelPortalRequest)
 	if error != nil {
 		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": error.Error()})
 		return

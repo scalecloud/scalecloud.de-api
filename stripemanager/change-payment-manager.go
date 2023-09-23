@@ -19,21 +19,21 @@ const (
 	ChangePayment      SetupIntentMeta = "changePayment"
 )
 
-func (stripeConnection *StripeConnection) GetChangePaymentSetupIntent(c context.Context, tokenDetails firebasemanager.TokenDetails, request ChangePaymentRequest) (ChangePaymentReply, error) {
+func (paymentHandler *PaymentHandler) GetChangePaymentSetupIntent(c context.Context, tokenDetails firebasemanager.TokenDetails, request ChangePaymentRequest) (ChangePaymentReply, error) {
 	if request.SubscriptionID == "" {
 		return ChangePaymentReply{}, errors.New("Subscription ID is empty")
 	}
-	customerID, err := GetCustomerIDByUID(c, tokenDetails.UID)
+	customerID, err := paymentHandler.GetCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
 		return ChangePaymentReply{}, err
 	}
-	stripe.Key = stripeConnection.Key
-	subscription, err := stripeConnection.GetSubscriptionByID(c, request.SubscriptionID)
+	stripe.Key = paymentHandler.StripeConnection.Key
+	subscription, err := paymentHandler.StripeConnection.GetSubscriptionByID(c, request.SubscriptionID)
 	if err != nil {
 		return ChangePaymentReply{}, err
 	}
 	if subscription.Customer.ID != customerID {
-		stripeConnection.Log.Error("Tried to request subscription for wrong customer", zap.String("customerID", customerID), zap.String("subscriptionID", request.SubscriptionID))
+		paymentHandler.Log.Error("Tried to request subscription for wrong customer", zap.String("customerID", customerID), zap.String("subscriptionID", request.SubscriptionID))
 		return ChangePaymentReply{}, errors.New("Subscription not matching customer")
 	}
 

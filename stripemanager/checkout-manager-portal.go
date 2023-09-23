@@ -12,20 +12,20 @@ import (
 	"go.uber.org/zap"
 )
 
-func (stripeConnection *StripeConnection) CreateCheckoutSession(c context.Context, tokenDetails firebasemanager.TokenDetails, checkoutModelPortalRequest CheckoutModelPortalRequest) (CheckoutModelPortalReply, error) {
+func (paymentHandler *PaymentHandler) CreateCheckoutSession(c context.Context, tokenDetails firebasemanager.TokenDetails, checkoutModelPortalRequest CheckoutModelPortalRequest) (CheckoutModelPortalReply, error) {
 	filter := mongomanager.User{
 		UID: tokenDetails.UID,
 	}
-	customerID, err := stripeConnection.searchOrCreateCustomer(c, filter, tokenDetails)
+	customerID, err := paymentHandler.searchOrCreateCustomer(c, filter, tokenDetails)
 	if err != nil {
 		return CheckoutModelPortalReply{}, err
 	}
 	if customerID == "" {
 		return CheckoutModelPortalReply{}, errors.New("Customer ID is empty")
 	}
-	stripe.Key = stripeConnection.Key
+	stripe.Key = paymentHandler.StripeConnection.Key
 
-	price, err := stripeConnection.GetPrice(c, checkoutModelPortalRequest.ProductID)
+	price, err := paymentHandler.StripeConnection.GetPrice(c, checkoutModelPortalRequest.ProductID)
 	if err != nil {
 		return CheckoutModelPortalReply{}, err
 	}
@@ -39,7 +39,7 @@ func (stripeConnection *StripeConnection) CreateCheckoutSession(c context.Contex
 	}
 	iTrialPeriodDays, err := strconv.ParseInt(trialPeriodDays, 10, 64)
 	if err != nil {
-		stripeConnection.Log.Warn("Error converting trialPeriodDays to int", zap.Error(err))
+		paymentHandler.Log.Warn("Error converting trialPeriodDays to int", zap.Error(err))
 		return CheckoutModelPortalReply{}, errors.New("Error converting trialPeriodDays")
 	}
 

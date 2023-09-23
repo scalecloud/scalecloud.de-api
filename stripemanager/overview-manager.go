@@ -11,21 +11,21 @@ import (
 	"go.uber.org/zap"
 )
 
-func (stripeConnection *StripeConnection) GetSubscriptionsOverview(c context.Context, tokenDetails firebasemanager.TokenDetails) (subscriptionOverview []SubscriptionOverview, err error) {
-	customerID, err := GetCustomerIDByUID(c, tokenDetails.UID)
+func (paymentHandler *PaymentHandler) GetSubscriptionsOverview(c context.Context, tokenDetails firebasemanager.TokenDetails) (subscriptionOverview []SubscriptionOverview, err error) {
+	customerID, err := paymentHandler.GetCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
 		return []SubscriptionOverview{}, err
 	}
 	subscriptions := []SubscriptionOverview{}
-	stripe.Key = stripeConnection.Key
+	stripe.Key = paymentHandler.StripeConnection.Key
 	params := &stripe.SubscriptionListParams{
 		Customer: stripe.String(customerID),
 	}
 	iter := subscription.List(params)
 	for iter.Next() {
 		subscription := iter.Subscription()
-		stripeConnection.Log.Debug("Subscription", zap.Any("subscription", subscription.Customer.ID))
-		subscriptionOverview, err := stripeConnection.mapSubscriptionToSubscriptionOverview(c, subscription)
+		paymentHandler.Log.Debug("Subscription", zap.Any("subscription", subscription.Customer.ID))
+		subscriptionOverview, err := paymentHandler.StripeConnection.mapSubscriptionToSubscriptionOverview(c, subscription)
 		if err != nil {
 			return []SubscriptionOverview{}, errors.New("Subscription not found")
 		}

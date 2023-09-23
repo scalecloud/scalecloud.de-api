@@ -9,16 +9,16 @@ import (
 	"github.com/stripe/stripe-go/v75/paymentmethod"
 )
 
-func (stripeConnection *StripeConnection) GetSubscriptionPaymentMethod(c context.Context, tokenDetails firebasemanager.TokenDetails, request SubscriptionPaymentMethodRequest) (SubscriptionPaymentMethodReply, error) {
+func (paymentHandler *PaymentHandler) GetSubscriptionPaymentMethod(c context.Context, tokenDetails firebasemanager.TokenDetails, request SubscriptionPaymentMethodRequest) (SubscriptionPaymentMethodReply, error) {
 	if request.ID == "" {
 		return SubscriptionPaymentMethodReply{}, errors.New("Subscription ID is empty")
 	}
-	customerID, err := GetCustomerIDByUID(c, tokenDetails.UID)
+	customerID, err := paymentHandler.GetCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
 		return SubscriptionPaymentMethodReply{}, err
 	}
-	stripe.Key = stripeConnection.Key
-	sub, error := stripeConnection.GetSubscriptionByID(c, request.ID)
+	stripe.Key = paymentHandler.StripeConnection.Key
+	sub, error := paymentHandler.StripeConnection.GetSubscriptionByID(c, request.ID)
 	if error != nil {
 		return SubscriptionPaymentMethodReply{}, errors.New("Subscription not found")
 	}
