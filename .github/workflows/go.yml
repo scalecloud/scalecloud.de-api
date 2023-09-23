@@ -20,6 +20,7 @@ jobs:
 
     - name: Build
       working-directory: ./cmd/scalecloud.de-api
+      run: go mod tidy
       run: go build -v ./...
 
     - name: Test

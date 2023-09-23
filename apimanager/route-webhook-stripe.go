@@ -42,13 +42,11 @@ func getStripeToken(c *gin.Context) (string, bool) {
 }
 
 func (webhookHandler *WebhookHandler) handleStripeWebhook(c *gin.Context) {
-
 	var endpointSecret = webhookHandler.StripeConnection.EndpointSecret
 	if endpointSecret == "" {
 		webhookHandler.Log.Error("Missing endpoint secret")
 		c.SecureJSON(http.StatusServiceUnavailable, gin.H{"message": "Service unavailable"})
 	}
-
 	payload, err := c.GetRawData()
 	if err != nil {
 		webhookHandler.Log.Error("Error getting raw data", zap.Error(err))
@@ -59,7 +57,6 @@ func (webhookHandler *WebhookHandler) handleStripeWebhook(c *gin.Context) {
 		webhookHandler.Log.Error("Signature verification failed", zap.Error(err))
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Signature verification failed"})
 	}
-
 	switch event.Type {
 	case "payment_method.attached":
 		err := handlePaymentMethodAttached(event, webhookHandler.Log)
