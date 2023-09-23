@@ -9,7 +9,7 @@ import (
 )
 
 func (api *Api) createCheckoutSubscription(c *gin.Context) {
-	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c, getBearerToken(c))
+	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c)
 	if err != nil {
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Error getting token details"})
 		return
@@ -41,7 +41,7 @@ func (api *Api) createCheckoutSubscription(c *gin.Context) {
 }
 
 func (api *Api) updateCheckoutSubscription(c *gin.Context) {
-	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c, getBearerToken(c))
+	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c)
 	if err != nil {
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Error getting token details"})
 		return
@@ -74,7 +74,7 @@ func (api *Api) updateCheckoutSubscription(c *gin.Context) {
 
 func (api *Api) getCheckoutProduct(c *gin.Context) {
 	api.log.Info("getCheckoutProduct")
-	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c, getBearerToken(c))
+	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c)
 	if err != nil {
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Error getting token details"})
 		return

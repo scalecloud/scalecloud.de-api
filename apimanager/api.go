@@ -152,24 +152,18 @@ func (api *Api) initTrustedPlatform() {
 	/* router.TrustedPlatform = gin.PlatformGoogleAppEngine */
 }
 
-// Authentication
 func (api *Api) authRequired(c *gin.Context) {
-	token := getBearerToken(c)
-
-	if token != "" && api.paymentHandler.FirebaseConnection.VerifyIDToken(c, token) {
-		api.log.Debug("Authenticated", zap.String("token:", token))
-		c.Next()
-	} else {
+	token, err := firebasemanager.GetBearerToken(c)
+	if err != nil {
+		api.log.Warn("Unauthorized", zap.Error(err))
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	err = api.paymentHandler.FirebaseConnection.VerifyIDToken(c, token)
+	if err != nil {
 		api.log.Warn("Unauthorized", zap.String("token:", token))
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 	}
-}
-
-func getBearerToken(c *gin.Context) (token string) {
-	jwtToken := c.Request.Header.Get("Authorization")
-	if jwtToken == "" {
-		return ""
-	} else {
-		return jwtToken
-	}
+	api.log.Debug("Authenticated", zap.String("token:", token))
+	c.Next()
 }

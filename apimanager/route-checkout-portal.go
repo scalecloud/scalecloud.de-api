@@ -9,13 +9,12 @@ import (
 )
 
 func (api *Api) createCheckoutSession(c *gin.Context) {
-	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c, getBearerToken(c))
+	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c)
 	if err != nil {
 		api.log.Error("Error getting token details", zap.Error(err))
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Error getting token details"})
 		return
 	}
-
 	var checkoutModelPortalRequest stripemanager.CheckoutModelPortalRequest
 	if err := c.BindJSON(&checkoutModelPortalRequest); err != nil {
 		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})

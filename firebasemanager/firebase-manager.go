@@ -3,8 +3,10 @@ package firebasemanager
 import (
 	"context"
 	"errors"
+	"net/http"
 	"os"
 
+	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
 	firebase "firebase.google.com/go/v4"
@@ -53,40 +55,34 @@ func initFirebaseApp(ctx context.Context, log *zap.Logger) (*firebase.App, error
 	return app, nil
 }
 
-func (firebaseConnection *FirebaseConnection) VerifyIDToken(ctx context.Context, jwtToken string) bool {
-	ret := false
-	if jwtToken == "" {
-		firebaseConnection.log.Error("ID token is empty")
-	} else {
-		client, err := firebaseConnection.firebaseApp.Auth(ctx)
-		if err != nil {
-			firebaseConnection.log.Error("Error initializing app", zap.Error(err))
-		} else {
-			token, err := client.VerifyIDTokenAndCheckRevoked(ctx, jwtToken)
-			if err != nil {
-				firebaseConnection.log.Error("Error verifying ID token", zap.Error(err))
-			} else {
-				firebaseConnection.log.Debug("Token is valid.", zap.Any("UID:", token.UID))
-				ret = true
-			}
-		}
+func (firebaseConnection *FirebaseConnection) VerifyIDToken(ctx context.Context, jwtToken string) error {
+	client, err := firebaseConnection.firebaseApp.Auth(ctx)
+	if err != nil {
+		return err
 	}
-	return ret
+	token, err := client.VerifyIDTokenAndCheckRevoked(ctx, jwtToken)
+	if err != nil {
+		return err
+	}
+	firebaseConnection.log.Debug("Token is valid.", zap.Any("UID:", token.UID))
+	return nil
 }
 
-func (firebaseConnection *FirebaseConnection) GetTokenDetails(ctx context.Context, jwtToken string) (tokenDetails TokenDetails, err error) {
-	if jwtToken == "" {
-		return TokenDetails{}, errors.New("Token is empty")
+func (firebaseConnection *FirebaseConnection) GetTokenDetails(c *gin.Context) (tokenDetails TokenDetails, err error) {
+	jwtToken, err := GetBearerToken(c)
+	if err != nil {
+		firebaseConnection.log.Error("Error getting bearer token", zap.Error(err))
+		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Error getting bearer token"})
+		return
 	}
-	client, err := firebaseConnection.firebaseApp.Auth(ctx)
+	client, err := firebaseConnection.firebaseApp.Auth(c)
 	if err != nil {
 		firebaseConnection.log.Error("Error initializing app", zap.Error(err))
 		return TokenDetails{}, errors.New("Error initializing app")
 	}
-	idToken, err := client.VerifyIDTokenAndCheckRevoked(ctx, jwtToken)
+	idToken, err := client.VerifyIDToken(c, jwtToken)
 	if err != nil {
-		firebaseConnection.log.Error("Error verifying ID token", zap.Error(err))
-		return TokenDetails{}, errors.New("Error verifying ID token")
+		return TokenDetails{}, err
 	}
 	uid := idToken.UID
 	if uid == "" {
@@ -95,7 +91,7 @@ func (firebaseConnection *FirebaseConnection) GetTokenDetails(ctx context.Contex
 
 	email, err := firebaseConnection.getEMailFromToken(idToken)
 	if err != nil {
-		return TokenDetails{}, errors.New("Error getting email from token")
+		return TokenDetails{}, err
 	}
 	token := TokenDetails{
 		UID:   uid,
@@ -104,13 +100,22 @@ func (firebaseConnection *FirebaseConnection) GetTokenDetails(ctx context.Contex
 	return token, nil
 }
 
+func GetBearerToken(c *gin.Context) (string, error) {
+	token := c.Request.Header.Get("Authorization")
+	if token == "" {
+		return "", errors.New("Authorization header is missing")
+	}
+	return token, nil
+
+}
+
 func (m *FirebaseConnection) getEMailFromToken(idToken *auth.Token) (string, error) {
 	if idToken.Claims == nil {
 		return "", errors.New("claims is nil")
 	}
 	email := idToken.Claims["email"].(string)
 	if email == "" {
-		return "", errors.New("email is empty")
+		return "", errors.New("E-Mail is empty")
 	}
 	return email, nil
 }

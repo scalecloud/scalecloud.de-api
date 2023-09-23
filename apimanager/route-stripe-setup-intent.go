@@ -9,7 +9,7 @@ import (
 )
 
 func (api *Api) createCheckoutSetupIntent(c *gin.Context) {
-	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c, getBearerToken(c))
+	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c)
 	if err != nil {
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Error getting token details"})
 		return

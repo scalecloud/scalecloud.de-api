@@ -9,7 +9,7 @@ import (
 )
 
 func (api *Api) getSubscriptionsOverview(c *gin.Context) {
-	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c, getBearerToken(c))
+	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c)
 	if err != nil {
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Error getting token details"})
 		return
@@ -28,7 +28,7 @@ func (api *Api) getSubscriptionsOverview(c *gin.Context) {
 }
 
 func (api *Api) getSubscriptionByID(c *gin.Context) {
-	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c, getBearerToken(c))
+	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c)
 	if err != nil {
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Error getting token details"})
 		return
@@ -49,7 +49,7 @@ func (api *Api) getSubscriptionByID(c *gin.Context) {
 }
 
 func (api *Api) handleBillingPortal(c *gin.Context) {
-	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c, getBearerToken(c))
+	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c)
 	if err != nil {
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Error getting token details"})
 		return
@@ -64,18 +64,16 @@ func (api *Api) handleBillingPortal(c *gin.Context) {
 }
 
 func (api *Api) resumeSubscription(c *gin.Context) {
-	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c, getBearerToken(c))
+	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c)
 	if err != nil {
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Error getting token details"})
 		return
 	}
-
 	var subscriptionResumeRequest stripemanager.SubscriptionResumeRequest
 	if err := c.BindJSON(&subscriptionResumeRequest); err != nil {
 		c.SecureJSON(http.StatusUnsupportedMediaType, gin.H{"message": "Invalid JSON"})
 		return
 	}
-
 	if subscriptionResumeRequest.ID == "" {
 		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "ID not found"})
 		return
@@ -90,7 +88,7 @@ func (api *Api) resumeSubscription(c *gin.Context) {
 }
 
 func (api *Api) cancelSubscription(c *gin.Context) {
-	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c, getBearerToken(c))
+	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c)
 	if err != nil {
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Error getting token details"})
 		return
@@ -116,7 +114,7 @@ func (api *Api) cancelSubscription(c *gin.Context) {
 }
 
 func (api *Api) getSubscriptionPaymentMethod(c *gin.Context) {
-	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c, getBearerToken(c))
+	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c)
 	if err != nil {
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Error getting token details"})
 		return
@@ -142,7 +140,7 @@ func (api *Api) getSubscriptionPaymentMethod(c *gin.Context) {
 }
 
 func (api *Api) getChangePaymentSetupIntent(c *gin.Context) {
-	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c, getBearerToken(c))
+	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c)
 	if err != nil {
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Error getting token details"})
 		return
