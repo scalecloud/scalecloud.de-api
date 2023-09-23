@@ -185,6 +185,9 @@ func (api *Api) authRequired(c *gin.Context) {
 }
 
 func validateStruct(s interface{}) (err error) {
+	if s == nil {
+		return errors.New("Input param should be a struct")
+	}
 	// first make sure that the input is a struct
 	// having any other type, especially a pointer to a struct,
 	// might result in panic

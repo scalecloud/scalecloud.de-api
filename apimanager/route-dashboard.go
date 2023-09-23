@@ -78,7 +78,9 @@ func (api *Api) getSubscriptionPaymentMethod(c *gin.Context) {
 func (api *Api) getChangePaymentSetupIntent(c *gin.Context) {
 	var request stripemanager.ChangePaymentRequest
 	tokenDetails, err := api.handleTokenDetails(c)
-	if err != nil {
+	if err != nil &&
+		api.hasNoError(c, c.BindJSON(&request)) &&
+		api.hasNoError(c, validateStruct(request)) {
 		reply, err := api.paymentHandler.GetChangePaymentSetupIntent(c, tokenDetails, request)
 		if api.hasNoError(c, validateStruct(reply)) {
 			api.writeReply(c, err, reply)
