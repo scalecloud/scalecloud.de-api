@@ -41,5 +41,5 @@ func (api *Api) createCheckoutSession(c *gin.Context) {
 		return
 	}
 	api.log.Info("CreateCheckoutSession", zap.Any("checkout", reply))
-	c.IndentedJSON(http.StatusOK, "checkout")
+	c.IndentedJSON(http.StatusOK, reply)
 }
