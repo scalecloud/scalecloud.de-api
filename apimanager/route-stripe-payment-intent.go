@@ -8,7 +8,7 @@ import (
 func (api *Api) createCheckoutSubscription(c *gin.Context) {
 	var request stripemanager.CheckoutPaymentIntentRequest
 	tokenDetails, err := api.handleTokenDetails(c)
-	if err != nil &&
+	if err == nil &&
 		api.handleBind(c, &request) {
 		reply, err := api.paymentHandler.CreateCheckoutSubscription(c, tokenDetails, request)
 		api.writeReply(c, err, reply)
@@ -18,7 +18,7 @@ func (api *Api) createCheckoutSubscription(c *gin.Context) {
 func (api *Api) updateCheckoutSubscription(c *gin.Context) {
 	var request stripemanager.CheckoutPaymentIntentUpdateRequest
 	tokenDetails, err := api.handleTokenDetails(c)
-	if err != nil &&
+	if err == nil &&
 		api.handleBind(c, &request) {
 		reply, err := api.paymentHandler.UpdateCheckoutSubscription(c, tokenDetails, request)
 		api.writeReply(c, err, reply)
@@ -28,7 +28,7 @@ func (api *Api) updateCheckoutSubscription(c *gin.Context) {
 func (api *Api) getCheckoutProduct(c *gin.Context) {
 	var request stripemanager.CheckoutProductRequest
 	tokenDetails, err := api.handleTokenDetails(c)
-	if err != nil &&
+	if err == nil &&
 		api.handleBind(c, &request) {
 		reply, err := api.paymentHandler.GetCheckoutProduct(c, tokenDetails, request)
 		api.writeReply(c, err, reply)

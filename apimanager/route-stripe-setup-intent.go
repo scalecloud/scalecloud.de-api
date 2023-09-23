@@ -8,7 +8,7 @@ import (
 func (api *Api) createCheckoutSetupIntent(c *gin.Context) {
 	var request stripemanager.CheckoutSetupIntentRequest
 	tokenDetails, err := api.handleTokenDetails(c)
-	if err != nil &&
+	if err == nil &&
 		api.handleBind(c, &request) {
 		reply, err := api.paymentHandler.CreateCheckoutSetupIntent(c, tokenDetails, request)
 		api.writeReply(c, err, reply)

@@ -216,14 +216,14 @@ func (api *Api) handleStructFull(c *gin.Context, s interface{}) bool {
 
 func isStructFull(s interface{}) (err error) {
 	if s == nil {
-		return errors.New("Input param should be a struct")
+		return errors.New("Input param is nil")
 	}
 	// first make sure that the input is a struct
 	// having any other type, especially a pointer to a struct,
 	// might result in panic
 	structType := reflect.TypeOf(s)
 	if structType.Kind() != reflect.Struct {
-		return errors.New("input param should be a struct")
+		return errors.New("Input param should be a struct")
 	}
 
 	// now go one by one through the fields and validate their value
