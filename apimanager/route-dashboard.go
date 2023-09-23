@@ -21,13 +21,8 @@ func (api *Api) getSubscriptionsOverview(c *gin.Context) {
 		c.IndentedJSON(http.StatusNoContent, gin.H{"error": err.Error()})
 		return
 	}
-	if subscriptionsOverview != nil {
-		api.log.Info("getSubscriptionsOverview", zap.Any("subscriptionsOverview", subscriptionsOverview))
-		c.IndentedJSON(http.StatusOK, subscriptionsOverview)
-	} else {
-		api.log.Error("subscriptionsOverview not found")
-		c.SecureJSON(http.StatusNotFound, gin.H{"message": "subscriptionsOverview not found"})
-	}
+	api.log.Info("getSubscriptionsOverview", zap.Any("subscriptionsOverview", subscriptionsOverview))
+	c.IndentedJSON(http.StatusOK, subscriptionsOverview)
 }
 
 func (api *Api) getSubscriptionByID(c *gin.Context) {
@@ -45,13 +40,8 @@ func (api *Api) getSubscriptionByID(c *gin.Context) {
 		c.IndentedJSON(http.StatusNoContent, gin.H{"error": err.Error()})
 		return
 	}
-	if subscriptionDetail != (stripemanager.SubscriptionDetail{}) {
-		api.log.Info("getSubscriptionByID", zap.Any("subscriptionDetail", subscriptionDetail))
-		c.IndentedJSON(http.StatusOK, subscriptionDetail)
-	} else {
-		api.log.Error("subscriptionDetail not found")
-		c.SecureJSON(http.StatusNotFound, gin.H{"message": "subscriptionDetail not found"})
-	}
+	api.log.Info("getSubscriptionByID", zap.Any("subscriptionDetail", subscriptionDetail))
+	c.IndentedJSON(http.StatusOK, subscriptionDetail)
 }
 
 func (api *Api) handleBillingPortal(c *gin.Context) {
