@@ -3,7 +3,6 @@ package firebasemanager
 import (
 	"context"
 	"errors"
-	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -71,14 +70,11 @@ func (firebaseConnection *FirebaseConnection) VerifyIDToken(ctx context.Context,
 func (firebaseConnection *FirebaseConnection) GetTokenDetails(c *gin.Context) (tokenDetails TokenDetails, err error) {
 	jwtToken, err := GetBearerToken(c)
 	if err != nil {
-		firebaseConnection.log.Error("Error getting bearer token", zap.Error(err))
-		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Error getting bearer token"})
-		return
+		return TokenDetails{}, err
 	}
 	client, err := firebaseConnection.firebaseApp.Auth(c)
 	if err != nil {
-		firebaseConnection.log.Error("Error initializing app", zap.Error(err))
-		return TokenDetails{}, errors.New("Error initializing app")
+		return TokenDetails{}, err
 	}
 	idToken, err := client.VerifyIDToken(c, jwtToken)
 	if err != nil {

@@ -61,16 +61,19 @@ func (webhookHandler *WebhookHandler) handleStripeWebhook(c *gin.Context) {
 	case "payment_method.attached":
 		err := handlePaymentMethodAttached(event, webhookHandler.Log)
 		if err != nil {
+			webhookHandler.Log.Error("Error handling payment_method.attached", zap.Error(err))
 			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
 		}
 	case "setup_intent.created":
 		err := handleSetupIntentCreated(event, webhookHandler.Log)
 		if err != nil {
+			webhookHandler.Log.Error("Error handling setup_intent.created", zap.Error(err))
 			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
 		}
 	case "setup_intent.succeeded":
 		err := handleSetupIntentSucceeded(event, webhookHandler.Log)
 		if err != nil {
+			webhookHandler.Log.Error("Error handling setup_intent.succeeded", zap.Error(err))
 			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
 		}
 	default:
@@ -78,7 +81,6 @@ func (webhookHandler *WebhookHandler) handleStripeWebhook(c *gin.Context) {
 		c.SecureJSON(http.StatusNotImplemented, gin.H{"message": "Unhandled event type"})
 	}
 	webhookHandler.Log.Info("Handled webhook", zap.Any("Handled webhook", event.Type))
-	c.Status(http.StatusOK)
 }
 
 func handlePaymentMethodAttached(event stripe.Event, log *zap.Logger) error {
@@ -106,7 +108,6 @@ func handleSetupIntentCreated(event stripe.Event, log *zap.Logger) error {
 	}
 
 	if setupIntent.ID == "" {
-		log.Error("ID not set")
 		return errors.New("ID not set")
 	}
 	log.Debug("SetupIntentCreated", zap.Any("setupIntentID", setupIntent.ID))
@@ -122,29 +123,24 @@ func handleSetupIntentSucceeded(event stripe.Event, log *zap.Logger) error {
 	}
 
 	if setupIntent.ID == "" {
-		log.Error("ID not set")
 		return errors.New("ID not set")
 	}
 	log.Debug("setupIntentID succeeded", zap.Any("setupIntentID", setupIntent.ID))
 	cus := setupIntent.Customer
 	if cus == nil {
-		log.Error("Customer not set")
 		return errors.New("Customer not set")
 	}
 	if cus.ID == "" {
-		log.Error("Customer ID not set")
 		return errors.New("Customer ID not set")
 	}
 	log.Debug("Customer", zap.Any("Customer", cus.ID))
 
 	meta := setupIntent.Metadata
 	if meta == nil {
-		log.Error("Metadata not set")
 		return errors.New("Metadata not set")
 	}
 	metaType := meta["metaType"]
 	if metaType == "" {
-		log.Error("Metadata type not set")
 		return errors.New("Metadata type not set")
 	}
 	if metaType == string(stripemanager.CreateSubscription) {
@@ -152,7 +148,6 @@ func handleSetupIntentSucceeded(event stripe.Event, log *zap.Logger) error {
 	} else if metaType == string(stripemanager.ChangePayment) {
 		log.Info("ChangePayment")
 	} else {
-		log.Error("Unknown metadata type")
 		return errors.New("Unknown metadata type")
 	}
 	return nil

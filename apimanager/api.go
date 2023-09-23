@@ -175,6 +175,7 @@ func (api *Api) authRequired(c *gin.Context) {
 	if err != nil {
 		api.log.Warn("Unauthorized", zap.String("token:", token))
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
 	}
 	api.log.Debug("Authenticated", zap.String("token:", token))
 	c.Next()
