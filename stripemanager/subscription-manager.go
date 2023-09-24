@@ -43,7 +43,7 @@ func (paymentHandler *PaymentHandler) ResumeSubscription(c context.Context, toke
 
 		reply := SubscriptionResumeReply{
 			ID:                result.ID,
-			CancelAtPeriodEnd: result.CancelAtPeriodEnd,
+			CancelAtPeriodEnd: &result.CancelAtPeriodEnd,
 		}
 		return reply, nil
 	}
@@ -78,7 +78,7 @@ func (paymentHandler *PaymentHandler) CancelSubscription(c context.Context, toke
 
 		reply := SubscriptionCancelReply{
 			ID:                result.ID,
-			CancelAtPeriodEnd: result.CancelAtPeriodEnd,
+			CancelAtPeriodEnd: &result.CancelAtPeriodEnd,
 			CancelAt:          result.CancelAt,
 		}
 		return reply, nil

@@ -196,17 +196,14 @@ func (api *Api) handleTokenDetails(c *gin.Context) (firebasemanager.TokenDetails
 }
 
 func (api *Api) handleBind(c *gin.Context, s interface{}) bool {
-	err := c.ShouldBindJSON(s)
+	err := c.BindJSON(s)
 	if err != nil {
 		api.log.Warn("Error binding json", zap.Error(err))
 		c.SecureJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return false
 	}
-	validated := api.validateStruct(c, s)
-	if validated {
-		api.log.Info("Request", zap.Any("request", s))
-	}
-	return validated
+	api.log.Info("Request", zap.Any("request", s))
+	return true
 }
 
 func (api *Api) validateReply(c *gin.Context, err error, reply interface{}) bool {

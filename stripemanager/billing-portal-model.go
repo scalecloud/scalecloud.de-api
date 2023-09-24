@@ -1,5 +1,5 @@
 package stripemanager
 
-type BillingPortalModel struct {
-	URL string `json:"url"`
+type BillingPortalReply struct {
+	URL string `json:"url" validate:"required"`
 }

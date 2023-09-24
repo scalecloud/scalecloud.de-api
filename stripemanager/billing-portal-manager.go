@@ -9,13 +9,13 @@ import (
 	"github.com/stripe/stripe-go/v75/billingportal/session"
 )
 
-func (paymentHandler *PaymentHandler) GetBillingPortal(c context.Context, tokenDetails firebasemanager.TokenDetails) (billingPortalModel BillingPortalModel, err error) {
+func (paymentHandler *PaymentHandler) GetBillingPortal(c context.Context, tokenDetails firebasemanager.TokenDetails) (billingPortalModel BillingPortalReply, err error) {
 	customerID, err := paymentHandler.GetCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
-		return BillingPortalModel{}, err
+		return BillingPortalReply{}, err
 	}
 	if customerID == "" {
-		return BillingPortalModel{}, errors.New("Customer ID is empty")
+		return BillingPortalReply{}, errors.New("Customer ID is empty")
 	}
 	params := &stripe.BillingPortalSessionParams{
 		Customer:  stripe.String(customerID),
@@ -23,13 +23,13 @@ func (paymentHandler *PaymentHandler) GetBillingPortal(c context.Context, tokenD
 	}
 	session, err := session.New(params)
 	if err != nil {
-		return BillingPortalModel{}, err
+		return BillingPortalReply{}, err
 	}
 	if session.Customer != customerID {
-		return BillingPortalModel{}, errors.New("Customer ID does not match")
+		return BillingPortalReply{}, errors.New("Customer ID does not match")
 	}
 	if session.URL == "" {
-		return BillingPortalModel{}, errors.New("URL is empty")
+		return BillingPortalReply{}, errors.New("URL is empty")
 	}
 	billingPortalModel.URL = session.URL
 	return billingPortalModel, nil

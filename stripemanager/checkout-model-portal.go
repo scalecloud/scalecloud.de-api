@@ -1,10 +1,10 @@
 package stripemanager
 
 type CheckoutModelPortalRequest struct {
-	ProductID string `validate:"required"`
-	Quantity  int64  `validate:"required"`
+	ProductID string `json:"productID" binding:"required"`
+	Quantity  int64  `json:"quantity" binding:"required"`
 }
 
 type CheckoutModelPortalReply struct {
-	URL string `json:"url"`
+	URL string `json:"url" validate:"required"`
 }

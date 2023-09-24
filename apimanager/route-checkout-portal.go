@@ -13,5 +13,4 @@ func (api *Api) createCheckoutSession(c *gin.Context) {
 		reply, err := api.paymentHandler.CreateCheckoutSession(c, tokenDetails, request)
 		api.validateAndWriteReply(c, err, reply)
 	}
-
 }

@@ -1,10 +1,10 @@
 package stripemanager
 
-type SubscriptionOverview struct {
-	ID            string `json:"id"`
-	Acive         bool   `json:"active"`
-	ProductName   string `json:"productName"`
-	ProductType   string `json:"productType"`
-	StorageAmount int    `json:"storageAmount"`
-	UserCount     int64  `json:"userCount"`
+type SubscriptionOverviewReply struct {
+	ID            string `json:"id" validate:"required"`
+	Acive         *bool  `json:"active" validate:"required"`
+	ProductName   string `json:"productName" validate:"required"`
+	ProductType   string `json:"productType" validate:"required"`
+	StorageAmount int    `json:"storageAmount" validate:"required"`
+	UserCount     int64  `json:"userCount" validate:"required"`
 }

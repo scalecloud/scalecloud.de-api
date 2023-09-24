@@ -11,12 +11,12 @@ import (
 	"go.uber.org/zap"
 )
 
-func (paymentHandler *PaymentHandler) GetSubscriptionsOverview(c context.Context, tokenDetails firebasemanager.TokenDetails) (subscriptionOverview []SubscriptionOverview, err error) {
+func (paymentHandler *PaymentHandler) GetSubscriptionsOverview(c context.Context, tokenDetails firebasemanager.TokenDetails) (subscriptionOverview []SubscriptionOverviewReply, err error) {
 	customerID, err := paymentHandler.GetCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
-		return []SubscriptionOverview{}, err
+		return []SubscriptionOverviewReply{}, err
 	}
-	subscriptions := []SubscriptionOverview{}
+	subscriptions := []SubscriptionOverviewReply{}
 	stripe.Key = paymentHandler.StripeConnection.Key
 	params := &stripe.SubscriptionListParams{
 		Customer: stripe.String(customerID),
@@ -27,49 +27,49 @@ func (paymentHandler *PaymentHandler) GetSubscriptionsOverview(c context.Context
 		paymentHandler.Log.Debug("Subscription", zap.Any("subscription", subscription.Customer.ID))
 		subscriptionOverview, err := paymentHandler.StripeConnection.mapSubscriptionToSubscriptionOverview(c, subscription)
 		if err != nil {
-			return []SubscriptionOverview{}, errors.New("Subscription not found")
+			return []SubscriptionOverviewReply{}, errors.New("Subscription not found")
 		}
 		subscriptions = append(subscriptions, subscriptionOverview)
 	}
 	if len(subscriptions) == 0 {
-		return []SubscriptionOverview{}, errors.New("No subscriptions found")
+		return []SubscriptionOverviewReply{}, errors.New("No subscriptions found")
 	}
 	return subscriptions, nil
 }
 
-func (stripeConnection *StripeConnection) mapSubscriptionToSubscriptionOverview(c context.Context, subscription *stripe.Subscription) (subscriptionOverview SubscriptionOverview, err error) {
-	subscriptionOverview.ID = subscription.ID
+func (stripeConnection *StripeConnection) mapSubscriptionToSubscriptionOverview(c context.Context, subscription *stripe.Subscription) (reply SubscriptionOverviewReply, err error) {
+	reply.ID = subscription.ID
 	productID := subscription.Items.Data[0].Price.Product.ID
 	stripeConnection.Log.Debug("Product ID", zap.String("productID", productID))
 
 	product, err := stripeConnection.GetProduct(c, productID)
 	if err != nil {
-		return SubscriptionOverview{}, errors.New("Product not found")
+		return SubscriptionOverviewReply{}, errors.New("Product not found")
 	}
-	subscriptionOverview.ProductName = product.Name
+	reply.ProductName = product.Name
 
-	subscriptionOverview.Acive = product.Active
+	reply.Acive = &product.Active
 
 	metaData := product.Metadata
 	if err != nil {
-		return SubscriptionOverview{}, errors.New("Product metadata not found")
+		return SubscriptionOverviewReply{}, errors.New("Product metadata not found")
 	}
 	storageAmount, ok := metaData["storageAmount"]
 	if !ok {
-		return SubscriptionOverview{}, errors.New("Storage amount not found")
+		return SubscriptionOverviewReply{}, errors.New("Storage amount not found")
 	}
 	iStorageAmount, err := strconv.Atoi(storageAmount)
 	if err != nil {
 		stripeConnection.Log.Warn("Error converting storage amount to int", zap.Error(err))
-		return SubscriptionOverview{}, errors.New("Error converting storage amount")
+		return SubscriptionOverviewReply{}, errors.New("Error converting storage amount")
 	}
-	subscriptionOverview.StorageAmount = iStorageAmount
+	reply.StorageAmount = iStorageAmount
 	productType, ok := metaData["productType"]
 	if !ok {
-		return SubscriptionOverview{}, errors.New("ProductType not found")
+		return SubscriptionOverviewReply{}, errors.New("ProductType not found")
 	}
-	subscriptionOverview.ProductType = productType
+	reply.ProductType = productType
 
-	subscriptionOverview.UserCount = subscription.Items.Data[0].Quantity
-	return subscriptionOverview, nil
+	reply.UserCount = subscription.Items.Data[0].Quantity
+	return reply, nil
 }
