@@ -94,6 +94,7 @@ func (api *Api) RunAPI() {
 	api.initRoutes()
 	api.initCertificate()
 	api.initTrustedPlatform()
+	api.initTrustedProxies()
 	api.startListening()
 }
 
@@ -106,14 +107,6 @@ func (api *Api) initHeaders() {
 	config.ExposeHeaders = []string{"Content-Length"}
 	config.MaxAge = 12 * time.Hour
 	api.router.Use(cors.New(config))
-}
-
-func (api *Api) startListening() {
-	api.log.Info("Starting listening for requests")
-	err := api.router.Run(":15000")
-	if err != nil {
-		api.log.Error("Could not start listening for requests", zap.Error(err))
-	}
 }
 
 func (api *Api) initRoutes() {
@@ -166,6 +159,18 @@ func (api *Api) initCertificate() {
 func (api *Api) initTrustedPlatform() {
 	api.log.Info("init trusted platform not implemented yet.")
 	/* router.TrustedPlatform = gin.PlatformGoogleAppEngine */
+}
+
+func (api *Api) initTrustedProxies() {
+	api.router.SetTrustedProxies([]string{"localhost"})
+}
+
+func (api *Api) startListening() {
+	api.log.Info("Starting listening for requests")
+	err := api.router.Run(":15000")
+	if err != nil {
+		api.log.Error("Could not start listening for requests", zap.Error(err))
+	}
 }
 
 func (api *Api) authRequired(c *gin.Context) {
