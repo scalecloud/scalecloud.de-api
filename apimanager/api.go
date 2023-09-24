@@ -169,12 +169,20 @@ func (api *Api) initTrustedProxies() {
 		if api.proxyIP == "" {
 			api.log.Fatal("Proxy IP is empty")
 		} else {
-			api.router.SetTrustedProxies([]string{api.proxyIP})
-			api.log.Info("Trusted proxy set", zap.String("proxyIP", api.proxyIP))
+			err := api.router.SetTrustedProxies([]string{api.proxyIP})
+			if err != nil {
+				api.log.Fatal("Could not set trusted proxy", zap.Error(err))
+			} else {
+				api.log.Info("Trusted proxy set", zap.String("proxyIP", api.proxyIP))
+			}
 		}
 	} else {
-		api.router.SetTrustedProxies([]string{"127.0.0.1"})
-		api.log.Info("Trusted proxy set", zap.String("proxyIP", "127.0.0.1"))
+		err := api.router.SetTrustedProxies([]string{"127.0.0.1"})
+		if err != nil {
+			api.log.Fatal("Could not set trusted proxy", zap.Error(err))
+		} else {
+			api.log.Info("Trusted proxy set", zap.String("proxyIP", "127.0.0.1"))
+		}
 	}
 }
 
