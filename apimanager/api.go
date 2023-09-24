@@ -2,14 +2,12 @@ package apimanager
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"net/http"
-	"reflect"
 	"time"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 	"github.com/scalecloud/scalecloud.de-api/stripemanager"
@@ -21,6 +19,7 @@ type Api struct {
 	router         *gin.Engine
 	paymentHandler *stripemanager.PaymentHandler
 	webhookHandler *WebhookHandler
+	validate       *validator.Validate
 	log            *zap.Logger
 }
 
@@ -63,6 +62,8 @@ func InitAPI(log *zap.Logger) (*Api, error) {
 		return &Api{}, err
 	}
 
+	validate := validator.New(validator.WithRequiredStructEnabled())
+
 	api := &Api{
 		router: router,
 		paymentHandler: &stripemanager.PaymentHandler{
@@ -75,7 +76,8 @@ func InitAPI(log *zap.Logger) (*Api, error) {
 			StripeConnection: stripeConnection,
 			Log:              log.Named("webhookhandler"),
 		},
-		log: log.Named("apimanager"),
+		validate: validate,
+		log:      log.Named("apimanager"),
 	}
 	return api, nil
 }
@@ -120,7 +122,7 @@ func (api *Api) initRoutes() {
 	webhook := api.router.Group("/webhook/")
 	webhook.Use(api.StripeRequired)
 	{
-		webhook.POST("/stripe", api.webhookHandler.handleStripeWebhook)
+		webhook.POST("/stripe", api.handleStripeWebhook)
 	}
 
 	dashboard := api.router.Group("/dashboard")
@@ -135,11 +137,10 @@ func (api *Api) initRoutes() {
 		dashboard.GET("/billing-portal", api.handleBillingPortal)
 	}
 	checkoutPortal := api.router.Group("/checkout-portal")
-	//checkoutPortal.Use(api.authRequired)
-	//{
-	checkoutPortal.POST("/create-checkout-session", api.createCheckoutSession)
-
-	//}
+	checkoutPortal.Use(api.authRequired)
+	{
+		checkoutPortal.POST("/create-checkout-session", api.createCheckoutSession)
+	}
 	checkoutIntegration := api.router.Group("/checkout-integration")
 	checkoutIntegration.Use(api.authRequired)
 	{
@@ -195,18 +196,40 @@ func (api *Api) handleTokenDetails(c *gin.Context) (firebasemanager.TokenDetails
 }
 
 func (api *Api) handleBind(c *gin.Context, s interface{}) bool {
-	err := c.BindJSON(s)
+	err := c.ShouldBindJSON(s)
 	if err != nil {
 		api.log.Warn("Error binding json", zap.Error(err))
 		c.SecureJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return false
 	}
-	return api.handleStructFull(c, s)
+	validated := api.validateStruct(c, s)
+	if validated {
+		api.log.Info("Request", zap.Any("request", s))
+	}
+	return validated
 }
 
-func (api *Api) handleStructFull(c *gin.Context, s interface{}) bool {
-	err := isStructFull(s)
+func (api *Api) validateReply(c *gin.Context, err error, reply interface{}) bool {
 	if err != nil {
+		api.log.Error("Validate reply", zap.Error(err))
+		c.SecureJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return false
+	}
+	return api.validateStruct(c, reply)
+}
+
+func (api *Api) validateStruct(c *gin.Context, s interface{}) bool {
+	if s == nil {
+		api.log.Warn("Struct is nil")
+		c.SecureJSON(http.StatusBadRequest, gin.H{"error": "Struct is nil"})
+		return false
+	}
+	err := api.validate.Struct(s)
+	if err != nil {
+		if _, ok := err.(*validator.InvalidValidationError); ok {
+			api.log.Warn("Error validating struct", zap.Error(err))
+			c.SecureJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		}
 		api.log.Warn("Error validating struct", zap.Error(err))
 		c.SecureJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return false
@@ -214,53 +237,13 @@ func (api *Api) handleStructFull(c *gin.Context, s interface{}) bool {
 	return true
 }
 
-func isStructFull(s interface{}) (err error) {
-	if s == nil {
-		return errors.New("Input param is nil")
+func (api *Api) validateAndWriteReply(c *gin.Context, err error, reply interface{}) {
+	if api.validateReply(c, err, reply) {
+		api.writeReply(c, reply)
 	}
-	// first make sure that the input is a struct
-	// having any other type, especially a pointer to a struct,
-	// might result in panic
-	structType := reflect.TypeOf(s)
-	if structType.Kind() != reflect.Struct {
-		return errors.New("Input param should be a struct")
-	}
-
-	// now go one by one through the fields and validate their value
-	structVal := reflect.ValueOf(s)
-	fieldNum := structVal.NumField()
-
-	for i := 0; i < fieldNum; i++ {
-		// Field(i) returns i'th value of the struct
-		field := structVal.Field(i)
-		fieldName := structType.Field(i).Name
-
-		// CAREFUL! IsZero interprets empty strings and int equal 0 as a zero value.
-		// To check only if the pointers have been initialized,
-		// you can check the kind of the field:
-		// if field.Kind() == reflect.Pointer { // check }
-
-		// IsZero panics if the value is invalid.
-		// Most functions and methods never return an invalid Value.
-		isSet := field.IsValid() && !field.IsZero()
-
-		if !isSet {
-			err = errors.New(fmt.Sprintf("%s in not set.", fieldName))
-		}
-
-	}
-
-	return err
 }
 
-func (api *Api) writeReply(c *gin.Context, err error, reply interface{}) {
-	if err != nil {
-		api.log.Error("Error creating checkout session", zap.Error(err))
-		c.IndentedJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	if api.handleStructFull(c, reply) {
-		api.log.Info("Reply", zap.Any("reply", reply))
-		c.IndentedJSON(http.StatusOK, reply)
-	}
+func (api *Api) writeReply(c *gin.Context, reply interface{}) {
+	api.log.Info("Reply", zap.Any("reply", reply))
+	c.IndentedJSON(http.StatusOK, reply)
 }

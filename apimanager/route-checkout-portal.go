@@ -11,7 +11,7 @@ func (api *Api) createCheckoutSession(c *gin.Context) {
 	if err == nil &&
 		api.handleBind(c, &request) {
 		reply, err := api.paymentHandler.CreateCheckoutSession(c, tokenDetails, request)
-		api.writeReply(c, err, reply)
+		api.validateAndWriteReply(c, err, reply)
 	}
 
 }

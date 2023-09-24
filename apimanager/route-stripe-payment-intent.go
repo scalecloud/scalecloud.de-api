@@ -11,7 +11,7 @@ func (api *Api) createCheckoutSubscription(c *gin.Context) {
 	if err == nil &&
 		api.handleBind(c, &request) {
 		reply, err := api.paymentHandler.CreateCheckoutSubscription(c, tokenDetails, request)
-		api.writeReply(c, err, reply)
+		api.validateAndWriteReply(c, err, reply)
 	}
 }
 
@@ -21,7 +21,7 @@ func (api *Api) updateCheckoutSubscription(c *gin.Context) {
 	if err == nil &&
 		api.handleBind(c, &request) {
 		reply, err := api.paymentHandler.UpdateCheckoutSubscription(c, tokenDetails, request)
-		api.writeReply(c, err, reply)
+		api.validateAndWriteReply(c, err, reply)
 	}
 }
 
@@ -31,6 +31,6 @@ func (api *Api) getCheckoutProduct(c *gin.Context) {
 	if err == nil &&
 		api.handleBind(c, &request) {
 		reply, err := api.paymentHandler.GetCheckoutProduct(c, tokenDetails, request)
-		api.writeReply(c, err, reply)
+		api.validateAndWriteReply(c, err, reply)
 	}
 }

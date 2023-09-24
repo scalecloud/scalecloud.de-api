@@ -41,83 +41,83 @@ func getStripeToken(c *gin.Context) (string, bool) {
 	}
 }
 
-func (webhookHandler *WebhookHandler) handleStripeWebhook(c *gin.Context) {
-	var endpointSecret = webhookHandler.StripeConnection.EndpointSecret
+func (api *Api) handleStripeWebhook(c *gin.Context) {
+	var endpointSecret = api.webhookHandler.StripeConnection.EndpointSecret
 	if endpointSecret == "" {
-		webhookHandler.Log.Error("Missing endpoint secret")
+		api.log.Error("Missing endpoint secret")
 		c.SecureJSON(http.StatusServiceUnavailable, gin.H{"message": "Service unavailable"})
 	}
 	payload, err := c.GetRawData()
 	if err != nil {
-		webhookHandler.Log.Error("Error getting raw data", zap.Error(err))
+		api.log.Error("Error getting raw data", zap.Error(err))
 		c.SecureJSON(http.StatusNoContent, gin.H{"message": "Error getting raw data"})
 	}
 	event, err := webhook.ConstructEvent(payload, c.Request.Header.Get("Stripe-Signature"), endpointSecret)
 	if err != nil {
-		webhookHandler.Log.Error("Signature verification failed", zap.Error(err))
+		api.log.Error("Signature verification failed", zap.Error(err))
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Signature verification failed"})
 	}
 	switch event.Type {
 	case "payment_method.attached":
-		err := handlePaymentMethodAttached(event, webhookHandler.Log)
+		err := api.handlePaymentMethodAttached(event)
 		if err != nil {
-			webhookHandler.Log.Error("Error handling payment_method.attached", zap.Error(err))
+			api.log.Error("Error handling payment_method.attached", zap.Error(err))
 			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
 		}
 	case "setup_intent.created":
-		err := handleSetupIntentCreated(event, webhookHandler.Log)
+		err := api.handleSetupIntentCreated(event)
 		if err != nil {
-			webhookHandler.Log.Error("Error handling setup_intent.created", zap.Error(err))
+			api.log.Error("Error handling setup_intent.created", zap.Error(err))
 			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
 		}
 	case "setup_intent.succeeded":
-		err := handleSetupIntentSucceeded(event, webhookHandler.Log)
+		err := api.handleSetupIntentSucceeded(event)
 		if err != nil {
-			webhookHandler.Log.Error("Error handling setup_intent.succeeded", zap.Error(err))
+			api.log.Error("Error handling setup_intent.succeeded", zap.Error(err))
 			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
 		}
 	default:
-		webhookHandler.Log.Warn("Unhandled event type", zap.Any("Unhandled event type", event.Type))
+		api.log.Warn("Unhandled event type", zap.Any("Unhandled event type", event.Type))
 		c.SecureJSON(http.StatusNotImplemented, gin.H{"message": "Unhandled event type"})
 	}
-	webhookHandler.Log.Info("Handled webhook", zap.Any("Handled webhook", event.Type))
+	api.log.Info("Handled webhook", zap.Any("Handled webhook", event.Type))
 }
 
-func handlePaymentMethodAttached(event stripe.Event, log *zap.Logger) error {
+func (api *Api) handlePaymentMethodAttached(event stripe.Event) error {
 	var request stripe.PaymentMethod
 	err := json.Unmarshal(event.Data.Raw, &request)
 	if err != nil {
 		return err
 	}
-	err = isStructFull(request)
+	err = api.validate.Struct(request)
 	if err != nil {
 		return err
 	}
-	log.Debug("paymentMethod was updated", zap.Any("paymentMethodID", request.ID))
+	api.log.Debug("paymentMethod was updated", zap.Any("paymentMethodID", request.ID))
 	return nil
 }
 
-func handleSetupIntentCreated(event stripe.Event, log *zap.Logger) error {
+func (api *Api) handleSetupIntentCreated(event stripe.Event) error {
 	var request stripe.SetupIntent
 	err := json.Unmarshal(event.Data.Raw, &request)
 	if err != nil {
 		return err
 	}
-	err = isStructFull(request)
+	err = api.validate.Struct(request)
 	if err != nil {
 		return err
 	}
-	log.Debug("SetupIntentCreated", zap.Any("setupIntentID", request.ID))
+	api.log.Debug("SetupIntentCreated", zap.Any("setupIntentID", request.ID))
 	return nil
 }
 
-func handleSetupIntentSucceeded(event stripe.Event, log *zap.Logger) error {
+func (api *Api) handleSetupIntentSucceeded(event stripe.Event) error {
 	var request stripe.SetupIntent
 	err := json.Unmarshal(event.Data.Raw, &request)
 	if err != nil {
 		return err
 	}
-	err = isStructFull(request)
+	err = api.validate.Struct(request)
 	if err != nil {
 		return err
 	}
@@ -128,7 +128,7 @@ func handleSetupIntentSucceeded(event stripe.Event, log *zap.Logger) error {
 	if cus.ID == "" {
 		return errors.New("Customer ID not set")
 	}
-	log.Debug("Customer", zap.Any("Customer", cus.ID))
+	api.log.Debug("Customer", zap.Any("Customer", cus.ID))
 
 	meta := request.Metadata
 	if meta == nil {
@@ -139,9 +139,9 @@ func handleSetupIntentSucceeded(event stripe.Event, log *zap.Logger) error {
 		return errors.New("Metadata type not set")
 	}
 	if metaType == string(stripemanager.CreateSubscription) {
-		log.Info("CreateSubscription")
+		api.log.Info("CreateSubscription")
 	} else if metaType == string(stripemanager.ChangePayment) {
-		log.Info("ChangePayment")
+		api.log.Info("ChangePayment")
 	} else {
 		return errors.New("Unknown metadata type")
 	}

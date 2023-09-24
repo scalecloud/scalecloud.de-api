@@ -11,6 +11,6 @@ func (api *Api) createCheckoutSetupIntent(c *gin.Context) {
 	if err == nil &&
 		api.handleBind(c, &request) {
 		reply, err := api.paymentHandler.CreateCheckoutSetupIntent(c, tokenDetails, request)
-		api.writeReply(c, err, reply)
+		api.validateAndWriteReply(c, err, reply)
 	}
 }
