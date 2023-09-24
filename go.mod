@@ -4,6 +4,7 @@ go 1.20
 
 require (
 	github.com/gin-contrib/cors v1.4.0
+	github.com/gin-gonic/autotls v0.0.5
 	github.com/go-playground/validator/v10 v10.15.4
 	github.com/stripe/stripe-go/v75 v75.7.0
 	go.uber.org/zap v1.26.0

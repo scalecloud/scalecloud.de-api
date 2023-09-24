@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/autotls"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
@@ -16,6 +17,8 @@ import (
 )
 
 type Api struct {
+	production     bool
+	proxyIP        string
 	router         *gin.Engine
 	paymentHandler *stripemanager.PaymentHandler
 	webhookHandler *WebhookHandler
@@ -28,7 +31,7 @@ type WebhookHandler struct {
 	Log              *zap.Logger
 }
 
-func InitAPI(log *zap.Logger) (*Api, error) {
+func InitAPI(log *zap.Logger, production bool, proxyIP string) (*Api, error) {
 	log.Info("Init api")
 
 	err := mongomanager.CheckMongoConnectionFiles(log)
@@ -65,7 +68,9 @@ func InitAPI(log *zap.Logger) (*Api, error) {
 	validate := validator.New(validator.WithRequiredStructEnabled())
 
 	api := &Api{
-		router: router,
+		production: production,
+		proxyIP:    proxyIP,
+		router:     router,
 		paymentHandler: &stripemanager.PaymentHandler{
 			FirebaseConnection: firebaseConnection,
 			MongoConnection:    mongoConnection,
@@ -93,7 +98,6 @@ func (api *Api) RunAPI() {
 	api.initHeaders()
 	api.initRoutes()
 	api.initCertificate()
-	api.initTrustedPlatform()
 	api.initTrustedProxies()
 	api.startListening()
 }
@@ -149,20 +153,29 @@ func (api *Api) initRoutes() {
 }
 
 func (api *Api) initCertificate() {
-	api.log.Warn("init certificate not implemented yet.")
-	/* error := autotls.Run(router, "api.scalecloud.de")
-	if error != nil {
-		logger.Error("Could not setup certificate", zap.Error(error))
-	} */
-}
-
-func (api *Api) initTrustedPlatform() {
-	api.log.Info("init trusted platform not implemented yet.")
-	/* router.TrustedPlatform = gin.PlatformGoogleAppEngine */
+	if api.production {
+		api.log.Info("Setting up certificate...")
+		err := autotls.Run(api.router, "api.scalecloud.de")
+		if err != nil {
+			api.log.Error("Could not setup certificate", zap.Error(err))
+			panic(err)
+		}
+		api.log.Info("Certificate setup done.")
+	}
 }
 
 func (api *Api) initTrustedProxies() {
-	api.router.SetTrustedProxies([]string{"localhost"})
+	if api.production {
+		if api.proxyIP == "" {
+			api.log.Fatal("Proxy IP is empty")
+		} else {
+			api.router.SetTrustedProxies([]string{api.proxyIP})
+			api.log.Info("Trusted proxy set", zap.String("proxyIP", api.proxyIP))
+		}
+	} else {
+		api.router.SetTrustedProxies([]string{"127.0.0.1"})
+		api.log.Info("Trusted proxy set", zap.String("proxyIP", "127.0.0.1"))
+	}
 }
 
 func (api *Api) startListening() {
