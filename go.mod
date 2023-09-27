@@ -8,7 +8,7 @@ require (
 	github.com/go-playground/validator/v10 v10.15.4
 	github.com/stripe/stripe-go/v75 v75.7.0
 	go.uber.org/zap v1.26.0
-	google.golang.org/api v0.142.0
+	google.golang.org/api v0.143.0
 )
 
 require (
@@ -73,7 +73,7 @@ require (
 )
 
 require (
-	firebase.google.com/go/v4 v4.12.0
+	firebase.google.com/go/v4 v4.12.1
 	github.com/gin-gonic/gin v1.9.1
 	go.mongodb.org/mongo-driver v1.12.1
 	go.uber.org/multierr v1.11.0 // indirect
