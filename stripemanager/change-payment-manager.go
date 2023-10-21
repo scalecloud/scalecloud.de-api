@@ -51,6 +51,7 @@ func (paymentHandler *PaymentHandler) GetChangePaymentSetupIntent(c context.Cont
 	reply := ChangePaymentReply{
 		SetupIntentID: si.ID,
 		ClientSecret:  si.ClientSecret,
+		EMail:         tokenDetails.EMail,
 	}
 	return reply, nil
 }
