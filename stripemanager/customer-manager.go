@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
-	"github.com/stripe/stripe-go/v75"
-	"github.com/stripe/stripe-go/v75/customer"
+	"github.com/stripe/stripe-go/v76"
+	"github.com/stripe/stripe-go/v76/customer"
 )
 
 func getCustomerByID(ctx context.Context, customerID string) (customerDetails *stripe.Customer, err error) {

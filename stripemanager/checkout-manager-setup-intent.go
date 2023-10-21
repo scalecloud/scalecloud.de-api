@@ -6,8 +6,8 @@ import (
 
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
-	"github.com/stripe/stripe-go/v75"
-	"github.com/stripe/stripe-go/v75/setupintent"
+	"github.com/stripe/stripe-go/v76"
+	"github.com/stripe/stripe-go/v76/setupintent"
 )
 
 func (paymentHandler *PaymentHandler) CreateCheckoutSetupIntent(c context.Context, tokenDetails firebasemanager.TokenDetails, checkoutSetupIntentRequest CheckoutSetupIntentRequest) (CheckoutSetupIntentReply, error) {

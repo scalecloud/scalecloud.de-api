@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
-	"github.com/stripe/stripe-go/v75"
-	"github.com/stripe/stripe-go/v75/billingportal/session"
+	"github.com/stripe/stripe-go/v76"
+	"github.com/stripe/stripe-go/v76/billingportal/session"
 )
 
 func (paymentHandler *PaymentHandler) GetBillingPortal(c context.Context, tokenDetails firebasemanager.TokenDetails) (billingPortalModel BillingPortalReply, err error) {

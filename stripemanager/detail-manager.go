@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
-	"github.com/stripe/stripe-go/v75"
+	"github.com/stripe/stripe-go/v76"
 	"go.uber.org/zap"
 )
 

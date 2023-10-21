@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
-	"github.com/stripe/stripe-go/v75"
-	"github.com/stripe/stripe-go/v75/paymentmethod"
+	"github.com/stripe/stripe-go/v76"
+	"github.com/stripe/stripe-go/v76/paymentmethod"
 )
 
 func (paymentHandler *PaymentHandler) GetSubscriptionPaymentMethod(c context.Context, tokenDetails firebasemanager.TokenDetails, request SubscriptionPaymentMethodRequest) (SubscriptionPaymentMethodReply, error) {
