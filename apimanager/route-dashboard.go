@@ -55,12 +55,10 @@ func (api *Api) cancelSubscription(c *gin.Context) {
 	}
 }
 
-func (api *Api) getSubscriptionPaymentMethod(c *gin.Context) {
-	var request stripemanager.SubscriptionPaymentMethodRequest
+func (api *Api) getPaymentMethodOverview(c *gin.Context) {
 	tokenDetails, err := api.handleTokenDetails(c)
-	if err == nil &&
-		api.handleBind(c, &request) {
-		reply, err := api.paymentHandler.GetSubscriptionPaymentMethod(c, tokenDetails, request)
+	if err == nil {
+		reply, err := api.paymentHandler.GetPaymentMethodOverview(c, tokenDetails)
 		api.validateAndWriteReply(c, err, reply)
 	}
 }
