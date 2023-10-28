@@ -134,14 +134,14 @@ func (api *Api) handleSetupIntentSucceeded(event stripe.Event) error {
 	if meta == nil {
 		return errors.New("Metadata not set")
 	}
-	metaType := meta["metaType"]
-	if metaType == "" {
+	metaKey := meta["setupIntentMeta"]
+	if metaKey == "" {
 		return errors.New("Metadata type not set")
 	}
-	if metaType == string(stripemanager.CreateSubscription) {
-		api.log.Info("CreateSubscription")
-	} else if metaType == string(stripemanager.ChangePayment) {
-		api.log.Info("ChangePayment")
+	if metaKey == string(stripemanager.CreateSubscription) {
+		api.log.Info("createSubscription")
+	} else if metaKey == string(stripemanager.ChangePayment) {
+		api.log.Info("changePayment")
 	} else {
 		return errors.New("Unknown metadata type")
 	}

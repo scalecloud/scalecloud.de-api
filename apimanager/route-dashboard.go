@@ -64,11 +64,9 @@ func (api *Api) getPaymentMethodOverview(c *gin.Context) {
 }
 
 func (api *Api) getChangePaymentSetupIntent(c *gin.Context) {
-	var request stripemanager.ChangePaymentRequest
 	tokenDetails, err := api.handleTokenDetails(c)
-	if err == nil &&
-		api.handleBind(c, &request) {
-		reply, err := api.paymentHandler.GetChangePaymentSetupIntent(c, tokenDetails, request)
+	if err == nil {
+		reply, err := api.paymentHandler.GetChangePaymentSetupIntent(c, tokenDetails)
 		api.validateAndWriteReply(c, err, reply)
 	}
 }
