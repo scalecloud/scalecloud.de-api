@@ -66,7 +66,10 @@ func (paymentHandler *PaymentHandler) ChangePaymentDefault(c context.Context, se
 		return err
 	}
 	paymentHandler.Log.Info("Customer updated", zap.Any("Customer", result.ID))
-	paymentHandler.detachPaymentMethodsButDefault(c, setupIntent)
+	err = paymentHandler.detachPaymentMethodsButDefault(c, setupIntent)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
