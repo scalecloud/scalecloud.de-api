@@ -1,6 +1,7 @@
 package apimanager
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -59,19 +60,19 @@ func (api *Api) handleStripeWebhook(c *gin.Context) {
 	}
 	switch event.Type {
 	case "payment_method.attached":
-		err := api.handlePaymentMethodAttached(event)
+		err := api.handlePaymentMethodAttached(c, event)
 		if err != nil {
 			api.log.Error("Error handling payment_method.attached", zap.Error(err))
 			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
 		}
 	case "setup_intent.created":
-		err := api.handleSetupIntentCreated(event)
+		err := api.handleSetupIntentCreated(c, event)
 		if err != nil {
 			api.log.Error("Error handling setup_intent.created", zap.Error(err))
 			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
 		}
 	case "setup_intent.succeeded":
-		err := api.handleSetupIntentSucceeded(event)
+		err := api.handleSetupIntentSucceeded(c, event)
 		if err != nil {
 			api.log.Error("Error handling setup_intent.succeeded", zap.Error(err))
 			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
@@ -83,7 +84,7 @@ func (api *Api) handleStripeWebhook(c *gin.Context) {
 	api.log.Info("Handled webhook", zap.Any("Handled webhook", event.Type))
 }
 
-func (api *Api) handlePaymentMethodAttached(event stripe.Event) error {
+func (api *Api) handlePaymentMethodAttached(c context.Context, event stripe.Event) error {
 	var request stripe.PaymentMethod
 	err := json.Unmarshal(event.Data.Raw, &request)
 	if err != nil {
@@ -97,7 +98,7 @@ func (api *Api) handlePaymentMethodAttached(event stripe.Event) error {
 	return nil
 }
 
-func (api *Api) handleSetupIntentCreated(event stripe.Event) error {
+func (api *Api) handleSetupIntentCreated(c context.Context, event stripe.Event) error {
 	var request stripe.SetupIntent
 	err := json.Unmarshal(event.Data.Raw, &request)
 	if err != nil {
@@ -111,7 +112,7 @@ func (api *Api) handleSetupIntentCreated(event stripe.Event) error {
 	return nil
 }
 
-func (api *Api) handleSetupIntentSucceeded(event stripe.Event) error {
+func (api *Api) handleSetupIntentSucceeded(c context.Context, event stripe.Event) error {
 	var request stripe.SetupIntent
 	err := json.Unmarshal(event.Data.Raw, &request)
 	if err != nil {
@@ -141,6 +142,7 @@ func (api *Api) handleSetupIntentSucceeded(event stripe.Event) error {
 	if metaKey == string(stripemanager.CreateSubscription) {
 		api.log.Info("createSubscription")
 	} else if metaKey == string(stripemanager.ChangePayment) {
+		api.paymentHandler.ChangePaymentDefault(c, request)
 		api.log.Info("changePayment")
 	} else {
 		return errors.New("Unknown metadata type")
