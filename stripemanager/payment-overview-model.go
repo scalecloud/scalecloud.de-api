@@ -8,10 +8,8 @@ type PaymentMethodOverviewCard struct {
 }
 
 type PaymentMethodOverviewSEPADebit struct {
-	BankCode string `json:"bank_code"`
-	Branch   string `json:"branch"`
-	Country  string `json:"country"`
-	Last4    string `json:"last4"`
+	Country string `json:"country"`
+	Last4   string `json:"last4"`
 }
 
 type PaymentMethodOverviewPayPal struct {

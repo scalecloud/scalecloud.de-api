@@ -50,10 +50,8 @@ func (paymentHandler *PaymentHandler) GetPaymentMethodOverview(c context.Context
 		reply := PaymentMethodOverviewReply{
 			Type: string(pm.Type),
 			PaymentMethodOverviewSEPADebit: PaymentMethodOverviewSEPADebit{
-				BankCode: pm.SEPADebit.BankCode,
-				Branch:   pm.SEPADebit.BranchCode,
-				Country:  pm.SEPADebit.Country,
-				Last4:    pm.SEPADebit.Last4,
+				Country: pm.SEPADebit.Country,
+				Last4:   pm.SEPADebit.Last4,
 			},
 		}
 		return reply, nil
