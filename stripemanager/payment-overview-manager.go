@@ -48,7 +48,7 @@ func (paymentHandler *PaymentHandler) GetPaymentMethodOverview(c context.Context
 		return reply, nil
 	} else if string(pm.Type) == string(stripe.PaymentMethodType(stripe.PaymentMethodTypeSEPADebit)) {
 		reply := PaymentMethodOverviewReply{
-			Type: string(pm.SEPADebit.BankCode),
+			Type: string(pm.Type),
 			PaymentMethodOverviewSEPADebit: PaymentMethodOverviewSEPADebit{
 				BankCode: pm.SEPADebit.BankCode,
 				Branch:   pm.SEPADebit.BranchCode,
