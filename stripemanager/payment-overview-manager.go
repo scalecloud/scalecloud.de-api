@@ -3,6 +3,7 @@ package stripemanager
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/stripe/stripe-go/v76"
@@ -68,13 +69,19 @@ func (paymentHandler *PaymentHandler) GetPaymentMethodOverview(c context.Context
 }
 
 func maskEMail(email string) string {
-	ret := ""
-	if len(email) > 6 {
-		ret = email[:3] + "******" + email[len(email)-3:]
-	} else if len(email) > 4 {
-		ret = email[:2] + "******" + email[len(email)-2:]
-	} else {
-		ret = email[:1] + "******" + email[len(email)-1:]
+	ret := "****"
+	if len(email) > 4 && strings.Contains(email, "@") {
+		emailSplit := strings.Split(email, "@")
+		addr := emailSplit[0]
+		domain := emailSplit[1]
+		if len(addr) > 3 {
+			addr = addr[:3] + "****"
+		} else if len(addr) > 2 {
+			addr = addr[:2] + "****"
+		} else {
+			addr = addr[:1] + "****"
+		}
+		ret = addr + "@" + domain
 	}
 	return ret
 }
