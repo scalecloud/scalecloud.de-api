@@ -126,8 +126,8 @@ func (paymentHandler *PaymentHandler) UpdateCheckoutSubscription(c context.Conte
 	}
 
 	if checkoutIntegrationUpdateRequest.Quantity > 1 {
-		paymentHandler.Log.Info("Quantity is greater than 1. Removing trial period.")
 		params.TrialPeriodDays = stripe.Int64(0)
+		paymentHandler.Log.Info("Quantity is greater than 1. Trial period removed.")
 	}
 
 	subscriptionUpdated, err := subscription.Update(
