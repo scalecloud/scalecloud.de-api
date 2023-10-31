@@ -37,11 +37,32 @@ func (paymentHandler *PaymentHandler) GetPaymentMethodOverview(c context.Context
 	if string(pm.Type) == string(stripe.PaymentMethodType(stripe.PaymentMethodTypeCard)) {
 		brand := string(pm.Card.Brand)
 		reply := PaymentMethodOverviewReply{
-			Type:     string(pm.Type),
-			Brand:    brand,
-			Last4:    pm.Card.Last4,
-			ExpMonth: uint64(pm.Card.ExpMonth),
-			ExpYear:  uint64(pm.Card.ExpYear),
+			Type: string(pm.Type),
+			PaymentMethodOverviewCard: PaymentMethodOverviewCard{
+				Brand:    brand,
+				Last4:    pm.Card.Last4,
+				ExpMonth: uint64(pm.Card.ExpMonth),
+				ExpYear:  uint64(pm.Card.ExpYear),
+			},
+		}
+		return reply, nil
+	} else if string(pm.Type) == string(stripe.PaymentMethodType(stripe.PaymentMethodTypeSEPADebit)) {
+		reply := PaymentMethodOverviewReply{
+			Type: string(pm.SEPADebit.BankCode),
+			PaymentMethodOverviewSEPADebit: PaymentMethodOverviewSEPADebit{
+				BankCode: pm.SEPADebit.BankCode,
+				Branch:   pm.SEPADebit.BranchCode,
+				Country:  pm.SEPADebit.Country,
+				Last4:    pm.SEPADebit.Last4,
+			},
+		}
+		return reply, nil
+	} else if string(pm.Type) == string(stripe.PaymentMethodType(stripe.PaymentMethodTypePaypal)) {
+		reply := PaymentMethodOverviewReply{
+			Type: string(pm.Type),
+			PaymentMethodOverviewPayPal: PaymentMethodOverviewPayPal{
+				Email: pm.Paypal.PayerEmail,
+			},
 		}
 		return reply, nil
 	}
