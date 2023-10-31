@@ -59,10 +59,22 @@ func (paymentHandler *PaymentHandler) GetPaymentMethodOverview(c context.Context
 		reply := PaymentMethodOverviewReply{
 			Type: string(pm.Type),
 			PaymentMethodOverviewPayPal: PaymentMethodOverviewPayPal{
-				Email: pm.Paypal.PayerEmail,
+				Email: maskEMail(pm.Paypal.PayerEmail),
 			},
 		}
 		return reply, nil
 	}
 	return PaymentMethodOverviewReply{}, errors.New("Payment method not found")
+}
+
+func maskEMail(email string) string {
+	ret := ""
+	if len(email) > 6 {
+		ret = email[:3] + "******" + email[len(email)-3:]
+	} else if len(email) > 4 {
+		ret = email[:2] + "******" + email[len(email)-2:]
+	} else {
+		ret = email[:1] + "******" + email[len(email)-1:]
+	}
+	return ret
 }
