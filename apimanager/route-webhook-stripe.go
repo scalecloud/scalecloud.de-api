@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 	"github.com/scalecloud/scalecloud.de-api/stripemanager"
 	"github.com/stripe/stripe-go/v76"
 	"github.com/stripe/stripe-go/v76/webhook"
@@ -75,6 +76,12 @@ func (api *Api) handleStripeWebhook(c *gin.Context) {
 		err := api.handleSetupIntentSucceeded(c, event)
 		if err != nil {
 			api.log.Error("Error handling setup_intent.succeeded", zap.Error(err))
+			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
+		}
+	case "customer.subscription.created":
+		err := api.handleCustomerSubscriptionCreated(c, event)
+		if err != nil {
+			api.log.Error("Error handling customer.subscription.created", zap.Error(err))
 			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
 		}
 	default:
@@ -146,6 +153,89 @@ func (api *Api) handleSetupIntentSucceeded(c context.Context, event stripe.Event
 		api.log.Info("changePayment")
 	} else {
 		return errors.New("Unknown metadata type")
+	}
+	return nil
+}
+
+func (api *Api) handleCustomerSubscriptionCreated(c context.Context, event stripe.Event) error {
+	err := api.handleAddingTrialUsed(c, event)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (api *Api) handleAddingTrialUsed(c context.Context, event stripe.Event) error {
+	var sub stripe.Subscription
+	err := json.Unmarshal(event.Data.Raw, &sub)
+	if err != nil {
+		return err
+	}
+	err = api.validate.Struct(sub)
+	if err != nil {
+		return err
+	}
+	status := sub.Status
+	if status != stripe.SubscriptionStatusTrialing {
+		api.log.Info("Subscription status is not trialing, no need for action.", zap.Any("status", status))
+		return nil
+	}
+	quantity := sub.Items.Data[0].Quantity
+	if quantity != 1 {
+		return errors.New("Quantity is not 1. It should not be possible to start a subscription with a trial period. SubscriptionID: " + sub.ID)
+	}
+	if sub.Items.Data[0].Price == nil {
+		return errors.New("Price not set")
+	} else if sub.Items.Data[0].Price.Product == nil {
+		return errors.New("Product not set")
+	} else if sub.Items.Data[0].Price.Product.ID == "" {
+		return errors.New("Product.ID name not set")
+	}
+	prod, err := api.paymentHandler.StripeConnection.GetProduct(c, sub.Items.Data[0].Price.Product.ID)
+	metaDataProduct := prod.Metadata
+
+	productType, ok := metaDataProduct["productType"]
+	if !ok {
+		return errors.New("productType not found for product: " + prod.ID)
+	}
+	cus, err := stripemanager.GetCustomerByID(c, sub.Customer.ID)
+	if err != nil {
+		return err
+	}
+	if cus.InvoiceSettings == nil {
+		return errors.New("InvoiceSettings not set")
+	} else if cus.InvoiceSettings.DefaultPaymentMethod == nil {
+		return errors.New("DefaultPaymentMethod not set")
+	} else if cus.InvoiceSettings.DefaultPaymentMethod.ID == "" {
+		return errors.New("DefaultPaymentMethod.ID not set")
+	}
+	paymentMethod, err := api.paymentHandler.StripeConnection.GetPaymentMethod(c, cus.InvoiceSettings.DefaultPaymentMethod.ID)
+	if err != nil {
+		return err
+	}
+	cardFingerprint := ""
+	if paymentMethod.Card != nil {
+		cardFingerprint = paymentMethod.Card.Fingerprint
+	}
+	paypalPayerEmail := ""
+	if paymentMethod.Paypal != nil {
+		paypalPayerEmail = paymentMethod.Paypal.PayerEmail
+	}
+	sepaDebitFingerprint := ""
+	if paymentMethod.SEPADebit != nil {
+		sepaDebitFingerprint = paymentMethod.SEPADebit.Fingerprint
+	}
+	trial := mongomanager.Trial{
+		SubscriptionID:         sub.ID,
+		ProductType:            productType,
+		CustomerID:             cus.ID,
+		PaymentCardFingerprint: cardFingerprint,
+		PaymentPayPalEMail:     paypalPayerEmail,
+		PaymentSEPAFingerprint: sepaDebitFingerprint,
+	}
+	err = api.paymentHandler.MongoConnection.CreateTrial(c, trial)
+	if err != nil {
+		return err
 	}
 	return nil
 }

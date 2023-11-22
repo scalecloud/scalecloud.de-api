@@ -9,7 +9,7 @@ import (
 	"github.com/stripe/stripe-go/v76/customer"
 )
 
-func getCustomerByID(ctx context.Context, customerID string) (customerDetails *stripe.Customer, err error) {
+func GetCustomerByID(ctx context.Context, customerID string) (customerDetails *stripe.Customer, err error) {
 	customer, error := customer.Get(
 		customerID,
 		nil,

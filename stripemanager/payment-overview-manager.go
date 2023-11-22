@@ -16,7 +16,7 @@ func (paymentHandler *PaymentHandler) GetPaymentMethodOverview(c context.Context
 	}
 	stripe.Key = paymentHandler.StripeConnection.Key
 
-	cus, err := getCustomerByID(c, customerID)
+	cus, err := GetCustomerByID(c, customerID)
 	if err != nil {
 		return PaymentMethodOverviewReply{}, err
 	}
@@ -31,7 +31,7 @@ func (paymentHandler *PaymentHandler) GetPaymentMethodOverview(c context.Context
 	if defaultPaymentID == "" {
 		return PaymentMethodOverviewReply{}, errors.New("DefaultPaymentMethodID is empty")
 	}
-	pm, err := paymentHandler.StripeConnection.getPaymentMethod(c, defaultPaymentID)
+	pm, err := paymentHandler.StripeConnection.GetPaymentMethod(c, defaultPaymentID)
 	if err != nil {
 		return PaymentMethodOverviewReply{}, err
 	}

@@ -149,34 +149,9 @@ func (paymentHandler *PaymentHandler) UpdateCheckoutSubscription(c context.Conte
 }
 
 func (paymentHandler *PaymentHandler) GetCheckoutProduct(c context.Context, tokenDetails firebasemanager.TokenDetails, checkoutProductRequest CheckoutProductRequest) (CheckoutProductReply, error) {
-	customerIDFromUID, err := paymentHandler.GetCustomerIDByUID(c, tokenDetails.UID)
-	if err != nil {
-		return CheckoutProductReply{}, err
-	}
-
 	stripe.Key = paymentHandler.StripeConnection.Key
 
-	subscription, err := paymentHandler.StripeConnection.GetSubscriptionByID(c, checkoutProductRequest.SubscriptionID)
-	if err != nil {
-		return CheckoutProductReply{}, err
-	}
-	if subscription.Customer == nil {
-		return CheckoutProductReply{}, errors.New("Customer is nil")
-	}
-	customerIDFromSubscription := *&subscription.Customer.ID
-	if customerIDFromSubscription == "" {
-		return CheckoutProductReply{}, errors.New("Customer ID is empty")
-	}
-	if customerIDFromUID != customerIDFromSubscription {
-		return CheckoutProductReply{}, errors.New("CustomerID from UID does not match customerID from subscription")
-	}
-	subscriptionItem := subscription.Items.Data[0]
-	if subscriptionItem == nil {
-		return CheckoutProductReply{}, errors.New("Subscription item is nill")
-	}
-	productID := subscriptionItem.Price.Product.ID
-
-	price, err := paymentHandler.StripeConnection.GetPrice(c, productID)
+	price, err := paymentHandler.StripeConnection.GetPrice(c, checkoutProductRequest.ProductID)
 	if err != nil {
 		return CheckoutProductReply{}, err
 	}
@@ -187,24 +162,29 @@ func (paymentHandler *PaymentHandler) GetCheckoutProduct(c context.Context, toke
 	if metaDataPrice == nil {
 		return CheckoutProductReply{}, errors.New("Price metadata not found")
 	}
-	trialPeriodDays, ok := metaDataPrice["trialPeriodDays"]
+
+	product, err := paymentHandler.StripeConnection.GetProduct(c, checkoutProductRequest.ProductID)
+	if err != nil {
+		return CheckoutProductReply{}, err
+	}
+
+	if product.Metadata == nil {
+		return CheckoutProductReply{}, errors.New("Product metadata not found")
+	}
+
+	productName := product.Name
+
+	metaDataProduct := product.Metadata
+
+	trialPeriodDays, ok := metaDataProduct["trialPeriodDays"]
 	if !ok {
-		return CheckoutProductReply{}, errors.New("trialPeriodDays not found for priceID: " + price.ID)
+		return CheckoutProductReply{}, errors.New("trialPeriodDays not found for product: " + product.ID)
 	}
 	iTrialPeriodDays, err := strconv.ParseInt(trialPeriodDays, 10, 64)
 	if err != nil {
 		paymentHandler.Log.Warn("Error converting trialPeriodDays to int", zap.Error(err))
 		return CheckoutProductReply{}, errors.New("Error converting trialPeriodDays")
 	}
-
-	product, err := paymentHandler.StripeConnection.GetProduct(c, productID)
-	if err != nil {
-		return CheckoutProductReply{}, err
-	}
-
-	productName := product.Name
-
-	metaDataProduct := product.Metadata
 
 	storageAmount, ok := metaDataProduct["storageAmount"]
 	if !ok {
@@ -222,14 +202,13 @@ func (paymentHandler *PaymentHandler) GetCheckoutProduct(c context.Context, toke
 	}
 
 	checkoutProductReply := CheckoutProductReply{
-		SubscriptionID: subscription.ID,
-		ProductID:      productID,
-		Name:           productName,
-		StorageAmount:  iStorageAmount,
-		StorageUnit:    storageUnit,
-		TrialDays:      iTrialPeriodDays,
-		PricePerMonth:  price.UnitAmount,
-		Currency:       currency,
+		ProductID:     checkoutProductRequest.ProductID,
+		Name:          productName,
+		StorageAmount: iStorageAmount,
+		StorageUnit:   storageUnit,
+		TrialDays:     iTrialPeriodDays,
+		PricePerMonth: price.UnitAmount,
+		Currency:      currency,
 	}
 	return checkoutProductReply, nil
 }

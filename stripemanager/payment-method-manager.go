@@ -7,7 +7,7 @@ import (
 	"github.com/stripe/stripe-go/v76/paymentmethod"
 )
 
-func (stripeConnection *StripeConnection) getPaymentMethod(c context.Context, paymentMethodID string) (*stripe.PaymentMethod, error) {
+func (stripeConnection *StripeConnection) GetPaymentMethod(c context.Context, paymentMethodID string) (*stripe.PaymentMethod, error) {
 	stripe.Key = stripeConnection.Key
 	pm, err := paymentmethod.Get(
 		paymentMethodID,
