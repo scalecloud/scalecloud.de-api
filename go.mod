@@ -8,7 +8,7 @@ require (
 	github.com/go-playground/validator/v10 v10.16.0
 	github.com/stripe/stripe-go/v76 v76.7.0
 	go.uber.org/zap v1.26.0
-	google.golang.org/api v0.152.0
+	google.golang.org/api v0.153.0
 )
 
 require (
