@@ -6,7 +6,7 @@ require (
 	github.com/gin-contrib/cors v1.5.0
 	github.com/gin-gonic/autotls v0.0.5
 	github.com/go-playground/validator/v10 v10.16.0
-	github.com/stripe/stripe-go/v76 v76.7.0
+	github.com/stripe/stripe-go/v76 v76.8.0
 	go.uber.org/zap v1.26.0
 	google.golang.org/api v0.153.0
 )
@@ -79,6 +79,6 @@ require (
 require (
 	firebase.google.com/go/v4 v4.13.0
 	github.com/gin-gonic/gin v1.9.1
-	go.mongodb.org/mongo-driver v1.13.0
+	go.mongodb.org/mongo-driver v1.13.1
 	go.uber.org/multierr v1.11.0 // indirect
 )
