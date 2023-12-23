@@ -6,7 +6,7 @@ require (
 	github.com/gin-contrib/cors v1.5.0
 	github.com/gin-gonic/autotls v0.0.5
 	github.com/go-playground/validator/v10 v10.16.0
-	github.com/stripe/stripe-go/v76 v76.9.0
+	github.com/stripe/stripe-go/v76 v76.10.0
 	go.uber.org/zap v1.26.0
 	google.golang.org/api v0.154.0
 )
