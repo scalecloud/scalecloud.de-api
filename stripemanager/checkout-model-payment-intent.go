@@ -1,26 +1,15 @@
 package stripemanager
 
-type CheckoutPaymentIntentRequest struct {
+type CheckoutCreateSubscriptionRequest struct {
 	ProductID string `json:"productID" binding:"required"`
 	Quantity  int64  `json:"quantity" binding:"required"`
 }
 
-type CheckoutPaymentIntentReply struct {
+type CheckoutCreateSubscriptionReply struct {
 	SubscriptionID string `json:"subscriptionID" validate:"required"`
 	ClientSecret   string `json:"clientSecret" validate:"required"`
 	Quantity       int64  `json:"quantity" validate:"required"`
 	EMail          string `json:"email" validate:"required"`
-}
-
-type CheckoutPaymentIntentUpdateRequest struct {
-	SubscriptionID string `json:"subscriptionID" binding:"required"`
-	Quantity       int64  `json:"quantity" binding:"required"`
-}
-
-type CheckoutPaymentIntentUpdateReply struct {
-	SubscriptionID string `json:"subscriptionID" validate:"required"`
-	ClientSecret   string `json:"clientSecret" validate:"required"`
-	Quantity       int64  `json:"quantity" validate:"required"`
 }
 
 type CheckoutProductRequest struct {

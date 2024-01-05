@@ -10,7 +10,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (paymentHandler *PaymentHandler) getTrialDaysForCustomer(c context.Context, quantity int, paymentMethod *stripe.PaymentMethod, product *stripe.Product, customer *stripe.Customer) (int64, error) {
+func (paymentHandler *PaymentHandler) getTrialDaysForCustomer(c context.Context, quantity int64, paymentMethod *stripe.PaymentMethod, product *stripe.Product, customer *stripe.Customer) (int64, error) {
 	if quantity != 1 {
 		return 0, errors.New("Quantity is not 1 therefore no trial period is possible.")
 	}

@@ -6,21 +6,11 @@ import (
 )
 
 func (api *Api) createCheckoutSubscription(c *gin.Context) {
-	var request stripemanager.CheckoutPaymentIntentRequest
+	var request stripemanager.CheckoutCreateSubscriptionRequest
 	tokenDetails, err := api.handleTokenDetails(c)
 	if err == nil &&
 		api.handleBind(c, &request) {
 		reply, err := api.paymentHandler.CreateCheckoutSubscription(c, tokenDetails, request)
-		api.validateAndWriteReply(c, err, reply)
-	}
-}
-
-func (api *Api) updateCheckoutSubscription(c *gin.Context) {
-	var request stripemanager.CheckoutPaymentIntentUpdateRequest
-	tokenDetails, err := api.handleTokenDetails(c)
-	if err == nil &&
-		api.handleBind(c, &request) {
-		reply, err := api.paymentHandler.UpdateCheckoutSubscription(c, tokenDetails, request)
 		api.validateAndWriteReply(c, err, reply)
 	}
 }

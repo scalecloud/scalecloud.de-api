@@ -133,16 +133,10 @@ func (api *Api) initRoutes() {
 		dashboard.POST("/cancel-subscription", api.cancelSubscription)
 		dashboard.GET("/billing-portal", api.handleBillingPortal)
 	}
-	checkoutPortal := api.router.Group("/checkout-portal")
-	checkoutPortal.Use(api.authRequired)
-	{
-		checkoutPortal.POST("/create-checkout-session", api.createCheckoutSession)
-	}
 	checkoutIntegration := api.router.Group("/checkout-integration")
 	checkoutIntegration.Use(api.authRequired)
 	{
 		checkoutIntegration.POST("/create-checkout-subscription", api.createCheckoutSubscription)
-		checkoutIntegration.POST("/update-checkout-subscription", api.updateCheckoutSubscription)
 		checkoutIntegration.POST("/get-checkout-product", api.getCheckoutProduct)
 	}
 	checkoutSetupIntent := api.router.Group("/checkout-setup-intent")
