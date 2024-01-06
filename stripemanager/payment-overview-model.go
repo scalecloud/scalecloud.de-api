@@ -17,6 +17,7 @@ type PaymentMethodOverviewPayPal struct {
 }
 
 type PaymentMethodOverviewReply struct {
+	HasValidPaymentMethod          *bool                          `json:"has_valid_payment_method" validate:"required"`
 	Type                           string                         `json:"type" validate:"required"`
 	PaymentMethodOverviewCard      PaymentMethodOverviewCard      `json:"card,omitempty"`
 	PaymentMethodOverviewSEPADebit PaymentMethodOverviewSEPADebit `json:"sepa_debit,omitempty"`

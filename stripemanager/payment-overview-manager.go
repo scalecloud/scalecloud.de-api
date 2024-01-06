@@ -25,7 +25,10 @@ func (paymentHandler *PaymentHandler) GetPaymentMethodOverview(c context.Context
 	}
 	defaultPaymentMethod := cus.InvoiceSettings.DefaultPaymentMethod
 	if defaultPaymentMethod == nil {
-		return PaymentMethodOverviewReply{}, errors.New("DefaultPaymentMethod not found")
+		return PaymentMethodOverviewReply{
+			HasValidPaymentMethod: BoolPointer(false),
+			Type:                  "None",
+		}, nil
 	}
 	defaultPaymentID := defaultPaymentMethod.ID
 	if defaultPaymentID == "" {
@@ -38,7 +41,8 @@ func (paymentHandler *PaymentHandler) GetPaymentMethodOverview(c context.Context
 	if string(pm.Type) == string(stripe.PaymentMethodType(stripe.PaymentMethodTypeCard)) {
 		brand := string(pm.Card.Brand)
 		reply := PaymentMethodOverviewReply{
-			Type: string(pm.Type),
+			HasValidPaymentMethod: BoolPointer(true),
+			Type:                  string(pm.Type),
 			PaymentMethodOverviewCard: PaymentMethodOverviewCard{
 				Brand:    brand,
 				Last4:    pm.Card.Last4,
@@ -49,7 +53,8 @@ func (paymentHandler *PaymentHandler) GetPaymentMethodOverview(c context.Context
 		return reply, nil
 	} else if string(pm.Type) == string(stripe.PaymentMethodType(stripe.PaymentMethodTypeSEPADebit)) {
 		reply := PaymentMethodOverviewReply{
-			Type: string(pm.Type),
+			HasValidPaymentMethod: BoolPointer(true),
+			Type:                  string(pm.Type),
 			PaymentMethodOverviewSEPADebit: PaymentMethodOverviewSEPADebit{
 				Country: pm.SEPADebit.Country,
 				Last4:   pm.SEPADebit.Last4,
@@ -58,7 +63,8 @@ func (paymentHandler *PaymentHandler) GetPaymentMethodOverview(c context.Context
 		return reply, nil
 	} else if string(pm.Type) == string(stripe.PaymentMethodType(stripe.PaymentMethodTypePaypal)) {
 		reply := PaymentMethodOverviewReply{
-			Type: string(pm.Type),
+			HasValidPaymentMethod: BoolPointer(true),
+			Type:                  string(pm.Type),
 			PaymentMethodOverviewPayPal: PaymentMethodOverviewPayPal{
 				Email: maskEMail(pm.Paypal.PayerEmail),
 			},
@@ -67,6 +73,8 @@ func (paymentHandler *PaymentHandler) GetPaymentMethodOverview(c context.Context
 	}
 	return PaymentMethodOverviewReply{}, errors.New("Payment method not found")
 }
+
+func BoolPointer(v bool) *bool { return &v }
 
 func maskEMail(email string) string {
 	ret := "****"
