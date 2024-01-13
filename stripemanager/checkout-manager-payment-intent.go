@@ -38,7 +38,6 @@ func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Conte
 	if err != nil {
 		return CheckoutCreateSubscriptionReply{}, err
 	}
-	paymentHandler.Log.Error("Implementation missing for trialPeriodDays")
 	paymentMethod, err := paymentHandler.StripeConnection.GetDefaultPaymentMethod(c, cus)
 	if err != nil {
 		return CheckoutCreateSubscriptionReply{}, err
@@ -52,10 +51,6 @@ func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Conte
 	if err != nil {
 		return CheckoutCreateSubscriptionReply{}, err
 	}
-
-	// Create the subscription. Note we're expanding the Subscription's
-	// latest invoice and that invoice's payment_intent
-	// so we can pass it to the front end to confirm the payment
 	subscriptionParams := &stripe.SubscriptionParams{
 		Customer: stripe.String(customerID),
 		Items: []*stripe.SubscriptionItemsParams{
@@ -64,8 +59,9 @@ func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Conte
 				Quantity: stripe.Int64(checkoutCreateSubscriptionRequest.Quantity),
 			},
 		},
-		PaymentBehavior: stripe.String("default_incomplete"),
-		TrialPeriodDays: stripe.Int64(iTrialPeriodDays),
+	}
+	if iTrialPeriodDays > 0 {
+		subscriptionParams.TrialPeriodDays = stripe.Int64(iTrialPeriodDays)
 	}
 	sub, err := subscription.New(subscriptionParams)
 	if err != nil {
@@ -75,6 +71,7 @@ func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Conte
 	paymentHandler.Log.Info("Subscription created.", zap.Any("subscriptionID", sub.ID))
 
 	checkoutSubscriptionModel := CheckoutCreateSubscriptionReply{
+		Status:         string(sub.Status),
 		SubscriptionID: sub.ID,
 		ProductName:    product.Name,
 		EMail:          tokenDetails.EMail,
