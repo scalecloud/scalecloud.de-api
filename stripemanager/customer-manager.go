@@ -9,6 +9,16 @@ import (
 	"github.com/stripe/stripe-go/v76/customer"
 )
 
+func (paymentHandler *PaymentHandler) GetCustomerByUID(ctx context.Context, uid string) (customerDetails *stripe.Customer, err error) {
+	customerID, err := paymentHandler.GetCustomerIDByUID(ctx, uid)
+	if err != nil {
+		return nil, err
+	}
+	stripe.Key = paymentHandler.StripeConnection.Key
+
+	return GetCustomerByID(ctx, customerID)
+}
+
 func GetCustomerByID(ctx context.Context, customerID string) (customerDetails *stripe.Customer, err error) {
 	customer, error := customer.Get(
 		customerID,

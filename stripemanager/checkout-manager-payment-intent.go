@@ -118,18 +118,24 @@ func (paymentHandler *PaymentHandler) GetCheckoutProduct(c context.Context, toke
 		return CheckoutProductReply{}, errors.New("Product metadata not found")
 	}
 
-	productName := product.Name
+	cus, err := paymentHandler.GetCustomerByUID(c, tokenDetails.UID)
+	if err != nil {
+		return CheckoutProductReply{}, err
+	}
+
+	paymentMethod, err := paymentHandler.StripeConnection.GetDefaultPaymentMethod(c, cus)
+	if err != nil {
+		return CheckoutProductReply{}, err
+	}
+
+	iTrialPeriodDays, err := paymentHandler.getTrialDaysForCustomer(c, 1, paymentMethod, product, cus)
+	if err != nil {
+		return CheckoutProductReply{}, err
+	}
 
 	metaDataProduct := product.Metadata
-
-	trialPeriodDays, ok := metaDataProduct["trialPeriodDays"]
-	if !ok {
-		return CheckoutProductReply{}, errors.New("trialPeriodDays not found for product: " + product.ID)
-	}
-	iTrialPeriodDays, err := strconv.ParseInt(trialPeriodDays, 10, 64)
-	if err != nil {
-		paymentHandler.Log.Warn("Error converting trialPeriodDays to int", zap.Error(err))
-		return CheckoutProductReply{}, errors.New("Error converting trialPeriodDays")
+	if metaDataProduct == nil {
+		return CheckoutProductReply{}, errors.New("Product metadata not found")
 	}
 
 	storageAmount, ok := metaDataProduct["storageAmount"]
@@ -145,6 +151,11 @@ func (paymentHandler *PaymentHandler) GetCheckoutProduct(c context.Context, toke
 	storageUnit, ok := metaDataProduct["storageUnit"]
 	if !ok {
 		return CheckoutProductReply{}, errors.New("StorageUnit not found for priceID: " + price.ID)
+	}
+
+	productName := product.Name
+	if productName == "" {
+		return CheckoutProductReply{}, errors.New("Product name not found for priceID: " + price.ID)
 	}
 
 	checkoutProductReply := CheckoutProductReply{

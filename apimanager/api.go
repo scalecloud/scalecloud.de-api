@@ -243,10 +243,6 @@ func (api *Api) validateStruct(c *gin.Context, s interface{}) bool {
 	}
 	err := api.validate.Struct(s)
 	if err != nil {
-		if _, ok := err.(*validator.InvalidValidationError); ok {
-			api.log.Warn("Error validating struct", zap.Error(err))
-			c.SecureJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		}
 		api.log.Warn("Error validating struct", zap.Error(err))
 		c.SecureJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return false

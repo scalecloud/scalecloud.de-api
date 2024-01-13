@@ -10,16 +10,8 @@ import (
 )
 
 func (paymentHandler *PaymentHandler) GetPaymentMethodOverview(c context.Context, tokenDetails firebasemanager.TokenDetails) (PaymentMethodOverviewReply, error) {
-	customerID, err := paymentHandler.GetCustomerIDByUID(c, tokenDetails.UID)
-	if err != nil {
-		return PaymentMethodOverviewReply{}, err
-	}
+	cus, err := paymentHandler.GetCustomerByUID(c, tokenDetails.UID)
 	stripe.Key = paymentHandler.StripeConnection.Key
-
-	cus, err := GetCustomerByID(c, customerID)
-	if err != nil {
-		return PaymentMethodOverviewReply{}, err
-	}
 	if cus.InvoiceSettings == nil {
 		return PaymentMethodOverviewReply{}, errors.New("InvoiceSettings not found")
 	}
