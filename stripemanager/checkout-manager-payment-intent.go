@@ -34,25 +34,23 @@ func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Conte
 	if metaData == nil {
 		return CheckoutCreateSubscriptionReply{}, errors.New("Price metadata not found")
 	}
+	cus, err := GetCustomerByID(c, customerID)
+	if err != nil {
+		return CheckoutCreateSubscriptionReply{}, err
+	}
 	paymentHandler.Log.Error("Implementation missing for trialPeriodDays")
-	//paymentMethod := paymentHandler.StripeConnection.GetPaymentMethod(c, checkoutIntegrationRequest.PaymentMethodID)
+	paymentMethod, err := paymentHandler.StripeConnection.GetDefaultPaymentMethod(c, cus)
+	if err != nil {
+		return CheckoutCreateSubscriptionReply{}, err
+	}
 	product, err := paymentHandler.StripeConnection.GetProduct(c, checkoutCreateSubscriptionRequest.ProductID)
 	if err != nil {
 		return CheckoutCreateSubscriptionReply{}, err
 	}
-	customer, err := GetCustomerByID(c, customerID)
-	if err != nil {
-		return CheckoutCreateSubscriptionReply{}, err
-	}
-	iTrialPeriodDays, err := paymentHandler.getTrialDaysForCustomer(c, checkoutCreateSubscriptionRequest.Quantity, nil, product, customer)
-	if err != nil {
-		return CheckoutCreateSubscriptionReply{}, err
-	}
 
-	// Automatically save the payment method to the subscription
-	// when the first payment is successful.
-	paymentSettings := &stripe.SubscriptionPaymentSettingsParams{
-		SaveDefaultPaymentMethod: stripe.String("on_subscription"),
+	iTrialPeriodDays, err := paymentHandler.getTrialDaysForCustomer(c, checkoutCreateSubscriptionRequest.Quantity, paymentMethod, product, cus)
+	if err != nil {
+		return CheckoutCreateSubscriptionReply{}, err
 	}
 
 	// Create the subscription. Note we're expanding the Subscription's
@@ -66,29 +64,19 @@ func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Conte
 				Quantity: stripe.Int64(checkoutCreateSubscriptionRequest.Quantity),
 			},
 		},
-		PaymentSettings: paymentSettings,
 		PaymentBehavior: stripe.String("default_incomplete"),
 		TrialPeriodDays: stripe.Int64(iTrialPeriodDays),
 	}
-	subscriptionParams.AddExpand("latest_invoice.payment_intent")
-	subscriptionParams.AddExpand("pending_setup_intent")
 	sub, err := subscription.New(subscriptionParams)
 	if err != nil {
 		paymentHandler.Log.Error("Error creating subscription", zap.Error(err))
 		return CheckoutCreateSubscriptionReply{}, err
 	}
-	if sub.PendingSetupIntent == nil {
-		return CheckoutCreateSubscriptionReply{}, errors.New("Pending setup intent is nil")
-	}
-	if sub.PendingSetupIntent.ClientSecret == "" {
-		return CheckoutCreateSubscriptionReply{}, errors.New("Pending setup intent client secret is nil")
-	}
-	paymentHandler.Log.Info("Subscription created and waiting for payment.", zap.Any("subscriptionID", sub.ID))
+	paymentHandler.Log.Info("Subscription created.", zap.Any("subscriptionID", sub.ID))
 
 	checkoutSubscriptionModel := CheckoutCreateSubscriptionReply{
 		SubscriptionID: sub.ID,
-		ClientSecret:   sub.PendingSetupIntent.ClientSecret,
-		Quantity:       sub.Items.Data[0].Quantity,
+		ProductName:    product.Name,
 		EMail:          tokenDetails.EMail,
 	}
 	return checkoutSubscriptionModel, nil
@@ -96,48 +84,38 @@ func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Conte
 
 func (paymentHandler *PaymentHandler) GetCheckoutProduct(c context.Context, tokenDetails firebasemanager.TokenDetails, checkoutProductRequest CheckoutProductRequest) (CheckoutProductReply, error) {
 	stripe.Key = paymentHandler.StripeConnection.Key
-
 	price, err := paymentHandler.StripeConnection.GetPrice(c, checkoutProductRequest.ProductID)
 	if err != nil {
 		return CheckoutProductReply{}, err
 	}
-
 	currency := strings.ToUpper(string(price.Currency))
-
 	metaDataPrice := price.Metadata
 	if metaDataPrice == nil {
 		return CheckoutProductReply{}, errors.New("Price metadata not found")
 	}
-
 	product, err := paymentHandler.StripeConnection.GetProduct(c, checkoutProductRequest.ProductID)
 	if err != nil {
 		return CheckoutProductReply{}, err
 	}
-
 	if product.Metadata == nil {
 		return CheckoutProductReply{}, errors.New("Product metadata not found")
 	}
-
 	cus, err := paymentHandler.GetCustomerByUID(c, tokenDetails.UID)
 	if err != nil {
 		return CheckoutProductReply{}, err
 	}
-
 	paymentMethod, err := paymentHandler.StripeConnection.GetDefaultPaymentMethod(c, cus)
 	if err != nil {
 		return CheckoutProductReply{}, err
 	}
-
 	iTrialPeriodDays, err := paymentHandler.getTrialDaysForCustomer(c, 1, paymentMethod, product, cus)
 	if err != nil {
 		return CheckoutProductReply{}, err
 	}
-
 	metaDataProduct := product.Metadata
 	if metaDataProduct == nil {
 		return CheckoutProductReply{}, errors.New("Product metadata not found")
 	}
-
 	storageAmount, ok := metaDataProduct["storageAmount"]
 	if !ok {
 		return CheckoutProductReply{}, errors.New("storageAmount not found for priceID: " + price.ID)
@@ -147,17 +125,14 @@ func (paymentHandler *PaymentHandler) GetCheckoutProduct(c context.Context, toke
 		paymentHandler.Log.Warn("Error converting storageAmount to int", zap.Error(err))
 		return CheckoutProductReply{}, errors.New("Error converting storageAmount")
 	}
-
 	storageUnit, ok := metaDataProduct["storageUnit"]
 	if !ok {
 		return CheckoutProductReply{}, errors.New("StorageUnit not found for priceID: " + price.ID)
 	}
-
 	productName := product.Name
 	if productName == "" {
 		return CheckoutProductReply{}, errors.New("Product name not found for priceID: " + price.ID)
 	}
-
 	checkoutProductReply := CheckoutProductReply{
 		ProductID:     checkoutProductRequest.ProductID,
 		Name:          productName,

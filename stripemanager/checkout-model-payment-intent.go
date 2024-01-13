@@ -7,8 +7,7 @@ type CheckoutCreateSubscriptionRequest struct {
 
 type CheckoutCreateSubscriptionReply struct {
 	SubscriptionID string `json:"subscriptionID" validate:"required"`
-	ClientSecret   string `json:"clientSecret" validate:"required"`
-	Quantity       int64  `json:"quantity" validate:"required"`
+	ProductName    string `json:"productName" validate:"required"`
 	EMail          string `json:"email" validate:"required"`
 }
 
