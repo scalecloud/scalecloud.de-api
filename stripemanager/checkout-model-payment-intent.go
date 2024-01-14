@@ -10,6 +10,7 @@ type CheckoutCreateSubscriptionReply struct {
 	SubscriptionID string `json:"subscriptionID" validate:"required"`
 	ProductName    string `json:"productName" validate:"required"`
 	EMail          string `json:"email" validate:"required"`
+	TrialEnd       int64  `json:"trialEnd" validate:"required"`
 }
 
 type CheckoutProductRequest struct {

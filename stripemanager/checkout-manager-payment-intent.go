@@ -85,6 +85,7 @@ func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Conte
 		SubscriptionID: sub.ID,
 		ProductName:    product.Name,
 		EMail:          tokenDetails.EMail,
+		TrialEnd:       sub.TrialEnd,
 	}
 	return checkoutSubscriptionModel, nil
 }
