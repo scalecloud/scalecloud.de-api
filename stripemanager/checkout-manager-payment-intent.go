@@ -74,7 +74,12 @@ func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Conte
 	} else if sub.Status == stripe.SubscriptionStatusIncomplete || sub.Status == stripe.SubscriptionStatusIncompleteExpired {
 		paymentHandler.Log.Warn("First payment did not work. Subscription is incomplete.", zap.Any("subscriptionID", sub.ID), zap.Any("status", sub.Status))
 	} else {
-		paymentHandler.Log.Error("Subscription should not get this status.", zap.Any("status", sub.Status))
+		paymentHandler.Log.Error("Subscription should not get this status. Canceling subscription.", zap.Any("subscriptionID", sub.ID), zap.Any("status", sub.Status))
+		sub, err = subscription.Cancel(sub.ID, nil)
+		if err != nil {
+			paymentHandler.Log.Error("Error canceling subscription", zap.Error(err))
+		}
+
 	}
 	checkoutSubscriptionModel := CheckoutCreateSubscriptionReply{
 		Status:         string(sub.Status),
