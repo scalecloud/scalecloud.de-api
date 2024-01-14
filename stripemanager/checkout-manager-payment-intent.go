@@ -79,7 +79,6 @@ func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Conte
 		if err != nil {
 			paymentHandler.Log.Error("Error canceling subscription", zap.Error(err))
 		}
-
 	}
 	checkoutSubscriptionModel := CheckoutCreateSubscriptionReply{
 		Status:         string(sub.Status),
