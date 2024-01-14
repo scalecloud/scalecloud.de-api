@@ -9,6 +9,7 @@ import (
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 	"github.com/stripe/stripe-go/v76"
+	"github.com/stripe/stripe-go/v76/invoiceitem"
 	"github.com/stripe/stripe-go/v76/subscription"
 	"go.uber.org/zap"
 )
@@ -69,14 +70,31 @@ func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Conte
 		return CheckoutCreateSubscriptionReply{}, err
 	}
 	paymentHandler.Log.Info("Subscription created.", zap.Any("subscriptionID", sub.ID))
-
-	checkoutSubscriptionModel := CheckoutCreateSubscriptionReply{
-		Status:         string(sub.Status),
-		SubscriptionID: sub.ID,
-		ProductName:    product.Name,
-		EMail:          tokenDetails.EMail,
+	if sub.Status == stripe.SubscriptionStatusActive || sub.Status == stripe.SubscriptionStatusTrialing {
+		paymentHandler.Log.Info("Subscription is valid.", zap.Any("subscriptionID", sub.ID), zap.Any("status", sub.Status))
+		checkoutSubscriptionModel := CheckoutCreateSubscriptionReply{
+			Status:         string(sub.Status),
+			SubscriptionID: sub.ID,
+			ProductName:    product.Name,
+			EMail:          tokenDetails.EMail,
+		}
+		return checkoutSubscriptionModel, nil
+	} else {
+		paymentHandler.Log.Info("Subscription is not valid.", zap.Any("subscriptionID", sub.ID), zap.Any("status", sub.Status))
+		if sub.Items == nil {
+			return CheckoutCreateSubscriptionReply{}, errors.New("Subscription items not found")
+		} else if len(sub.Items.Data) == 0 {
+			return CheckoutCreateSubscriptionReply{}, errors.New("Subscription items not found")
+		} else {
+			for _, item := range sub.Items.Data {
+				_, err := invoiceitem.Del(item.ID, nil)
+				if err != nil {
+					paymentHandler.Log.Error("Error deleting invoice item", zap.Error(err))
+				}
+			}
+		}
+		return CheckoutCreateSubscriptionReply{}, errors.New("Subscription is not active")
 	}
-	return checkoutSubscriptionModel, nil
 }
 
 func (paymentHandler *PaymentHandler) GetCheckoutProduct(c context.Context, tokenDetails firebasemanager.TokenDetails, checkoutProductRequest CheckoutProductRequest) (CheckoutProductReply, error) {
