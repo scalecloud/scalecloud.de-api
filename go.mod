@@ -3,7 +3,7 @@ module github.com/scalecloud/scalecloud.de-api
 go 1.20
 
 require (
-	github.com/gin-contrib/cors v1.6.0
+	github.com/gin-contrib/cors v1.7.0
 	github.com/gin-gonic/autotls v1.0.0
 	github.com/go-playground/validator/v10 v10.19.0
 	github.com/stripe/stripe-go/v76 v76.20.0
@@ -18,9 +18,9 @@ require (
 	cloud.google.com/go/firestore v1.15.0 // indirect
 	cloud.google.com/go/iam v1.1.6 // indirect
 	cloud.google.com/go/longrunning v0.5.5 // indirect
-	cloud.google.com/go/storage v1.39.0 // indirect
+	cloud.google.com/go/storage v1.39.1 // indirect
 	github.com/MicahParks/keyfunc v1.9.0 // indirect
-	github.com/bytedance/sonic v1.11.2 // indirect
+	github.com/bytedance/sonic v1.11.3 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d // indirect
 	github.com/chenzhuoyu/iasm v0.9.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
@@ -70,9 +70,9 @@ require (
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/appengine/v2 v2.0.5 // indirect
-	google.golang.org/genproto v0.0.0-20240308144416-29370a3891b7 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240308144416-29370a3891b7 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240308144416-29370a3891b7 // indirect
+	google.golang.org/genproto v0.0.0-20240311173647-c811ad7063a7 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20240311173647-c811ad7063a7 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240311173647-c811ad7063a7 // indirect
 	google.golang.org/grpc v1.62.1 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
