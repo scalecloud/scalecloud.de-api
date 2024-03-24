@@ -3,7 +3,7 @@ module github.com/scalecloud/scalecloud.de-api
 go 1.20
 
 require (
-	github.com/gin-contrib/cors v1.7.0
+	github.com/gin-contrib/cors v1.7.1
 	github.com/gin-gonic/autotls v1.0.0
 	github.com/go-playground/validator/v10 v10.19.0
 	github.com/stripe/stripe-go/v76 v76.22.0
