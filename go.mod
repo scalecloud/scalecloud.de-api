@@ -6,7 +6,7 @@ require (
 	github.com/gin-contrib/cors v1.7.1
 	github.com/gin-gonic/autotls v1.0.0
 	github.com/go-playground/validator/v10 v10.19.0
-	github.com/stripe/stripe-go/v76 v76.22.0
+	github.com/stripe/stripe-go/v76 v76.23.0
 	go.uber.org/zap v1.27.0
 	google.golang.org/api v0.172.0
 )
@@ -18,7 +18,7 @@ require (
 	cloud.google.com/go/firestore v1.15.0 // indirect
 	cloud.google.com/go/iam v1.1.7 // indirect
 	cloud.google.com/go/longrunning v0.5.6 // indirect
-	cloud.google.com/go/storage v1.39.1 // indirect
+	cloud.google.com/go/storage v1.40.0 // indirect
 	github.com/MicahParks/keyfunc v1.9.0 // indirect
 	github.com/bytedance/sonic v1.11.3 // indirect
 	github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d // indirect
