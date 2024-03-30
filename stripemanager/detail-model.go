@@ -12,5 +12,5 @@ type SubscriptionDetailReply struct {
 	CancelAtPeriodEnd *bool  `json:"cancel_at_period_end" validate:"required"`
 	CancelAt          int64  `json:"cancel_at"`
 	Status            string `json:"status" validate:"required"`
-	TrialEnd          int64  `json:"trial_end" validate:"required"`
+	TrialEnd          int64  `json:"trial_end"`
 }
