@@ -237,13 +237,13 @@ func (api *Api) validateReply(c *gin.Context, err error, reply interface{}) bool
 
 func (api *Api) validateStruct(c *gin.Context, s interface{}) bool {
 	if s == nil {
-		api.log.Warn("Struct is nil")
+		api.log.Error("Struct is nil")
 		c.SecureJSON(http.StatusBadRequest, gin.H{"error": "Struct is nil"})
 		return false
 	}
 	err := api.validate.Struct(s)
 	if err != nil {
-		api.log.Warn("Error validating struct", zap.Error(err))
+		api.log.Error("Error validating struct", zap.Error(err))
 		c.SecureJSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return false
 	}
