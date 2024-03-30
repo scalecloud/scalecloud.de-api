@@ -22,6 +22,7 @@ func main() {
 		config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 		config.EncoderConfig.EncodeDuration = zapcore.StringDurationEncoder
 		config.EncoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
+		config.Level.SetLevel(zapcore.InfoLevel)
 		log, err = config.Build()
 		if err != nil {
 			log.Fatal("Error initializing development logger", zap.Error(err))
