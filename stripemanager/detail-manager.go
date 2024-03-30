@@ -12,7 +12,7 @@ import (
 
 func (paymentHandler *PaymentHandler) GetSubscriptionDetailByID(c context.Context, tokenDetails firebasemanager.TokenDetails, subscriptionID string) (subscriptionDetailReply SubscriptionDetailReply, err error) {
 	if subscriptionID == "" {
-		return SubscriptionDetailReply{}, errors.New("Subscription ID is empty")
+		return SubscriptionDetailReply{}, errors.New("subscription ID is empty")
 	}
 	customerID, err := paymentHandler.GetCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
@@ -21,12 +21,12 @@ func (paymentHandler *PaymentHandler) GetSubscriptionDetailByID(c context.Contex
 	stripe.Key = paymentHandler.StripeConnection.Key
 	subscription, err := paymentHandler.StripeConnection.GetSubscriptionByID(c, subscriptionID)
 	if err != nil {
-		return SubscriptionDetailReply{}, errors.New("Subscription not found")
+		return SubscriptionDetailReply{}, errors.New("subscription not found")
 	}
 	paymentHandler.Log.Debug("subscription", zap.Any("subscription", subscription))
 	if subscription.Customer.ID != customerID {
 		paymentHandler.Log.Error("Tried to request subscription for wrong customer", zap.String("customerID", customerID), zap.String("subscriptionID", subscriptionID))
-		return SubscriptionDetailReply{}, errors.New("Subscription not matching customer")
+		return SubscriptionDetailReply{}, errors.New("subscription not matching customer")
 	} else {
 		subscriptionDetailReply, err = paymentHandler.StripeConnection.mapSubscriptionItemToSubscriptionDetail(c, subscription)
 		if err != nil {
