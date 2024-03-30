@@ -15,7 +15,7 @@ func (paymentHandler *PaymentHandler) GetBillingPortal(c context.Context, tokenD
 		return BillingPortalReply{}, err
 	}
 	if customerID == "" {
-		return BillingPortalReply{}, errors.New("Customer ID is empty")
+		return BillingPortalReply{}, errors.New("customer ID is empty")
 	}
 	params := &stripe.BillingPortalSessionParams{
 		Customer:  stripe.String(customerID),
@@ -26,7 +26,7 @@ func (paymentHandler *PaymentHandler) GetBillingPortal(c context.Context, tokenD
 		return BillingPortalReply{}, err
 	}
 	if session.Customer != customerID {
-		return BillingPortalReply{}, errors.New("Customer ID does not match")
+		return BillingPortalReply{}, errors.New("customer ID does not match")
 	}
 	if session.URL == "" {
 		return BillingPortalReply{}, errors.New("URL is empty")

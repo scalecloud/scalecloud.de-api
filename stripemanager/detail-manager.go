@@ -43,7 +43,7 @@ func (stripeConnection *StripeConnection) mapSubscriptionItemToSubscriptionDetai
 
 	prod, err := stripeConnection.GetProduct(c, productID)
 	if err != nil {
-		return SubscriptionDetailReply{}, errors.New("Product not found")
+		return SubscriptionDetailReply{}, errors.New("product not found")
 	}
 	reply.ProductName = prod.Name
 
@@ -51,15 +51,15 @@ func (stripeConnection *StripeConnection) mapSubscriptionItemToSubscriptionDetai
 
 	metaData := prod.Metadata
 	if err != nil {
-		return SubscriptionDetailReply{}, errors.New("Product metadata not found")
+		return SubscriptionDetailReply{}, errors.New("product metadata not found")
 	}
 	storageAmount, ok := metaData["storageAmount"]
 	if !ok {
-		return SubscriptionDetailReply{}, errors.New("Storage amount not found")
+		return SubscriptionDetailReply{}, errors.New("storage amount not found")
 	}
 	iStorageAmount, err := strconv.Atoi(storageAmount)
 	if err != nil {
-		return SubscriptionDetailReply{}, errors.New("Error converting storage amount to int")
+		return SubscriptionDetailReply{}, errors.New("error converting storage amount to int")
 	}
 	reply.StorageAmount = iStorageAmount
 	productType, ok := metaData["productType"]
@@ -72,7 +72,7 @@ func (stripeConnection *StripeConnection) mapSubscriptionItemToSubscriptionDetai
 
 	pri, err := stripeConnection.GetPrice(c, subscription.Items.Data[0].Price.Product.ID)
 	if err != nil {
-		return SubscriptionDetailReply{}, errors.New("Price not found")
+		return SubscriptionDetailReply{}, errors.New("price not found")
 	}
 
 	reply.PricePerMonth = pri.UnitAmount

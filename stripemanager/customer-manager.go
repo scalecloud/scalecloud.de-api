@@ -25,7 +25,7 @@ func GetCustomerByID(ctx context.Context, customerID string) (customerDetails *s
 		nil,
 	)
 	if error != nil {
-		return &stripe.Customer{}, errors.New("Customer not found")
+		return &stripe.Customer{}, errors.New("customer not found")
 	}
 	return customer, nil
 }
@@ -40,7 +40,7 @@ func (paymentHandler *PaymentHandler) GetCustomerIDByUID(ctx context.Context, ui
 	}
 	customerID := userSearch.CustomerID
 	if customerID == "" {
-		return "", errors.New("Customer ID is empty")
+		return "", errors.New("customer ID is empty")
 	}
 	return customerID, nil
 }

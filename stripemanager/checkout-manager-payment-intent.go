@@ -22,7 +22,7 @@ func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Conte
 		return CheckoutCreateSubscriptionReply{}, err
 	}
 	if customerID == "" {
-		return CheckoutCreateSubscriptionReply{}, errors.New("Customer ID is empty")
+		return CheckoutCreateSubscriptionReply{}, errors.New("customer ID is empty")
 	}
 	stripe.Key = paymentHandler.StripeConnection.Key
 
@@ -32,7 +32,7 @@ func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Conte
 	}
 	metaData := price.Metadata
 	if metaData == nil {
-		return CheckoutCreateSubscriptionReply{}, errors.New("Price metadata not found")
+		return CheckoutCreateSubscriptionReply{}, errors.New("price metadata not found")
 	}
 	cus, err := GetCustomerByID(c, customerID)
 	if err != nil {
@@ -99,14 +99,14 @@ func (paymentHandler *PaymentHandler) GetCheckoutProduct(c context.Context, toke
 	currency := strings.ToUpper(string(price.Currency))
 	metaDataPrice := price.Metadata
 	if metaDataPrice == nil {
-		return CheckoutProductReply{}, errors.New("Price metadata not found")
+		return CheckoutProductReply{}, errors.New("price metadata not found")
 	}
 	product, err := paymentHandler.StripeConnection.GetProduct(c, checkoutProductRequest.ProductID)
 	if err != nil {
 		return CheckoutProductReply{}, err
 	}
 	if product.Metadata == nil {
-		return CheckoutProductReply{}, errors.New("Product metadata not found")
+		return CheckoutProductReply{}, errors.New("product metadata not found")
 	}
 	cus, err := paymentHandler.GetCustomerByUID(c, tokenDetails.UID)
 	if err != nil {
@@ -122,7 +122,7 @@ func (paymentHandler *PaymentHandler) GetCheckoutProduct(c context.Context, toke
 	}
 	metaDataProduct := product.Metadata
 	if metaDataProduct == nil {
-		return CheckoutProductReply{}, errors.New("Product metadata not found")
+		return CheckoutProductReply{}, errors.New("product metadata not found")
 	}
 	storageAmount, ok := metaDataProduct["storageAmount"]
 	if !ok {
@@ -131,7 +131,7 @@ func (paymentHandler *PaymentHandler) GetCheckoutProduct(c context.Context, toke
 	iStorageAmount, err := strconv.ParseInt(storageAmount, 10, 64)
 	if err != nil {
 		paymentHandler.Log.Warn("Error converting storageAmount to int", zap.Error(err))
-		return CheckoutProductReply{}, errors.New("Error converting storageAmount")
+		return CheckoutProductReply{}, errors.New("error converting storageAmount")
 	}
 	storageUnit, ok := metaDataProduct["storageUnit"]
 	if !ok {

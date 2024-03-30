@@ -13,7 +13,7 @@ func (stripeConnection *StripeConnection) GetProduct(c context.Context, productI
 	params := &stripe.ProductParams{}
 	product, err := product.Get(productID, params)
 	if err != nil {
-		return nil, errors.New("Product not found")
+		return nil, errors.New("product not found")
 	}
 	return product, nil
 }

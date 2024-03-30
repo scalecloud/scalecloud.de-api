@@ -51,10 +51,10 @@ func (paymentHandler *PaymentHandler) ChangePaymentDefault(c context.Context, se
 	stripe.Key = paymentHandler.StripeConnection.Key
 	cus := setupIntent.Customer
 	if cus == nil {
-		return errors.New("Customer not set")
+		return errors.New("customer not set")
 	}
 	if cus.ID == "" {
-		return errors.New("Customer ID not set")
+		return errors.New("customer ID not set")
 	}
 	params := &stripe.CustomerParams{
 		InvoiceSettings: &stripe.CustomerInvoiceSettingsParams{

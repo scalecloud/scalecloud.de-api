@@ -27,12 +27,12 @@ func (paymentHandler *PaymentHandler) GetSubscriptionsOverview(c context.Context
 		paymentHandler.Log.Debug("Subscription", zap.Any("subscription", subscription.Customer.ID))
 		subscriptionOverview, err := paymentHandler.StripeConnection.mapSubscriptionToSubscriptionOverview(c, subscription)
 		if err != nil {
-			return []SubscriptionOverviewReply{}, errors.New("Subscription not found")
+			return []SubscriptionOverviewReply{}, errors.New("subscription not found")
 		}
 		subscriptions = append(subscriptions, subscriptionOverview)
 	}
 	if len(subscriptions) == 0 {
-		return []SubscriptionOverviewReply{}, errors.New("No subscriptions found")
+		return []SubscriptionOverviewReply{}, errors.New("no subscriptions found")
 	}
 	return subscriptions, nil
 }

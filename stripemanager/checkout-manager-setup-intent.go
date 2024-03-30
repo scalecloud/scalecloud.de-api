@@ -19,7 +19,7 @@ func (paymentHandler *PaymentHandler) CreateCheckoutSetupIntent(c context.Contex
 		return CheckoutSetupIntentReply{}, err
 	}
 	if customerID == "" {
-		return CheckoutSetupIntentReply{}, errors.New("Customer ID is empty")
+		return CheckoutSetupIntentReply{}, errors.New("customer ID is empty")
 	}
 	stripe.Key = paymentHandler.StripeConnection.Key
 

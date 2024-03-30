@@ -63,7 +63,7 @@ func (paymentHandler *PaymentHandler) GetPaymentMethodOverview(c context.Context
 		}
 		return reply, nil
 	}
-	return PaymentMethodOverviewReply{}, errors.New("Payment method not found")
+	return PaymentMethodOverviewReply{}, errors.New("payment method not found")
 }
 
 func BoolPointer(v bool) *bool { return &v }

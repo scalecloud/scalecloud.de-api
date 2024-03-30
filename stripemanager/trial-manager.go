@@ -29,24 +29,24 @@ func (paymentHandler *PaymentHandler) getTrialDaysForCustomer(c context.Context,
 	iTrialPeriodDays, err := strconv.ParseInt(trialPeriodDays, 10, 64)
 	if err != nil {
 		paymentHandler.Log.Error("Error converting trialPeriodDays to int", zap.Error(err))
-		return 0, errors.New("Error converting trialPeriodDays")
+		return 0, errors.New("error converting trialPeriodDays")
 	}
 	return iTrialPeriodDays, nil
 }
 
 func (paymentHandler *PaymentHandler) hadTrialBefore(ctx context.Context, paymentMethod *stripe.PaymentMethod, product *stripe.Product, customer *stripe.Customer) error {
 	if paymentMethod == nil {
-		return errors.New("PaymentMethod is nil")
+		return errors.New("payment method is nil")
 	}
 	if product == nil {
-		return errors.New("Product is nil")
+		return errors.New("product is nil")
 	}
 	if customer == nil {
-		return errors.New("Customer is nil")
+		return errors.New("customer is nil")
 	}
 	metaDataProduct := product.Metadata
 	if metaDataProduct == nil {
-		return errors.New("Product metadata not found")
+		return errors.New("product metadata not found")
 	}
 	productType, ok := metaDataProduct["productType"]
 	if !ok {
