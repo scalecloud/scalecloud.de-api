@@ -50,7 +50,7 @@ func (stripeConnection *StripeConnection) mapSubscriptionItemToSubscriptionDetai
 	reply.Active = &prod.Active
 
 	metaData := prod.Metadata
-	if err != nil {
+	if metaData == nil {
 		return SubscriptionDetailReply{}, errors.New("product metadata not found")
 	}
 	storageAmount, ok := metaData["storageAmount"]
