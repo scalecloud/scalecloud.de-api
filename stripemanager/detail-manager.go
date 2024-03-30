@@ -10,7 +10,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (paymentHandler *PaymentHandler) GetSubscriptionDetailByID(c context.Context, tokenDetails firebasemanager.TokenDetails, subscriptionID string) (subscriptionDetail SubscriptionDetailReply, err error) {
+func (paymentHandler *PaymentHandler) GetSubscriptionDetailByID(c context.Context, tokenDetails firebasemanager.TokenDetails, subscriptionID string) (subscriptionDetailReply SubscriptionDetailReply, err error) {
 	if subscriptionID == "" {
 		return SubscriptionDetailReply{}, errors.New("Subscription ID is empty")
 	}
@@ -28,16 +28,16 @@ func (paymentHandler *PaymentHandler) GetSubscriptionDetailByID(c context.Contex
 		paymentHandler.Log.Error("Tried to request subscription for wrong customer", zap.String("customerID", customerID), zap.String("subscriptionID", subscriptionID))
 		return SubscriptionDetailReply{}, errors.New("Subscription not matching customer")
 	} else {
-		subscriptionDetail, err = paymentHandler.StripeConnection.mapSubscriptionItemToSubscriptionDetail(c, subscription)
+		subscriptionDetailReply, err = paymentHandler.StripeConnection.mapSubscriptionItemToSubscriptionDetail(c, subscription)
 		if err != nil {
 			return SubscriptionDetailReply{}, err
 		}
 	}
-	return subscriptionDetail, nil
+	return subscriptionDetailReply, nil
 }
 
-func (stripeConnection *StripeConnection) mapSubscriptionItemToSubscriptionDetail(c context.Context, subscription *stripe.Subscription) (subscriptionDetail SubscriptionDetailReply, err error) {
-	subscriptionDetail.ID = subscription.ID
+func (stripeConnection *StripeConnection) mapSubscriptionItemToSubscriptionDetail(c context.Context, subscription *stripe.Subscription) (reply SubscriptionDetailReply, err error) {
+	reply.ID = subscription.ID
 	productID := subscription.Items.Data[0].Price.Product.ID
 	stripeConnection.Log.Debug("Product ID", zap.String("productID", productID))
 
@@ -45,9 +45,9 @@ func (stripeConnection *StripeConnection) mapSubscriptionItemToSubscriptionDetai
 	if err != nil {
 		return SubscriptionDetailReply{}, errors.New("Product not found")
 	}
-	subscriptionDetail.ProductName = prod.Name
+	reply.ProductName = prod.Name
 
-	subscriptionDetail.Active = &prod.Active
+	reply.Active = &prod.Active
 
 	metaData := prod.Metadata
 	if err != nil {
@@ -61,31 +61,31 @@ func (stripeConnection *StripeConnection) mapSubscriptionItemToSubscriptionDetai
 	if err != nil {
 		return SubscriptionDetailReply{}, errors.New("Error converting storage amount to int")
 	}
-	subscriptionDetail.StorageAmount = iStorageAmount
+	reply.StorageAmount = iStorageAmount
 	productType, ok := metaData["productType"]
 	if !ok {
 		return SubscriptionDetailReply{}, errors.New("ProductType not found")
 	}
-	subscriptionDetail.ProductType = productType
+	reply.ProductType = productType
 
-	subscriptionDetail.UserCount = subscription.Items.Data[0].Quantity
+	reply.UserCount = subscription.Items.Data[0].Quantity
 
 	pri, err := stripeConnection.GetPrice(c, subscription.Items.Data[0].Price.Product.ID)
 	if err != nil {
 		return SubscriptionDetailReply{}, errors.New("Price not found")
 	}
 
-	subscriptionDetail.PricePerMonth = pri.UnitAmount
+	reply.PricePerMonth = pri.UnitAmount
 
-	subscriptionDetail.Currency = string(pri.Currency)
+	reply.Currency = string(pri.Currency)
 
-	subscriptionDetail.CancelAtPeriodEnd = &subscription.CancelAtPeriodEnd
+	reply.CancelAtPeriodEnd = &subscription.CancelAtPeriodEnd
 
-	subscriptionDetail.CancelAt = subscription.CancelAt
+	reply.CancelAt = subscription.CancelAt
 
-	subscriptionDetail.Status = string(subscription.Status)
+	reply.Status = string(subscription.Status)
 
-	subscriptionDetail.TrialEnd = subscription.TrialEnd
+	reply.TrialEnd = subscription.TrialEnd
 
-	return subscriptionDetail, nil
+	return reply, nil
 }

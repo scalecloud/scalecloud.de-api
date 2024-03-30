@@ -2,20 +2,33 @@ package main
 
 import (
 	"flag"
-	"os"
 
 	"github.com/scalecloud/scalecloud.de-api/apimanager"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 func main() {
 	var log, err = zap.NewProduction()
 	if err != nil {
-		os.Exit(1)
+		log.Fatal("Error initializing production logger", zap.Error(err))
+	}
+	production, proxyIP := parseFlags(log)
+	if production {
+		log.Info("Logging running in production mode.")
+	} else {
+		config := zap.NewDevelopmentConfig()
+		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+		config.EncoderConfig.EncodeDuration = zapcore.StringDurationEncoder
+		config.EncoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
+		log, err = config.Build()
+		if err != nil {
+			log.Fatal("Error initializing development logger", zap.Error(err))
+		}
+		log.Info("Logging switched to development mode.")
 	}
 	log.Info("Starting App.")
-	production, proxyIP := parseFlags(log)
-
 	api, err := apimanager.InitAPI(log, production, proxyIP)
 	if err != nil {
 		log.Fatal("Error initializing API", zap.Error(err))
@@ -25,7 +38,7 @@ func main() {
 		api.CloseMongoClient()
 	}()
 	api.RunAPI()
-	log.Info("App ended.")
+	log.Info("App finished.")
 }
 
 func parseFlags(log *zap.Logger) (bool, string) {
