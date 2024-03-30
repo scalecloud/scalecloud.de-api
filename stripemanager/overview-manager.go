@@ -51,7 +51,7 @@ func (stripeConnection *StripeConnection) mapSubscriptionToSubscriptionOverview(
 	reply.Acive = &product.Active
 
 	metaData := product.Metadata
-	if err != nil {
+	if metaData == nil {
 		return SubscriptionOverviewReply{}, errors.New("product metadata not found")
 	}
 	storageAmount, ok := metaData["storageAmount"]
