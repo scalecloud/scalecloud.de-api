@@ -60,6 +60,16 @@ func InitAPI(log *zap.Logger, production bool, proxyIP string) (*Api, error) {
 		return &Api{}, err
 	}
 
+	err = mongoConnection.CheckDatabaseAndCollectionExists(context.Background())
+	if err != nil {
+		return &Api{}, err
+	}
+
+	err = mongoConnection.EnsureIndexes()
+	if err != nil {
+		return &Api{}, err
+	}
+
 	stripeConnection, err := stripemanager.InitStripeConnection(context.Background(), log)
 	if err != nil {
 		return &Api{}, err
@@ -127,6 +137,7 @@ func (api *Api) initRoutes() {
 	{
 		dashboard.GET("/subscriptions", api.getSubscriptionsOverview)
 		dashboard.GET("/subscription/:id", api.getSubscriptionByID)
+		dashboard.POST("/subscription/list-seats", api.getSubscriptionListSeats)
 		dashboard.POST("/get-payment-method-overview", api.getPaymentMethodOverview)
 		dashboard.POST("/get-change-payment-setup-intent", api.getChangePaymentSetupIntent)
 		dashboard.POST("/resume-subscription", api.resumeSubscription)

@@ -27,6 +27,16 @@ func (api *Api) getSubscriptionByID(c *gin.Context) {
 	}
 }
 
+func (api *Api) getSubscriptionListSeats(c *gin.Context) {
+	var request stripemanager.ListSeatRequest
+	tokenDetails, err := api.handleTokenDetails(c)
+	if err == nil &&
+		api.handleBind(c, &request) {
+		reply, err := api.paymentHandler.GetSubscriptionListSeat(c, tokenDetails, request)
+		api.validateAndWriteReply(c, err, reply)
+	}
+}
+
 func (api *Api) handleBillingPortal(c *gin.Context) {
 	tokenDetails, err := api.handleTokenDetails(c)
 	if err == nil {

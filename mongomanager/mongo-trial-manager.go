@@ -9,9 +9,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-const databaseProduct = "product"
-const collectionTrial = "trial"
-
 func (mongoConnection *MongoConnection) CreateTrial(ctx context.Context, trial Trial) error {
 	err := ValidateStruct(trial)
 	if err != nil {
@@ -34,10 +31,12 @@ func (mongoConnection *MongoConnection) GetTrial(ctx context.Context, trialFilte
 			{"paymentSEPAFingerprint": trialFilter.PaymentSEPAFingerprint},
 		},
 	}
-	singleResult, err := mongoConnection.findDocument(ctx, databaseProduct, collectionTrial, filter)
+	singleResult, err := mongoConnection.findOneDocument(ctx, databaseProduct, collectionTrial, filter)
 	if err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return Trial{}, nil
+		} else {
+			return Trial{}, err
 		}
 	}
 	var trial Trial

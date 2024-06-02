@@ -61,3 +61,34 @@ func (mongoConnection *MongoConnection) CheckMongoConnectability(ctx context.Con
 	}
 	return nil
 }
+
+func (mongoConnection *MongoConnection) CheckDatabaseAndCollectionExists(ctx context.Context) error {
+	for dbName, collections := range databases {
+		err := mongoConnection.ensureCollectionsExist(dbName, collections)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (mongoConnection *MongoConnection) ensureCollectionsExist(dbName string, collectionNames []string) error {
+	database := mongoConnection.Client.Database(dbName)
+	existingCollections, err := database.ListCollectionNames(context.Background(), bson.M{})
+	if err != nil {
+		return errors.New("Failed to get collection names: " + err.Error())
+	}
+
+	existingCollectionsMap := make(map[string]bool)
+	for _, name := range existingCollections {
+		existingCollectionsMap[name] = true
+	}
+
+	for _, name := range collectionNames {
+		if !existingCollectionsMap[name] {
+			return errors.New("Collection " + name + " does not exist in database " + dbName)
+		}
+	}
+
+	return nil
+}

@@ -102,7 +102,7 @@ func (mongoConnection *MongoConnection) deleteDocument(ctx context.Context, data
 	return nil
 }
 
-func (mongoConnection *MongoConnection) findDocument(ctx context.Context, databaseName, collectionName string, filter interface{}) (*mongo.SingleResult, error) {
+func (mongoConnection *MongoConnection) findOneDocument(ctx context.Context, databaseName, collectionName string, filter interface{}) (*mongo.SingleResult, error) {
 	collection, err := mongoConnection.getCollection(ctx, databaseName, collectionName)
 	if err != nil {
 		return nil, err
@@ -115,4 +115,25 @@ func (mongoConnection *MongoConnection) findDocument(ctx context.Context, databa
 		return nil, singleResult.Err()
 	}
 	return singleResult, nil
+}
+
+func (mongoConnection *MongoConnection) findDocuments(ctx context.Context, databaseName, collectionName string, filter interface{}, results interface{}) error {
+	collection, err := mongoConnection.getCollection(ctx, databaseName, collectionName)
+	if err != nil {
+		return err
+	}
+	if filter == nil {
+		return errors.New("filter is nil")
+	}
+	// Call Find
+	cursor, err := collection.Find(ctx, filter)
+	if err != nil {
+		return err
+	}
+	defer cursor.Close(ctx)
+	// Decode the results
+	if err = cursor.All(ctx, results); err != nil {
+		return err
+	}
+	return nil
 }

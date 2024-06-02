@@ -7,9 +7,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-const databaseStripe = "stripe"
-const collectionUsers = "users"
-
 func (mongoConnection *MongoConnection) CreateUser(ctx context.Context, user User) error {
 	return mongoConnection.createDocument(ctx, databaseStripe, collectionUsers, user)
 }
@@ -35,7 +32,7 @@ func (mongoConnection *MongoConnection) GetUser(ctx context.Context, userFilter 
 		return User{}, errors.New("user.UID is empty")
 	}
 	filter := bson.M{"uid": userFilter.UID}
-	singleResult, err := mongoConnection.findDocument(ctx, databaseStripe, collectionUsers, filter)
+	singleResult, err := mongoConnection.findOneDocument(ctx, databaseStripe, collectionUsers, filter)
 	if err != nil {
 		return User{}, err
 	}
