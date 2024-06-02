@@ -5,9 +5,9 @@ go 1.22
 toolchain go1.22.2
 
 require (
-	github.com/gin-contrib/cors v1.7.1
-	github.com/gin-gonic/autotls v1.0.0
-	github.com/go-playground/validator/v10 v10.20.0
+	github.com/gin-contrib/cors v1.7.2
+	github.com/gin-gonic/autotls v1.1.0
+	github.com/go-playground/validator/v10 v10.21.0
 	github.com/stripe/stripe-go/v78 v78.9.0
 	go.uber.org/zap v1.27.0
 	google.golang.org/api v0.182.0
