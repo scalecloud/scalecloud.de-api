@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/stripe/stripe-go/v76"
-	"github.com/stripe/stripe-go/v76/paymentmethod"
+	"github.com/stripe/stripe-go/v78"
+	"github.com/stripe/stripe-go/v78/paymentmethod"
 )
 
 func (stripeConnection *StripeConnection) GetPaymentMethod(c context.Context, paymentMethodID string) (*stripe.PaymentMethod, error) {

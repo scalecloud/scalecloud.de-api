@@ -8,8 +8,8 @@ import (
 
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
-	"github.com/stripe/stripe-go/v76"
-	"github.com/stripe/stripe-go/v76/subscription"
+	"github.com/stripe/stripe-go/v78"
+	"github.com/stripe/stripe-go/v78/subscription"
 	"go.uber.org/zap"
 )
 

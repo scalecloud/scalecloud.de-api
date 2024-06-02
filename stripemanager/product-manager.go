@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/stripe/stripe-go/v76"
-	"github.com/stripe/stripe-go/v76/product"
+	"github.com/stripe/stripe-go/v78"
+	"github.com/stripe/stripe-go/v78/product"
 )
 
 func (stripeConnection *StripeConnection) GetProduct(c context.Context, productID string) (*stripe.Product, error) {

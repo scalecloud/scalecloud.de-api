@@ -9,8 +9,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 	"github.com/scalecloud/scalecloud.de-api/stripemanager"
-	"github.com/stripe/stripe-go/v76"
-	"github.com/stripe/stripe-go/v76/webhook"
+	"github.com/stripe/stripe-go/v78"
+	"github.com/stripe/stripe-go/v78/webhook"
 	"go.uber.org/zap"
 )
 
