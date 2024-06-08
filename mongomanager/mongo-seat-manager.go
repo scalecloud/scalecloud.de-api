@@ -7,47 +7,28 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.uber.org/zap"
 )
 
 func (mongoConnection *MongoConnection) ensureSeatIndex() error {
 	indexModel := mongo.IndexModel{
-		Keys: bson.M{
-			"subscriptionID": 1,
-			"email":          1,
+		Keys: bson.D{
+			{Key: "subscriptionID", Value: 1},
+			{Key: "email", Value: 1},
 		},
-		Options: options.Index().SetUnique(true),
+		Options: options.Index().SetUnique(true).SetName("UniqueSubscriptionEmail"),
 	}
-
 	collection, err := mongoConnection.getCollection(context.Background(), databaseSubscription, collectionSeats)
 	if err != nil {
 		return err
 	}
-	// Retrieve all indexes
-	cursor, err := collection.Indexes().List(context.Background())
+	name, err := collection.Indexes().CreateOne(context.Background(), indexModel)
 	if err != nil {
+		mongoConnection.Log.Error("Error creating index for seats", zap.String("error", err.Error()))
 		return err
 	}
 
-	var results []bson.M
-	if err = cursor.All(context.Background(), &results); err != nil {
-		return err
-	}
-
-	// Check if the index already exists
-	for _, result := range results {
-		if result["key"] == indexModel.Keys && result["unique"] == true {
-			// The index already exists, no need to create it
-			mongoConnection.Log.Info("Index for seats already exists")
-			return nil
-		}
-	}
-
-	// The index doesn't exist or is not the same, create it
-	_, err = collection.Indexes().CreateOne(context.Background(), indexModel)
-	if err != nil {
-		return err
-	}
-	mongoConnection.Log.Info("Index for seats created")
+	mongoConnection.Log.Info("Required index for collection " + collection.Name() + " is present. Index: " + name)
 	return nil
 }
 

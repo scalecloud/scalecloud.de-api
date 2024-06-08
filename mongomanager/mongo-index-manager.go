@@ -5,6 +5,6 @@ func (mongoConnection *MongoConnection) EnsureIndexes() error {
 	if err != nil {
 		return err
 	}
-	mongoConnection.Log.Info("All indexes validated and created")
+	mongoConnection.Log.Info("All required indexes are present.")
 	return nil
 }
