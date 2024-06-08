@@ -9,7 +9,7 @@ import (
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 )
 
-func (paymentHandler *PaymentHandler) checkAccess(c context.Context, tokenDetails firebasemanager.TokenDetails, seats []mongomanager.Seat, subscriptionID string) error {
+func (paymentHandler *PaymentHandler) checkAccess(tokenDetails firebasemanager.TokenDetails, seats []mongomanager.Seat, subscriptionID string) error {
 	if !containsEmail(seats, tokenDetails.EMail) {
 		paymentHandler.Log.Error("user with UID " + tokenDetails.UID + " is not allowed to access subscriptionID " + subscriptionID)
 		return errors.New("access denied")
@@ -25,7 +25,7 @@ func (paymentHandler *PaymentHandler) GetSubscriptionListSeats(c context.Context
 	if err != nil {
 		return ListSeatReply{}, err
 	}
-	err = paymentHandler.checkAccess(c, tokenDetails, seats, request.SubscriptionID)
+	err = paymentHandler.checkAccess(tokenDetails, seats, request.SubscriptionID)
 	if err != nil {
 		return ListSeatReply{}, err
 	}
@@ -86,7 +86,7 @@ func (paymentHandler *PaymentHandler) GetSubscriptionAddSeat(c context.Context, 
 	if err != nil {
 		return AddSeatReply{}, err
 	}
-	err = paymentHandler.checkAccess(c, tokenDetails, seats, request.SubscriptionID)
+	err = paymentHandler.checkAccess(tokenDetails, seats, request.SubscriptionID)
 	if err != nil {
 		return AddSeatReply{}, err
 	}
@@ -123,7 +123,7 @@ func (paymentHandler *PaymentHandler) GetSubscriptionAddSeat(c context.Context, 
 }
 
 func containsEmail(seats []mongomanager.Seat, email string) bool {
-	if seats == nil || len(seats) == 0 {
+	if len(seats) == 0 {
 		return false
 	}
 	for _, seat := range seats {
@@ -146,7 +146,7 @@ func (paymentHandler *PaymentHandler) GetSubscriptionRemoveSeat(c context.Contex
 	if err != nil {
 		return RemoveSeatReply{}, err
 	}
-	err = paymentHandler.checkAccess(c, tokenDetails, seats, request.SubscriptionID)
+	err = paymentHandler.checkAccess(tokenDetails, seats, request.SubscriptionID)
 	if err != nil {
 		return RemoveSeatReply{}, err
 	}
