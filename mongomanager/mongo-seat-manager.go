@@ -59,29 +59,42 @@ func (mongoConnection *MongoConnection) CreateSeat(ctx context.Context, seat Sea
 	return mongoConnection.createDocument(ctx, databaseSubscription, collectionSeats, seat)
 }
 
-func (mongoConnection *MongoConnection) GetSeatsEMail(ctx context.Context, seatFilter SeatFilter) ([]string, error) {
-	err := ValidateStruct(seatFilter)
-	if err != nil {
-		return []string{}, err
+func (mongoConnection *MongoConnection) GetSeats(ctx context.Context, subscriptionID string) ([]Seat, error) {
+	if subscriptionID == "" {
+		return []Seat{}, errors.New("subscription ID is empty")
 	}
 	filter := bson.M{
-		"subscriptionID": seatFilter.SubscriptionID,
+		"subscriptionID": subscriptionID,
 	}
 	var seats []Seat
-	err = mongoConnection.findDocuments(ctx, databaseSubscription, collectionSeats, filter, &seats)
+	err := mongoConnection.findDocuments(ctx, databaseSubscription, collectionSeats, filter, &seats)
 	if err != nil {
-		return []string{}, err
+		return []Seat{}, err
 	}
-	emails := extractEmails(seats)
-	return emails, nil
+	return seats, nil
 }
 
-func extractEmails(seats []Seat) []string {
-	emails := make([]string, len(seats))
-	for i, seat := range seats {
-		emails[i] = seat.EMail
+func (mongoConnection *MongoConnection) GetSeat(ctx context.Context, subscriptionID, email string) (Seat, error) {
+	if subscriptionID == "" {
+		return Seat{}, errors.New("subscription ID is empty")
 	}
-	return emails
+	if email == "" {
+		return Seat{}, errors.New("email is empty")
+	}
+	filter := bson.M{
+		"subscriptionID": subscriptionID,
+		"email":          email,
+	}
+	singleResult, err := mongoConnection.findOneDocument(ctx, databaseSubscription, collectionSeats, filter)
+	if err != nil {
+		return Seat{}, err
+	}
+	var seat Seat
+	decodeErr := singleResult.Decode(&seat)
+	if decodeErr != nil {
+		return Seat{}, decodeErr
+	}
+	return seat, nil
 }
 
 func (mongoConnection *MongoConnection) DeleteSeat(ctx context.Context, seat Seat) error {

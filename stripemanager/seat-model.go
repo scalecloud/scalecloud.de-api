@@ -14,22 +14,22 @@ type ListSeatReply struct {
 
 type AddSeatRequest struct {
 	SubscriptionID string `json:"subscriptionID" validate:"required"`
-	Email          string `json:"email" validate:"required"`
+	EMail          string `json:"email" validate:"required"`
 }
 
 type AddSeatReply struct {
 	SubscriptionID string `json:"subscriptionID" validate:"required"`
 	Success        bool   `json:"success" validate:"required"`
-	Email          string `json:"email" validate:"required"`
+	EMail          string `json:"email" validate:"required"`
 }
 
 type RemoveSeatRequest struct {
 	SubscriptionID string `json:"subscriptionID" validate:"required"`
-	Email          string `json:"email" validate:"required"`
+	EMail          string `json:"email" validate:"required"`
 }
 
 type RemoveSeatReply struct {
 	SubscriptionID string `json:"subscriptionID" validate:"required"`
 	Success        bool   `json:"success" validate:"required"`
-	Email          string `json:"email" validate:"required"`
+	EMail          string `json:"email" validate:"required"`
 }

@@ -32,7 +32,27 @@ func (api *Api) getSubscriptionListSeats(c *gin.Context) {
 	tokenDetails, err := api.handleTokenDetails(c)
 	if err == nil &&
 		api.handleBind(c, &request) {
-		reply, err := api.paymentHandler.GetSubscriptionListSeat(c, tokenDetails, request)
+		reply, err := api.paymentHandler.GetSubscriptionListSeats(c, tokenDetails, request)
+		api.validateAndWriteReply(c, err, reply)
+	}
+}
+
+func (api *Api) getSubscriptionAddSeat(c *gin.Context) {
+	var request stripemanager.AddSeatRequest
+	tokenDetails, err := api.handleTokenDetails(c)
+	if err == nil &&
+		api.handleBind(c, &request) {
+		reply, err := api.paymentHandler.GetSubscriptionAddSeat(c, tokenDetails, request)
+		api.validateAndWriteReply(c, err, reply)
+	}
+}
+
+func (api *Api) getSubscriptionRemoveSeat(c *gin.Context) {
+	var request stripemanager.RemoveSeatRequest
+	tokenDetails, err := api.handleTokenDetails(c)
+	if err == nil &&
+		api.handleBind(c, &request) {
+		reply, err := api.paymentHandler.GetSubscriptionRemoveSeat(c, tokenDetails, request)
 		api.validateAndWriteReply(c, err, reply)
 	}
 }
