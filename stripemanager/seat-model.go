@@ -6,8 +6,6 @@ type ListSeatRequest struct {
 
 type ListSeatReply struct {
 	SubscriptionID string   `json:"subscriptionID" validate:"required"`
-	ProductName    string   `json:"product_name" validate:"required"`
-	ProductType    string   `json:"product_type" validate:"required"`
 	MaxSeats       int64    `json:"max_seats" validate:"required"`
 	EMails         []string `json:"emails" validate:"required"`
 }

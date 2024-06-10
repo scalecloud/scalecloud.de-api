@@ -38,26 +38,12 @@ func (paymentHandler *PaymentHandler) GetSubscriptionListSeats(c context.Context
 	if err != nil {
 		return ListSeatReply{}, errors.New("subscription not found")
 	}
-	productID := subscription.Items.Data[0].Price.Product.ID
-	product, err := paymentHandler.StripeConnection.GetProduct(c, productID)
-	if err != nil {
-		return ListSeatReply{}, errors.New("product not found")
-	}
-	metaData := product.Metadata
-	productType, ok := metaData["productType"]
-	if !ok {
-		return ListSeatReply{}, errors.New("productType not found")
-	}
-
 	quantity := subscription.Items.Data[0].Quantity
 	if quantity == 0 {
 		return ListSeatReply{}, errors.New("quantity is 0")
 	}
-
 	reply := ListSeatReply{
 		SubscriptionID: request.SubscriptionID,
-		ProductName:    product.Name,
-		ProductType:    productType,
 		MaxSeats:       quantity,
 		EMails:         emails,
 	}
