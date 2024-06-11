@@ -1,5 +1,7 @@
 package stripemanager
 
+import "github.com/scalecloud/scalecloud.de-api/mongomanager"
+
 type ListSeatRequest struct {
 	SubscriptionID string `json:"subscriptionID" validate:"required"`
 }
@@ -11,8 +13,9 @@ type ListSeatReply struct {
 }
 
 type AddSeatRequest struct {
-	SubscriptionID string `json:"subscriptionID" validate:"required"`
-	EMail          string `json:"email" validate:"required"`
+	SubscriptionID string              `json:"subscriptionID" validate:"required"`
+	EMail          string              `json:"email" validate:"required"`
+	Roles          []mongomanager.Role `json:"roles" validate:"required"`
 }
 
 type AddSeatReply struct {

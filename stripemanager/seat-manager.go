@@ -68,6 +68,9 @@ func (paymentHandler *PaymentHandler) GetSubscriptionAddSeat(c context.Context, 
 	if !IsValidEmail(request.EMail) {
 		return AddSeatReply{}, errors.New("email is invalid")
 	}
+	if len(request.Roles) == 0 {
+		return AddSeatReply{}, errors.New("no role selected")
+	}
 	seats, err := paymentHandler.MongoConnection.GetSeats(c, request.SubscriptionID)
 	if err != nil {
 		return AddSeatReply{}, err
@@ -94,6 +97,7 @@ func (paymentHandler *PaymentHandler) GetSubscriptionAddSeat(c context.Context, 
 	seat := mongomanager.Seat{
 		SubscriptionID: request.SubscriptionID,
 		EMail:          request.EMail,
+		Roles:          request.Roles,
 	}
 	err = paymentHandler.MongoConnection.CreateSeat(c, seat)
 	if err != nil {
