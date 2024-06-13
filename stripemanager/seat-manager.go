@@ -94,6 +94,10 @@ func (paymentHandler *PaymentHandler) GetSubscriptionAddSeat(c context.Context, 
 	if !seatAvailable(seats, quantity) {
 		return AddSeatReply{}, errors.New("already used all seats")
 	}
+	err = paymentHandler.FirebaseConnection.InviteSeat(c, request.EMail)
+	if err != nil {
+		return AddSeatReply{}, err
+	}
 	seat := mongomanager.Seat{
 		SubscriptionID: request.SubscriptionID,
 		EMail:          request.EMail,

@@ -2,20 +2,19 @@ package firebasemanager
 
 import (
 	"context"
-	"errors"
 
 	"firebase.google.com/go/v4/auth"
 )
 
 func (firebaseConnection *FirebaseConnection) InviteSeat(ctx context.Context, email string) error {
-	user, err := firebaseConnection.GetUserByEmail(ctx, email)
+	_, err := firebaseConnection.GetUserByEmail(ctx, email)
 	if err != nil {
 		if auth.IsUserNotFound(err) {
 			_, err := firebaseConnection.createUser(ctx, email)
 			if err != nil {
 				return err
 			}
-			err = firebaseConnection.sendInviteVerifyEMail(ctx, email)
+			err = firebaseConnection.sendInviteAndVerifyEMail(ctx, email)
 			if err != nil {
 				return err
 			}
@@ -23,12 +22,11 @@ func (firebaseConnection *FirebaseConnection) InviteSeat(ctx context.Context, em
 		}
 		return err
 	}
-	if user != nil {
-		return errors.New("user already exists")
-	} else {
-		firebaseConnection.log.Warn("Should not happen: user is nil")
-		return errors.New("user is nil")
+	err = firebaseConnection.sendInviteEMail(email)
+	if err != nil {
+		return err
 	}
+	return nil
 }
 
 func (firebaseConnection *FirebaseConnection) GetUserByEmail(ctx context.Context, email string) (*auth.UserRecord, error) {
@@ -56,7 +54,13 @@ func (firebaseConnection *FirebaseConnection) createUser(ctx context.Context, em
 	return user, nil
 }
 
-func (firebaseConnection *FirebaseConnection) sendInviteVerifyEMail(ctx context.Context, email string) error {
+func (firebaseConnection *FirebaseConnection) sendInviteEMail(email string) error {
+	// TODO: User already exits, user recives an email with the invite link where he just accepts the invite
+	firebaseConnection.log.Error("Verification link sending implemetation missing: " + email)
+	return nil
+}
+
+func (firebaseConnection *FirebaseConnection) sendInviteAndVerifyEMail(ctx context.Context, email string) error {
 	client, err := firebaseConnection.firebaseApp.Auth(ctx)
 	if err != nil {
 		return err
@@ -65,7 +69,7 @@ func (firebaseConnection *FirebaseConnection) sendInviteVerifyEMail(ctx context.
 	if err != nil {
 		return err
 	}
-	// TODO: Send you got invited email with verification link
+	// TODO: Send you got invited email where the link verifies the email and also accepts the invite to the subscription
 	firebaseConnection.log.Error("Verification link sending implemetation missing: " + link)
 	return nil
 }
