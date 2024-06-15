@@ -26,6 +26,9 @@ func (paymentHandler *PaymentHandler) GetSubscriptionListSeats(c context.Context
 		return ListSeatReply{}, errors.New("no seats found")
 	}
 	seats, err := paymentHandler.MongoConnection.GetAllSeats(c, request.SubscriptionID)
+	if err != nil {
+		return ListSeatReply{}, err
+	}
 	err = paymentHandler.checkAccess(tokenDetails, seats, request.SubscriptionID)
 	if err != nil {
 		return ListSeatReply{}, err
