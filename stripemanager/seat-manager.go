@@ -18,18 +18,23 @@ func (paymentHandler *PaymentHandler) checkAccess(tokenDetails firebasemanager.T
 }
 
 func (paymentHandler *PaymentHandler) GetSubscriptionListSeats(c context.Context, tokenDetails firebasemanager.TokenDetails, request ListSeatRequest) (ListSeatReply, error) {
-	if request.SubscriptionID == "" {
-		return ListSeatReply{}, errors.New("subscriptionID is empty")
-	}
-	seats, err := paymentHandler.MongoConnection.GetSeats(c, request.SubscriptionID)
+	totalResults, err := paymentHandler.MongoConnection.CountSeats(c, request.SubscriptionID)
 	if err != nil {
 		return ListSeatReply{}, err
 	}
+	if totalResults == 0 {
+		return ListSeatReply{}, errors.New("no seats found")
+	}
+	seats, err := paymentHandler.MongoConnection.GetAllSeats(c, request.SubscriptionID)
 	err = paymentHandler.checkAccess(tokenDetails, seats, request.SubscriptionID)
 	if err != nil {
 		return ListSeatReply{}, err
 	}
-	emails, err := extractEmails(seats)
+	pagedSeats, err := paymentHandler.MongoConnection.GetSeats(c, request.SubscriptionID, request.PageIndex, request.PageSize)
+	if err != nil {
+		return ListSeatReply{}, err
+	}
+	emails, err := extractEmails(pagedSeats)
 	if err != nil {
 		paymentHandler.Log.Error("there should always be at least one seat")
 		return ListSeatReply{}, err
@@ -46,6 +51,8 @@ func (paymentHandler *PaymentHandler) GetSubscriptionListSeats(c context.Context
 		SubscriptionID: request.SubscriptionID,
 		MaxSeats:       quantity,
 		EMails:         emails,
+		PageIndex:      request.PageIndex,
+		TotalResults:   totalResults,
 	}
 	return reply, nil
 }
@@ -71,7 +78,7 @@ func (paymentHandler *PaymentHandler) GetSubscriptionAddSeat(c context.Context, 
 	if len(request.Roles) == 0 {
 		return AddSeatReply{}, errors.New("no role selected")
 	}
-	seats, err := paymentHandler.MongoConnection.GetSeats(c, request.SubscriptionID)
+	seats, err := paymentHandler.MongoConnection.GetAllSeats(c, request.SubscriptionID)
 	if err != nil {
 		return AddSeatReply{}, err
 	}
@@ -136,7 +143,7 @@ func (paymentHandler *PaymentHandler) GetSubscriptionRemoveSeat(c context.Contex
 	if request.SubscriptionID == "" {
 		return RemoveSeatReply{}, errors.New("subscriptionID is empty")
 	}
-	seats, err := paymentHandler.MongoConnection.GetSeats(c, request.SubscriptionID)
+	seats, err := paymentHandler.MongoConnection.GetAllSeats(c, request.SubscriptionID)
 	if err != nil {
 		return RemoveSeatReply{}, err
 	}

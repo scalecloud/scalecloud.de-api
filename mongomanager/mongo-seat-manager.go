@@ -40,7 +40,15 @@ func (mongoConnection *MongoConnection) CreateSeat(ctx context.Context, seat Sea
 	return mongoConnection.createDocument(ctx, databaseSubscription, collectionSeats, seat)
 }
 
-func (mongoConnection *MongoConnection) GetSeats(ctx context.Context, subscriptionID string) ([]Seat, error) {
+func (mongoConnection *MongoConnection) CountSeats(ctx context.Context, subscriptionID string) (int64, error) {
+	return mongoConnection.countDocuments(ctx, databaseSubscription, collectionSeats, bson.M{"subscriptionID": subscriptionID})
+}
+
+func (mongoConnection *MongoConnection) GetAllSeats(ctx context.Context, subscriptionID string) ([]Seat, error) {
+	return mongoConnection.GetSeats(ctx, subscriptionID, 0, 0)
+}
+
+func (mongoConnection *MongoConnection) GetSeats(ctx context.Context, subscriptionID string, pageIndex int, pageSize int) ([]Seat, error) {
 	if subscriptionID == "" {
 		return []Seat{}, errors.New("subscription ID is empty")
 	}
@@ -48,7 +56,11 @@ func (mongoConnection *MongoConnection) GetSeats(ctx context.Context, subscripti
 		"subscriptionID": subscriptionID,
 	}
 	var seats []Seat
-	err := mongoConnection.findDocuments(ctx, databaseSubscription, collectionSeats, filter, &seats)
+	opts := options.Find()
+	opts.SetLimit(int64(pageSize))
+	opts.SetSkip(int64(pageIndex * pageSize))
+	opts.SetSort(bson.D{{Key: "email", Value: 1}})
+	err := mongoConnection.findDocuments(ctx, databaseSubscription, collectionSeats, filter, &seats, opts)
 	if err != nil {
 		return []Seat{}, err
 	}

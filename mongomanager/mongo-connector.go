@@ -117,7 +117,7 @@ func (mongoConnection *MongoConnection) findOneDocument(ctx context.Context, dat
 	return singleResult, nil
 }
 
-func (mongoConnection *MongoConnection) findDocuments(ctx context.Context, databaseName, collectionName string, filter interface{}, results interface{}) error {
+func (mongoConnection *MongoConnection) findDocuments(ctx context.Context, databaseName, collectionName string, filter interface{}, results interface{}, opts *options.FindOptions) error {
 	collection, err := mongoConnection.getCollection(ctx, databaseName, collectionName)
 	if err != nil {
 		return err
@@ -125,8 +125,8 @@ func (mongoConnection *MongoConnection) findDocuments(ctx context.Context, datab
 	if filter == nil {
 		return errors.New("filter is nil")
 	}
-	// Call Find
-	cursor, err := collection.Find(ctx, filter)
+	// Call Find with sorting and pagination
+	cursor, err := collection.Find(ctx, filter, opts)
 	if err != nil {
 		return err
 	}
@@ -136,4 +136,19 @@ func (mongoConnection *MongoConnection) findDocuments(ctx context.Context, datab
 		return err
 	}
 	return nil
+}
+
+func (mongoConnection *MongoConnection) countDocuments(ctx context.Context, databaseName, collectionName string, filter interface{}) (int64, error) {
+	collection, err := mongoConnection.getCollection(ctx, databaseName, collectionName)
+	if err != nil {
+		return 0, err
+	}
+	if filter == nil {
+		return 0, errors.New("filter is nil")
+	}
+	count, err := collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
 }
