@@ -10,7 +10,8 @@ const (
 )
 
 type Seat struct {
-	SubscriptionID string `bson:"subscriptionID"`
-	EMail          string `bson:"email" validate:"required"`
-	Roles          []Role `bson:"roles" validate:"required"`
+	SubscriptionID string `bson:"subscriptionID" json:"subscriptionID" validate:"required"`
+	UID            string `bson:"uid" json:"uid" validate:"required"`
+	EMail          string `bson:"email" json:"email" validate:"required"`
+	Roles          []Role `bson:"roles" json:"roles" validate:"required"`
 }

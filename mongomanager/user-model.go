@@ -1,6 +1,6 @@
 package mongomanager
 
 type User struct {
-	UID        string `bson:"uid,omitempty"`
-	CustomerID string `bson:"customerID,omitempty"`
+	UID        string `bson:"uid" validate:"required"`
+	CustomerID string `bson:"customerID" validate:"required"`
 }

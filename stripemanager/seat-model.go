@@ -9,11 +9,11 @@ type ListSeatRequest struct {
 }
 
 type ListSeatReply struct {
-	SubscriptionID string   `json:"subscriptionID" validate:"required"`
-	MaxSeats       int64    `json:"maxSeats" validate:"required"`
-	EMails         []string `json:"emails" validate:"required"`
-	PageIndex      int      `json:"pageIndex" validate:"gte=0"`
-	TotalResults   int64    `json:"totalResults" validate:"gte=1"`
+	SubscriptionID string              `json:"subscriptionID" validate:"required"`
+	MaxSeats       int64               `json:"maxSeats" validate:"required"`
+	Seats          []mongomanager.Seat `json:"seats" validate:"required"`
+	PageIndex      int                 `json:"pageIndex" validate:"gte=0"`
+	TotalResults   int64               `json:"totalResults" validate:"gte=1"`
 }
 
 type AddSeatRequest struct {

@@ -37,11 +37,6 @@ func (paymentHandler *PaymentHandler) GetSubscriptionListSeats(c context.Context
 	if err != nil {
 		return ListSeatReply{}, err
 	}
-	emails, err := extractEmails(pagedSeats)
-	if err != nil {
-		paymentHandler.Log.Error("there should always be at least one seat")
-		return ListSeatReply{}, err
-	}
 	subscription, err := paymentHandler.StripeConnection.GetSubscriptionByID(c, request.SubscriptionID)
 	if err != nil {
 		return ListSeatReply{}, errors.New("subscription not found")
@@ -53,22 +48,11 @@ func (paymentHandler *PaymentHandler) GetSubscriptionListSeats(c context.Context
 	reply := ListSeatReply{
 		SubscriptionID: request.SubscriptionID,
 		MaxSeats:       quantity,
-		EMails:         emails,
+		Seats:          pagedSeats,
 		PageIndex:      request.PageIndex,
 		TotalResults:   totalResults,
 	}
 	return reply, nil
-}
-
-func extractEmails(seats []mongomanager.Seat) ([]string, error) {
-	if seats != nil && len(seats) == 0 {
-		return []string{}, errors.New("no seats found")
-	}
-	emails := make([]string, len(seats))
-	for i, seat := range seats {
-		emails[i] = seat.EMail
-	}
-	return emails, nil
 }
 
 func (paymentHandler *PaymentHandler) GetSubscriptionAddSeat(c context.Context, tokenDetails firebasemanager.TokenDetails, request AddSeatRequest) (AddSeatReply, error) {
@@ -104,12 +88,13 @@ func (paymentHandler *PaymentHandler) GetSubscriptionAddSeat(c context.Context, 
 	if !seatAvailable(seats, quantity) {
 		return AddSeatReply{}, errors.New("already used all seats")
 	}
-	err = paymentHandler.FirebaseConnection.InviteSeat(c, request.EMail)
+	userUID, err := paymentHandler.FirebaseConnection.InviteSeat(c, request.EMail)
 	if err != nil {
 		return AddSeatReply{}, err
 	}
 	seat := mongomanager.Seat{
 		SubscriptionID: request.SubscriptionID,
+		UID:            userUID,
 		EMail:          request.EMail,
 		Roles:          request.Roles,
 	}

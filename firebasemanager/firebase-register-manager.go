@@ -6,27 +6,27 @@ import (
 	"firebase.google.com/go/v4/auth"
 )
 
-func (firebaseConnection *FirebaseConnection) InviteSeat(ctx context.Context, email string) error {
-	_, err := firebaseConnection.GetUserByEmail(ctx, email)
+func (firebaseConnection *FirebaseConnection) InviteSeat(ctx context.Context, email string) (string, error) {
+	foundUser, err := firebaseConnection.GetUserByEmail(ctx, email)
 	if err != nil {
 		if auth.IsUserNotFound(err) {
-			_, err := firebaseConnection.createUser(ctx, email)
+			createdUser, err := firebaseConnection.createUser(ctx, email)
 			if err != nil {
-				return err
+				return "", err
 			}
 			err = firebaseConnection.sendInviteAndVerifyEMail(ctx, email)
 			if err != nil {
-				return err
+				return "", err
 			}
-			return nil
+			return createdUser.UID, nil
 		}
-		return err
+		return "", err
 	}
 	err = firebaseConnection.sendInviteEMail(email)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return nil
+	return foundUser.UID, nil
 }
 
 func (firebaseConnection *FirebaseConnection) GetUserByEmail(ctx context.Context, email string) (*auth.UserRecord, error) {

@@ -1,7 +1,7 @@
 package mongomanager
 
 type Trial struct {
-	SubscriptionID         string `bson:"subscriptionID" index:"unique"`
+	SubscriptionID         string `bson:"subscriptionID" validate:"required" index:"unique"`
 	ProductType            string `bson:"productType" validate:"required"`
 	CustomerID             string `bson:"customerID,omitempty" index:"unique" validate:"required"`
 	PaymentCardFingerprint string `bson:"paymentCardFingerprint,omitempty" index:"unique"`
