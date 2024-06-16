@@ -48,7 +48,7 @@ func (api *Api) getSubscriptionAddSeat(c *gin.Context) {
 }
 
 func (api *Api) getSubscriptionRemoveSeat(c *gin.Context) {
-	var request stripemanager.RemoveSeatRequest
+	var request stripemanager.DeleteSeatRequest
 	tokenDetails, err := api.handleTokenDetails(c)
 	if err == nil &&
 		api.handleBind(c, &request) {

@@ -127,20 +127,20 @@ func seatAvailable(seats []mongomanager.Seat, quantity int64) bool {
 	return int64(len(seats)) < quantity
 }
 
-func (paymentHandler *PaymentHandler) GetSubscriptionRemoveSeat(c context.Context, tokenDetails firebasemanager.TokenDetails, request RemoveSeatRequest) (RemoveSeatReply, error) {
+func (paymentHandler *PaymentHandler) GetSubscriptionRemoveSeat(c context.Context, tokenDetails firebasemanager.TokenDetails, request DeleteSeatRequest) (DeleteSeatReply, error) {
 	if request.SubscriptionID == "" {
-		return RemoveSeatReply{}, errors.New("subscriptionID is empty")
+		return DeleteSeatReply{}, errors.New("subscriptionID is empty")
 	}
 	seats, err := paymentHandler.MongoConnection.GetAllSeats(c, request.SubscriptionID)
 	if err != nil {
-		return RemoveSeatReply{}, err
+		return DeleteSeatReply{}, err
 	}
 	err = paymentHandler.checkAccess(tokenDetails, seats, request.SubscriptionID)
 	if err != nil {
-		return RemoveSeatReply{}, err
+		return DeleteSeatReply{}, err
 	}
 
-	reply := RemoveSeatReply{
+	reply := DeleteSeatReply{
 		SubscriptionID: request.SubscriptionID,
 		Success:        true,
 		EMail:          request.EMail,

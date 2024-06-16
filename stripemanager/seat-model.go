@@ -28,13 +28,33 @@ type AddSeatReply struct {
 	EMail          string `json:"email" validate:"required"`
 }
 
-type RemoveSeatRequest struct {
+type DeleteSeatRequest struct {
 	SubscriptionID string `json:"subscriptionID" validate:"required"`
 	EMail          string `json:"email" validate:"required"`
 }
 
-type RemoveSeatReply struct {
+type DeleteSeatReply struct {
 	SubscriptionID string `json:"subscriptionID" validate:"required"`
 	Success        bool   `json:"success" validate:"required"`
 	EMail          string `json:"email" validate:"required"`
+}
+
+type SeatDetailRequest struct {
+	SubscriptionID string `json:"subscriptionID" validate:"required"`
+	UID            string `json:"uid" validate:"required"`
+}
+
+type SeatDetailReply struct {
+	Seat     mongomanager.Seat `json:"seat" validate:"required"`
+	OwnerUID string            `json:"ownerUID" validate:"required"`
+}
+
+type UpdateSeatDetailRequest struct {
+	SeatOriginal mongomanager.Seat `json:"seatOriginal" validate:"required"`
+	SeatUpdated  mongomanager.Seat `json:"seatUpdated" validate:"required"`
+}
+
+type UpdateSeatDetailReply struct {
+	Seat     mongomanager.Seat `json:"seat" validate:"required"`
+	OwnerUID string            `json:"ownerUID" validate:"required"`
 }
