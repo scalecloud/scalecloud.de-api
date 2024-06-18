@@ -8,7 +8,7 @@ require (
 	github.com/gin-contrib/cors v1.7.2
 	github.com/gin-gonic/autotls v1.1.0
 	github.com/go-playground/validator/v10 v10.22.0
-	github.com/stripe/stripe-go/v78 v78.11.0
+	github.com/stripe/stripe-go/v78 v78.12.0
 	go.uber.org/zap v1.27.0
 	google.golang.org/api v0.184.0
 )
@@ -73,9 +73,9 @@ require (
 	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/appengine/v2 v2.0.6 // indirect
-	google.golang.org/genproto v0.0.0-20240610135401-a8a62080eff3 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20240610135401-a8a62080eff3 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240610135401-a8a62080eff3 // indirect
+	google.golang.org/genproto v0.0.0-20240617180043-68d350f18fd4 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20240617180043-68d350f18fd4 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240617180043-68d350f18fd4 // indirect
 	google.golang.org/grpc v1.64.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
