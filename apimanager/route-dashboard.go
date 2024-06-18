@@ -37,6 +37,16 @@ func (api *Api) getSubscriptionListSeats(c *gin.Context) {
 	}
 }
 
+func (api *Api) getSubscriptionSeatDetail(c *gin.Context) {
+	var request stripemanager.SeatDetailRequest
+	tokenDetails, err := api.handleTokenDetails(c)
+	if err == nil &&
+		api.handleBind(c, &request) {
+		reply, err := api.paymentHandler.GetSubscriptionSeatDetail(c, tokenDetails, request)
+		api.validateAndWriteReply(c, err, reply)
+	}
+}
+
 func (api *Api) getSubscriptionAddSeat(c *gin.Context) {
 	var request stripemanager.AddSeatRequest
 	tokenDetails, err := api.handleTokenDetails(c)

@@ -67,16 +67,38 @@ func (mongoConnection *MongoConnection) GetSeats(ctx context.Context, subscripti
 	return seats, nil
 }
 
-func (mongoConnection *MongoConnection) GetSeat(ctx context.Context, subscriptionID, email string) (Seat, error) {
+func (mongoConnection *MongoConnection) GetSeat(ctx context.Context, subscriptionID, uid string) (Seat, error) {
 	if subscriptionID == "" {
 		return Seat{}, errors.New("subscription ID is empty")
 	}
-	if email == "" {
-		return Seat{}, errors.New("email is empty")
+	if uid == "" {
+		return Seat{}, errors.New("uid is empty")
 	}
 	filter := bson.M{
 		"subscriptionID": subscriptionID,
-		"email":          email,
+		"uid":            uid,
+	}
+	singleResult, err := mongoConnection.findOneDocument(ctx, databaseSubscription, collectionSeats, filter)
+	if err != nil {
+		return Seat{}, err
+	}
+	var seat Seat
+	decodeErr := singleResult.Decode(&seat)
+	if decodeErr != nil {
+		return Seat{}, decodeErr
+	}
+	return seat, nil
+}
+
+func (mongoConnection *MongoConnection) GetOwnerSeat(ctx context.Context, subscriptionID string) (Seat, error) {
+	if subscriptionID == "" {
+		return Seat{}, errors.New("subscription ID is empty")
+	}
+	filter := bson.M{
+		"subscriptionID": subscriptionID,
+		"roles": bson.M{
+			"$in": []string{string(RoleOwner)},
+		},
 	}
 	singleResult, err := mongoConnection.findOneDocument(ctx, databaseSubscription, collectionSeats, filter)
 	if err != nil {
