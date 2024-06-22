@@ -243,9 +243,15 @@ func (api *Api) handleBind(c *gin.Context, s interface{}) bool {
 
 func (api *Api) validateReply(c *gin.Context, err error, reply interface{}) bool {
 	if err != nil {
-		api.log.Error("Validate reply", zap.Error(err))
-		c.SecureJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return false
+		if err.Error() == http.StatusText(http.StatusForbidden) {
+			api.log.Warn("Access denied", zap.Error(err))
+			c.SecureJSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return false
+		} else {
+			api.log.Error("Validate reply", zap.Error(err))
+			c.SecureJSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return false
+		}
 	}
 	return api.validateStruct(c, reply)
 }

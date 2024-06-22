@@ -56,6 +56,10 @@ func (paymentHandler *PaymentHandler) GetSubscriptionListSeats(c context.Context
 }
 
 func (paymentHandler *PaymentHandler) GetSubscriptionSeatDetail(c context.Context, tokenDetails firebasemanager.TokenDetails, request SeatDetailRequest) (SeatDetailReply, error) {
+	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails.UID, request.SubscriptionID, mongomanager.RoleAdministrator)
+	if err != nil {
+		return SeatDetailReply{}, err
+	}
 	seats, err := paymentHandler.MongoConnection.GetAllSeats(c, request.SubscriptionID)
 	if err != nil {
 		return SeatDetailReply{}, err
@@ -80,6 +84,10 @@ func (paymentHandler *PaymentHandler) GetSubscriptionSeatDetail(c context.Contex
 }
 
 func (paymentHandler *PaymentHandler) GetSubscriptionUpdateSeat(c context.Context, tokenDetails firebasemanager.TokenDetails, request UpdateSeatDetailRequest) (UpdateSeatDetailReply, error) {
+	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails.UID, request.SeatUpdated.SubscriptionID, mongomanager.RoleAdministrator)
+	if err != nil {
+		return UpdateSeatDetailReply{}, err
+	}
 	seats, err := paymentHandler.MongoConnection.GetAllSeats(c, request.SeatUpdated.SubscriptionID)
 	if err != nil {
 		return UpdateSeatDetailReply{}, err
@@ -103,6 +111,10 @@ func (paymentHandler *PaymentHandler) GetSubscriptionUpdateSeat(c context.Contex
 }
 
 func (paymentHandler *PaymentHandler) GetSubscriptionAddSeat(c context.Context, tokenDetails firebasemanager.TokenDetails, request AddSeatRequest) (AddSeatReply, error) {
+	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails.UID, request.SubscriptionID, mongomanager.RoleAdministrator)
+	if err != nil {
+		return AddSeatReply{}, err
+	}
 	if request.SubscriptionID == "" {
 		return AddSeatReply{}, errors.New("subscriptionID is empty")
 	}
@@ -175,6 +187,10 @@ func seatAvailable(seats []mongomanager.Seat, quantity int64) bool {
 }
 
 func (paymentHandler *PaymentHandler) GetSubscriptionRemoveSeat(c context.Context, tokenDetails firebasemanager.TokenDetails, request DeleteSeatRequest) (DeleteSeatReply, error) {
+	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails.UID, request.SubscriptionID, mongomanager.RoleAdministrator)
+	if err != nil {
+		return DeleteSeatReply{}, err
+	}
 	if request.SubscriptionID == "" {
 		return DeleteSeatReply{}, errors.New("subscriptionID is empty")
 	}

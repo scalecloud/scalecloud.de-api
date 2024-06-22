@@ -113,12 +113,6 @@ func (mongoConnection *MongoConnection) GetOwnerSeat(ctx context.Context, subscr
 }
 
 func (mongoConnection *MongoConnection) UpdateSeat(ctx context.Context, seat Seat) error {
-	if seat.SubscriptionID == "" {
-		return errors.New("subscription ID is empty")
-	}
-	if seat.UID == "" {
-		return errors.New("uid is empty")
-	}
 	filter := bson.M{
 		"subscriptionID": seat.SubscriptionID,
 		"uid":            seat.UID,
