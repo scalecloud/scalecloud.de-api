@@ -79,6 +79,29 @@ func (paymentHandler *PaymentHandler) GetSubscriptionSeatDetail(c context.Contex
 	return reply, nil
 }
 
+func (paymentHandler *PaymentHandler) GetSubscriptionUpdateSeat(c context.Context, tokenDetails firebasemanager.TokenDetails, request UpdateSeatDetailRequest) (UpdateSeatDetailReply, error) {
+	seats, err := paymentHandler.MongoConnection.GetAllSeats(c, request.SeatUpdated.SubscriptionID)
+	if err != nil {
+		return UpdateSeatDetailReply{}, err
+	}
+	err = paymentHandler.checkAccess(tokenDetails, seats, request.SeatUpdated.SubscriptionID)
+	if err != nil {
+		return UpdateSeatDetailReply{}, err
+	}
+	err = paymentHandler.MongoConnection.UpdateSeat(c, request.SeatUpdated)
+	if err != nil {
+		return UpdateSeatDetailReply{}, err
+	}
+	updatedSeat, err := paymentHandler.MongoConnection.GetSeat(c, request.SeatUpdated.SubscriptionID, request.SeatUpdated.UID)
+	if err != nil {
+		return UpdateSeatDetailReply{}, err
+	}
+	reply := UpdateSeatDetailReply{
+		Seat: updatedSeat,
+	}
+	return reply, nil
+}
+
 func (paymentHandler *PaymentHandler) GetSubscriptionAddSeat(c context.Context, tokenDetails firebasemanager.TokenDetails, request AddSeatRequest) (AddSeatReply, error) {
 	if request.SubscriptionID == "" {
 		return AddSeatReply{}, errors.New("subscriptionID is empty")

@@ -50,11 +50,9 @@ type SeatDetailReply struct {
 }
 
 type UpdateSeatDetailRequest struct {
-	SeatOriginal mongomanager.Seat `json:"seatOriginal" validate:"required"`
-	SeatUpdated  mongomanager.Seat `json:"seatUpdated" validate:"required"`
+	SeatUpdated mongomanager.Seat `json:"seatUpdated" validate:"required"`
 }
 
 type UpdateSeatDetailReply struct {
-	Seat     mongomanager.Seat `json:"seat" validate:"required"`
-	OwnerUID string            `json:"ownerUID" validate:"required"`
+	Seat mongomanager.Seat `json:"seat" validate:"required"`
 }

@@ -112,6 +112,23 @@ func (mongoConnection *MongoConnection) GetOwnerSeat(ctx context.Context, subscr
 	return seat, nil
 }
 
+func (mongoConnection *MongoConnection) UpdateSeat(ctx context.Context, seat Seat) error {
+	if seat.SubscriptionID == "" {
+		return errors.New("subscription ID is empty")
+	}
+	if seat.UID == "" {
+		return errors.New("uid is empty")
+	}
+	filter := bson.M{
+		"subscriptionID": seat.SubscriptionID,
+		"uid":            seat.UID,
+	}
+	update := bson.M{
+		"$set": seat,
+	}
+	return mongoConnection.updateDocument(ctx, databaseSubscription, collectionSeats, filter, update)
+}
+
 func (mongoConnection *MongoConnection) DeleteSeat(ctx context.Context, seat Seat) error {
 	if seat.SubscriptionID == "" {
 		return errors.New("subscription ID is empty")
