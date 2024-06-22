@@ -56,3 +56,11 @@ type UpdateSeatDetailRequest struct {
 type UpdateSeatDetailReply struct {
 	Seat mongomanager.Seat `json:"seat" validate:"required"`
 }
+
+type PermissionRequest struct {
+	SubscriptionID string `json:"subscriptionID" validate:"required"`
+}
+
+type PermissionReply struct {
+	MySeat mongomanager.Seat `json:"mySeat" validate:"required"`
+}

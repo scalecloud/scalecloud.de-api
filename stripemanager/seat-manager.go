@@ -17,6 +17,34 @@ func (paymentHandler *PaymentHandler) checkAccess(tokenDetails firebasemanager.T
 	return nil
 }
 
+func (paymentHandler *PaymentHandler) GetSubscriptionPermission(c context.Context, tokenDetails firebasemanager.TokenDetails, request PermissionRequest) (PermissionReply, error) {
+	seats, err := paymentHandler.MongoConnection.GetAllSeats(c, request.SubscriptionID)
+	if err != nil {
+		return PermissionReply{}, err
+	}
+	err = paymentHandler.checkAccess(tokenDetails, seats, request.SubscriptionID)
+	if err != nil {
+		return PermissionReply{}, err
+	}
+	mySeat, err := getMySeat(seats, tokenDetails)
+	if err != nil {
+		return PermissionReply{}, err
+	}
+	reply := PermissionReply{
+		MySeat: mySeat,
+	}
+	return reply, nil
+}
+
+func getMySeat(seats []mongomanager.Seat, tokenDetails firebasemanager.TokenDetails) (mongomanager.Seat, error) {
+	for _, seat := range seats {
+		if seat.EMail == tokenDetails.EMail {
+			return seat, nil
+		}
+	}
+	return mongomanager.Seat{}, errors.New("seat not found")
+}
+
 func (paymentHandler *PaymentHandler) GetSubscriptionListSeats(c context.Context, tokenDetails firebasemanager.TokenDetails, request ListSeatRequest) (ListSeatReply, error) {
 	totalResults, err := paymentHandler.MongoConnection.CountSeats(c, request.SubscriptionID)
 	if err != nil {
