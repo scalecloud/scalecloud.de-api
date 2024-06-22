@@ -64,17 +64,17 @@ func (paymentHandler *PaymentHandler) GetSubscriptionSeatDetail(c context.Contex
 	if err != nil {
 		return SeatDetailReply{}, err
 	}
-	seat, err := paymentHandler.MongoConnection.GetSeat(c, request.SubscriptionID, request.UID)
+	selectedSeat, err := paymentHandler.MongoConnection.GetSeat(c, request.SubscriptionID, request.UID)
 	if err != nil {
 		return SeatDetailReply{}, err
 	}
-	ownerSeat, err := paymentHandler.MongoConnection.GetOwnerSeat(c, request.SubscriptionID)
+	mySeat, err := paymentHandler.MongoConnection.GetSeat(c, request.SubscriptionID, tokenDetails.UID)
 	if err != nil {
 		return SeatDetailReply{}, err
 	}
 	reply := SeatDetailReply{
-		Seat:     seat,
-		OwnerUID: ownerSeat.UID,
+		SelectedSeat: selectedSeat,
+		MySeat:       mySeat,
 	}
 	return reply, nil
 }

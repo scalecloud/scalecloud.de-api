@@ -45,8 +45,8 @@ type SeatDetailRequest struct {
 }
 
 type SeatDetailReply struct {
-	Seat     mongomanager.Seat `json:"seat" validate:"required"`
-	OwnerUID string            `json:"ownerUID" validate:"required"`
+	SelectedSeat mongomanager.Seat `json:"selectedSeat" validate:"required"`
+	MySeat       mongomanager.Seat `json:"mySeat" validate:"required"`
 }
 
 type UpdateSeatDetailRequest struct {
