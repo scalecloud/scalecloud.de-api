@@ -30,10 +30,6 @@ func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Conte
 	if err != nil {
 		return CheckoutCreateSubscriptionReply{}, err
 	}
-	metaData := price.Metadata
-	if metaData == nil {
-		return CheckoutCreateSubscriptionReply{}, errors.New("price metadata not found")
-	}
 	cus, err := GetCustomerByID(c, customerID)
 	if err != nil {
 		return CheckoutCreateSubscriptionReply{}, err
@@ -97,10 +93,6 @@ func (paymentHandler *PaymentHandler) GetCheckoutProduct(c context.Context, toke
 		return CheckoutProductReply{}, err
 	}
 	currency := strings.ToUpper(string(price.Currency))
-	metaDataPrice := price.Metadata
-	if metaDataPrice == nil {
-		return CheckoutProductReply{}, errors.New("price metadata not found")
-	}
 	product, err := paymentHandler.StripeConnection.GetProduct(c, checkoutProductRequest.ProductID)
 	if err != nil {
 		return CheckoutProductReply{}, err

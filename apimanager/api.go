@@ -132,6 +132,11 @@ func (api *Api) initRoutes() {
 		webhook.POST("/stripe", api.handleStripeWebhook)
 	}
 
+	product := api.router.Group("/product/")
+	{
+		product.GET("/tiers", api.getProductTiers)
+	}
+
 	dashboard := api.router.Group("/dashboard")
 	dashboard.Use(api.authRequired)
 	{

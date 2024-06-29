@@ -5,6 +5,14 @@ import (
 	"github.com/scalecloud/scalecloud.de-api/stripemanager"
 )
 
+func (api *Api) getProductTiers(c *gin.Context) {
+	var request stripemanager.ProductTiersRequest
+	if api.handleBind(c, &request) {
+		reply, err := api.paymentHandler.GetProductTiers(c, request)
+		api.validateAndWriteReply(c, err, reply)
+	}
+}
+
 func (api *Api) getSubscriptionsOverview(c *gin.Context) {
 	tokenDetails, err := api.handleTokenDetails(c)
 	if err == nil {
