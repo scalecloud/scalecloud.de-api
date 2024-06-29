@@ -3,32 +3,21 @@ package stripemanager
 import (
 	"context"
 	"errors"
+	"net/http"
 	"net/mail"
 
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 )
 
-func (paymentHandler *PaymentHandler) checkAccess(tokenDetails firebasemanager.TokenDetails, seats []mongomanager.Seat, subscriptionID string) error {
-	if !containsEmail(seats, tokenDetails.EMail) {
-		paymentHandler.Log.Error("user with UID " + tokenDetails.UID + " is not allowed to access subscriptionID " + subscriptionID)
-		return errors.New("access denied")
-	}
-	return nil
-}
-
-func (paymentHandler *PaymentHandler) GetSubscriptionPermission(c context.Context, tokenDetails firebasemanager.TokenDetails, request PermissionRequest) (PermissionReply, error) {
-	seats, err := paymentHandler.MongoConnection.GetAllSeats(c, request.SubscriptionID)
+func (paymentHandler *PaymentHandler) GetMyPermission(c context.Context, tokenDetails firebasemanager.TokenDetails, request PermissionRequest) (PermissionReply, error) {
+	mySeat, err := paymentHandler.MongoConnection.GetSeat(c, request.SubscriptionID, tokenDetails.UID)
 	if err != nil {
 		return PermissionReply{}, err
 	}
-	err = paymentHandler.checkAccess(tokenDetails, seats, request.SubscriptionID)
-	if err != nil {
-		return PermissionReply{}, err
-	}
-	mySeat, err := getMySeat(seats, tokenDetails)
-	if err != nil {
-		return PermissionReply{}, err
+	if mySeat.UID == "" {
+		paymentHandler.Log.Warn("user with UID " + tokenDetails.UID + " tried to access subscriptionID " + request.SubscriptionID + " but has no seat")
+		return PermissionReply{}, errors.New(http.StatusText(http.StatusForbidden))
 	}
 	reply := PermissionReply{
 		MySeat: mySeat,
@@ -36,30 +25,17 @@ func (paymentHandler *PaymentHandler) GetSubscriptionPermission(c context.Contex
 	return reply, nil
 }
 
-func getMySeat(seats []mongomanager.Seat, tokenDetails firebasemanager.TokenDetails) (mongomanager.Seat, error) {
-	for _, seat := range seats {
-		if seat.EMail == tokenDetails.EMail {
-			return seat, nil
-		}
-	}
-	return mongomanager.Seat{}, errors.New("seat not found")
-}
-
 func (paymentHandler *PaymentHandler) GetSubscriptionListSeats(c context.Context, tokenDetails firebasemanager.TokenDetails, request ListSeatRequest) (ListSeatReply, error) {
+	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SubscriptionID, mongomanager.RoleAdministrator)
+	if err != nil {
+		return ListSeatReply{}, err
+	}
 	totalResults, err := paymentHandler.MongoConnection.CountSeats(c, request.SubscriptionID)
 	if err != nil {
 		return ListSeatReply{}, err
 	}
 	if totalResults == 0 {
 		return ListSeatReply{}, errors.New("no seats found")
-	}
-	seats, err := paymentHandler.MongoConnection.GetAllSeats(c, request.SubscriptionID)
-	if err != nil {
-		return ListSeatReply{}, err
-	}
-	err = paymentHandler.checkAccess(tokenDetails, seats, request.SubscriptionID)
-	if err != nil {
-		return ListSeatReply{}, err
 	}
 	pagedSeats, err := paymentHandler.MongoConnection.GetSeats(c, request.SubscriptionID, request.PageIndex, request.PageSize)
 	if err != nil {
@@ -84,15 +60,7 @@ func (paymentHandler *PaymentHandler) GetSubscriptionListSeats(c context.Context
 }
 
 func (paymentHandler *PaymentHandler) GetSubscriptionSeatDetail(c context.Context, tokenDetails firebasemanager.TokenDetails, request SeatDetailRequest) (SeatDetailReply, error) {
-	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails.UID, request.SubscriptionID, mongomanager.RoleAdministrator)
-	if err != nil {
-		return SeatDetailReply{}, err
-	}
-	seats, err := paymentHandler.MongoConnection.GetAllSeats(c, request.SubscriptionID)
-	if err != nil {
-		return SeatDetailReply{}, err
-	}
-	err = paymentHandler.checkAccess(tokenDetails, seats, request.SubscriptionID)
+	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SubscriptionID, mongomanager.RoleAdministrator)
 	if err != nil {
 		return SeatDetailReply{}, err
 	}
@@ -112,15 +80,7 @@ func (paymentHandler *PaymentHandler) GetSubscriptionSeatDetail(c context.Contex
 }
 
 func (paymentHandler *PaymentHandler) GetSubscriptionUpdateSeat(c context.Context, tokenDetails firebasemanager.TokenDetails, request UpdateSeatDetailRequest) (UpdateSeatDetailReply, error) {
-	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails.UID, request.SeatUpdated.SubscriptionID, mongomanager.RoleAdministrator)
-	if err != nil {
-		return UpdateSeatDetailReply{}, err
-	}
-	seats, err := paymentHandler.MongoConnection.GetAllSeats(c, request.SeatUpdated.SubscriptionID)
-	if err != nil {
-		return UpdateSeatDetailReply{}, err
-	}
-	err = paymentHandler.checkAccess(tokenDetails, seats, request.SeatUpdated.SubscriptionID)
+	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SeatUpdated.SubscriptionID, mongomanager.RoleAdministrator)
 	if err != nil {
 		return UpdateSeatDetailReply{}, err
 	}
@@ -139,24 +99,17 @@ func (paymentHandler *PaymentHandler) GetSubscriptionUpdateSeat(c context.Contex
 }
 
 func (paymentHandler *PaymentHandler) GetSubscriptionAddSeat(c context.Context, tokenDetails firebasemanager.TokenDetails, request AddSeatRequest) (AddSeatReply, error) {
-	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails.UID, request.SubscriptionID, mongomanager.RoleAdministrator)
+	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SubscriptionID, mongomanager.RoleAdministrator)
 	if err != nil {
 		return AddSeatReply{}, err
 	}
-	if request.SubscriptionID == "" {
-		return AddSeatReply{}, errors.New("subscriptionID is empty")
-	}
 	if !IsValidEmail(request.EMail) {
-		return AddSeatReply{}, errors.New("email is invalid")
+		return AddSeatReply{}, errors.New("E-Mail is invalid")
 	}
 	if len(request.Roles) == 0 {
 		return AddSeatReply{}, errors.New("no role selected")
 	}
 	seats, err := paymentHandler.MongoConnection.GetAllSeats(c, request.SubscriptionID)
-	if err != nil {
-		return AddSeatReply{}, err
-	}
-	err = paymentHandler.checkAccess(tokenDetails, seats, request.SubscriptionID)
 	if err != nil {
 		return AddSeatReply{}, err
 	}
@@ -215,22 +168,13 @@ func seatAvailable(seats []mongomanager.Seat, quantity int64) bool {
 }
 
 func (paymentHandler *PaymentHandler) GetSubscriptionRemoveSeat(c context.Context, tokenDetails firebasemanager.TokenDetails, request DeleteSeatRequest) (DeleteSeatReply, error) {
-	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails.UID, request.SubscriptionID, mongomanager.RoleAdministrator)
+	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SubscriptionID, mongomanager.RoleAdministrator)
 	if err != nil {
 		return DeleteSeatReply{}, err
 	}
 	if request.SubscriptionID == "" {
 		return DeleteSeatReply{}, errors.New("subscriptionID is empty")
 	}
-	seats, err := paymentHandler.MongoConnection.GetAllSeats(c, request.SubscriptionID)
-	if err != nil {
-		return DeleteSeatReply{}, err
-	}
-	err = paymentHandler.checkAccess(tokenDetails, seats, request.SubscriptionID)
-	if err != nil {
-		return DeleteSeatReply{}, err
-	}
-
 	reply := DeleteSeatReply{
 		SubscriptionID: request.SubscriptionID,
 		Success:        true,

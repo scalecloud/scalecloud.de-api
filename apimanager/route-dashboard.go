@@ -27,12 +27,12 @@ func (api *Api) getSubscriptionByID(c *gin.Context) {
 	}
 }
 
-func (api *Api) getSubscriptionPermission(c *gin.Context) {
+func (api *Api) GetMyPermission(c *gin.Context) {
 	var request stripemanager.PermissionRequest
 	tokenDetails, err := api.handleTokenDetails(c)
 	if err == nil &&
 		api.handleBind(c, &request) {
-		reply, err := api.paymentHandler.GetSubscriptionPermission(c, tokenDetails, request)
+		reply, err := api.paymentHandler.GetMyPermission(c, tokenDetails, request)
 		api.validateAndWriteReply(c, err, reply)
 	}
 }

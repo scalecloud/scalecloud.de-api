@@ -4,15 +4,18 @@ import (
 	"context"
 	"errors"
 	"net/http"
+
+	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 )
 
-func (mongoConnection *MongoConnection) HasPermission(ctx context.Context, uid, subscriptionID string, requiredRole Role) error {
-	seat, err := mongoConnection.GetSeat(ctx, subscriptionID, uid)
+func (mongoConnection *MongoConnection) HasPermission(ctx context.Context, tokenDetails firebasemanager.TokenDetails, subscriptionID string, requiredRole Role) error {
+	seat, err := mongoConnection.GetSeat(ctx, subscriptionID, tokenDetails.UID)
 	if err != nil {
-		return err
+		mongoConnection.Log.Warn("user with UID " + tokenDetails.UID + " tried to access subscriptionID " + subscriptionID + " error: " + err.Error())
+		return errors.New(http.StatusText(http.StatusForbidden))
 	}
 	if !containsRole(seat, requiredRole) {
-		mongoConnection.Log.Warn("user with UID " + uid + " tried checking permission for role " + string(requiredRole) + " on subscriptionID " + subscriptionID)
+		mongoConnection.Log.Warn("user with UID " + tokenDetails.UID + " has no permission for role " + string(requiredRole) + " on subscriptionID " + subscriptionID)
 		return errors.New(http.StatusText(http.StatusForbidden))
 	}
 
