@@ -32,6 +32,7 @@ func (paymentHandler *PaymentHandler) GetSubscriptionsOverview(c context.Context
 		subscriptions = append(subscriptions, subscriptionOverview)
 	}
 	if len(subscriptions) == 0 {
+		paymentHandler.Log.Warn("customer with no subscriptions found", zap.String("customerID", customerID))
 		return []SubscriptionOverviewReply{}, errors.New("no subscriptions found")
 	}
 	return subscriptions, nil
