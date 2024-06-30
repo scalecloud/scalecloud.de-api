@@ -134,7 +134,7 @@ func (api *Api) initRoutes() {
 
 	product := api.router.Group("/product/")
 	{
-		product.GET("/tiers", api.getProductTiers)
+		product.POST("/tiers", api.getProductTiers)
 	}
 
 	dashboard := api.router.Group("/dashboard")

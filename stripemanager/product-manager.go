@@ -3,6 +3,7 @@ package stripemanager
 import (
 	"context"
 	"errors"
+	"sort"
 	"strconv"
 
 	"github.com/stripe/stripe-go/v78"
@@ -68,6 +69,7 @@ func (paymentHandler *PaymentHandler) GetProductTiers(c context.Context, request
 		}
 		productTiers = append(productTiers, productTier)
 	}
+	productTiers = sortByPrice(productTiers)
 
 	reply := ProductTiersReply{
 		ProductType:  request.ProductType,
@@ -77,6 +79,13 @@ func (paymentHandler *PaymentHandler) GetProductTiers(c context.Context, request
 		return reply, errors.New("no product tiers found")
 	}
 	return reply, nil
+}
+
+func sortByPrice(productTiers []ProductTier) []ProductTier {
+	sort.Slice(productTiers, func(i, j int) bool {
+		return productTiers[i].PricePerMonth < productTiers[j].PricePerMonth
+	})
+	return productTiers
 }
 
 func (stripeConnection *StripeConnection) GetProduct(c context.Context, productID string) (*stripe.Product, error) {
