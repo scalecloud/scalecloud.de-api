@@ -10,9 +10,9 @@ import (
 	"github.com/stripe/stripe-go/v78/product"
 )
 
-func (paymentHandler *PaymentHandler) GetProductTiers(c context.Context, request ProductTiersRequest) (ProductTiersReply, error) {
+func (paymentHandler *PaymentHandler) GetProductTiers(c context.Context, prodType ProductType) (ProductTiersReply, error) {
 	stripe.Key = paymentHandler.StripeConnection.Key
-	productType := string(request.ProductType)
+	productType := string(prodType)
 	query := "active:'true' AND metadata['productType']:'" + productType + "'"
 	params := &stripe.ProductSearchParams{
 		SearchParams: stripe.SearchParams{
@@ -59,7 +59,7 @@ func (paymentHandler *PaymentHandler) GetProductTiers(c context.Context, request
 			return ProductTiersReply{}, errors.New("price not found")
 		}
 		productTier := ProductTier{
-			ProductType:   request.ProductType,
+			ProductType:   prodType,
 			ProductID:     product.ID,
 			Name:          product.Name,
 			StorageAmount: iStorageAmount,
@@ -72,7 +72,7 @@ func (paymentHandler *PaymentHandler) GetProductTiers(c context.Context, request
 	productTiers = sortByPrice(productTiers)
 
 	reply := ProductTiersReply{
-		ProductType:  request.ProductType,
+		ProductType:  prodType,
 		ProductTiers: productTiers,
 	}
 	if len(productTiers) == 0 {

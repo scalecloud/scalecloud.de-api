@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/gin-contrib/cache"
+	"github.com/gin-contrib/cache/persistence"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/autotls"
 	"github.com/gin-gonic/gin"
@@ -124,6 +126,9 @@ func (api *Api) initHeaders() {
 }
 
 func (api *Api) initRoutes() {
+	api.log.Info("Setting up cache...")
+	store := persistence.NewInMemoryStore(time.Minute * 5)
+
 	api.log.Info("Setting up routes...")
 
 	webhook := api.router.Group("/webhook/")
@@ -132,9 +137,10 @@ func (api *Api) initRoutes() {
 		webhook.POST("/stripe", api.handleStripeWebhook)
 	}
 
-	product := api.router.Group("/product/")
+	product := api.router.Group("/product/tiers")
 	{
-		product.POST("/tiers", api.getProductTiers)
+		product.GET("/nextcloud", cache.CachePage(store, time.Hour*24, api.getProductTiersNextcloud))
+		product.GET("/synology", cache.CachePage(store, time.Hour*24, api.getProductTiersSynology))
 	}
 
 	dashboard := api.router.Group("/dashboard")
