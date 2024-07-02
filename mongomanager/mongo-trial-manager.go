@@ -17,7 +17,7 @@ func (mongoConnection *MongoConnection) CreateTrial(ctx context.Context, trial T
 	return mongoConnection.createDocument(ctx, databaseProduct, collectionTrial, trial)
 }
 
-func (mongoConnection *MongoConnection) GetTrial(ctx context.Context, trialFilter Trial) (Trial, error) {
+func (mongoConnection *MongoConnection) GetTrial(ctx context.Context, trialFilter TrialFilter) (Trial, error) {
 	err := ValidateStruct(trialFilter)
 	if err != nil {
 		return Trial{}, err

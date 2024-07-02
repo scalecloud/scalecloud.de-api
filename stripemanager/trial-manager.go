@@ -64,7 +64,7 @@ func (paymentHandler *PaymentHandler) hadTrialBefore(ctx context.Context, paymen
 	if paymentMethod.SEPADebit != nil {
 		sepaDebitFingerprint = paymentMethod.SEPADebit.Fingerprint
 	}
-	filter := mongomanager.Trial{
+	filter := mongomanager.TrialFilter{
 		ProductType:            productType,
 		CustomerID:             customer.ID,
 		PaymentCardFingerprint: cardFingerprint,
