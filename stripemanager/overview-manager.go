@@ -12,6 +12,7 @@ import (
 )
 
 func (paymentHandler *PaymentHandler) GetSubscriptionsOverview(c context.Context, tokenDetails firebasemanager.TokenDetails) (subscriptionOverview []SubscriptionOverviewReply, err error) {
+	paymentHandler.Log.Warn("Change implementation to not use GetCustomerIDByUID for permission check")
 	customerID, err := paymentHandler.GetCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
 		return []SubscriptionOverviewReply{}, err

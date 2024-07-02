@@ -6,15 +6,13 @@ import (
 	"strconv"
 
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
+	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 	"github.com/stripe/stripe-go/v78"
 	"go.uber.org/zap"
 )
 
-func (paymentHandler *PaymentHandler) GetSubscriptionDetailByID(c context.Context, tokenDetails firebasemanager.TokenDetails, subscriptionID string) (subscriptionDetailReply SubscriptionDetailReply, err error) {
-	if subscriptionID == "" {
-		return SubscriptionDetailReply{}, errors.New("subscription ID is empty")
-	}
-	customerID, err := paymentHandler.GetCustomerIDByUID(c, tokenDetails.UID)
+func (paymentHandler *PaymentHandler) GetSubscriptionDetailByID(c context.Context, tokenDetails firebasemanager.TokenDetails, subscriptionID string) (SubscriptionDetailReply, error) {
+	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, subscriptionID, []mongomanager.Role{mongomanager.RoleBilling, mongomanager.RoleUser, mongomanager.RoleAdministrator})
 	if err != nil {
 		return SubscriptionDetailReply{}, err
 	}
@@ -24,14 +22,9 @@ func (paymentHandler *PaymentHandler) GetSubscriptionDetailByID(c context.Contex
 		return SubscriptionDetailReply{}, errors.New("subscription not found")
 	}
 	paymentHandler.Log.Debug("subscription", zap.Any("subscription", subscription))
-	if subscription.Customer.ID != customerID {
-		paymentHandler.Log.Error("Tried to request subscription for wrong customer", zap.String("customerID", customerID), zap.String("subscriptionID", subscriptionID))
-		return SubscriptionDetailReply{}, errors.New("subscription not matching customer")
-	} else {
-		subscriptionDetailReply, err = paymentHandler.StripeConnection.mapSubscriptionItemToSubscriptionDetail(c, subscription)
-		if err != nil {
-			return SubscriptionDetailReply{}, err
-		}
+	subscriptionDetailReply, err := paymentHandler.StripeConnection.mapSubscriptionItemToSubscriptionDetail(c, subscription)
+	if err != nil {
+		return SubscriptionDetailReply{}, err
 	}
 	return subscriptionDetailReply, nil
 }

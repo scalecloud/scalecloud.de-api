@@ -1,10 +1,10 @@
 package stripemanager
 
 type SubscriptionResumeRequest struct {
-	ID string `json:"id" binding:"required"`
+	SubscriptionID string `json:"subscriptionID" binding:"required"`
 }
 
 type SubscriptionResumeReply struct {
-	ID                string `json:"id" validate:"required"`
+	SubscriptionID    string `json:"subscriptionID" validate:"required"`
 	CancelAtPeriodEnd *bool  `json:"cancel_at_period_end" validate:"required"`
 }

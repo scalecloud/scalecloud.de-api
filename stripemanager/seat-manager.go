@@ -26,7 +26,7 @@ func (paymentHandler *PaymentHandler) GetMyPermission(c context.Context, tokenDe
 }
 
 func (paymentHandler *PaymentHandler) GetSubscriptionListSeats(c context.Context, tokenDetails firebasemanager.TokenDetails, request ListSeatRequest) (ListSeatReply, error) {
-	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SubscriptionID, mongomanager.RoleAdministrator)
+	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SubscriptionID, []mongomanager.Role{mongomanager.RoleAdministrator})
 	if err != nil {
 		return ListSeatReply{}, err
 	}
@@ -60,7 +60,7 @@ func (paymentHandler *PaymentHandler) GetSubscriptionListSeats(c context.Context
 }
 
 func (paymentHandler *PaymentHandler) GetSubscriptionSeatDetail(c context.Context, tokenDetails firebasemanager.TokenDetails, request SeatDetailRequest) (SeatDetailReply, error) {
-	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SubscriptionID, mongomanager.RoleAdministrator)
+	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SubscriptionID, []mongomanager.Role{mongomanager.RoleAdministrator})
 	if err != nil {
 		return SeatDetailReply{}, err
 	}
@@ -80,7 +80,7 @@ func (paymentHandler *PaymentHandler) GetSubscriptionSeatDetail(c context.Contex
 }
 
 func (paymentHandler *PaymentHandler) GetSubscriptionUpdateSeat(c context.Context, tokenDetails firebasemanager.TokenDetails, request UpdateSeatDetailRequest) (UpdateSeatDetailReply, error) {
-	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SeatUpdated.SubscriptionID, mongomanager.RoleAdministrator)
+	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SeatUpdated.SubscriptionID, []mongomanager.Role{mongomanager.RoleAdministrator})
 	if err != nil {
 		return UpdateSeatDetailReply{}, err
 	}
@@ -99,7 +99,7 @@ func (paymentHandler *PaymentHandler) GetSubscriptionUpdateSeat(c context.Contex
 }
 
 func (paymentHandler *PaymentHandler) GetSubscriptionAddSeat(c context.Context, tokenDetails firebasemanager.TokenDetails, request AddSeatRequest) (AddSeatReply, error) {
-	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SubscriptionID, mongomanager.RoleAdministrator)
+	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SubscriptionID, []mongomanager.Role{mongomanager.RoleAdministrator})
 	if err != nil {
 		return AddSeatReply{}, err
 	}
@@ -168,7 +168,7 @@ func seatAvailable(seats []mongomanager.Seat, quantity int64) bool {
 }
 
 func (paymentHandler *PaymentHandler) GetSubscriptionRemoveSeat(c context.Context, tokenDetails firebasemanager.TokenDetails, request DeleteSeatRequest) (DeleteSeatReply, error) {
-	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SubscriptionID, mongomanager.RoleAdministrator)
+	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SubscriptionID, []mongomanager.Role{mongomanager.RoleAdministrator})
 	if err != nil {
 		return DeleteSeatReply{}, err
 	}
