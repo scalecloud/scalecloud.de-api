@@ -10,6 +10,7 @@ import (
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 	"github.com/scalecloud/scalecloud.de-api/stripemanager"
 	"github.com/stripe/stripe-go/v78"
+	"github.com/stripe/stripe-go/v78/subscription"
 	"github.com/stripe/stripe-go/v78/webhook"
 	"go.uber.org/zap"
 )
@@ -82,6 +83,12 @@ func (api *Api) handleStripeWebhook(c *gin.Context) {
 		err := api.handleCustomerSubscriptionCreated(c, event)
 		if err != nil {
 			api.log.Error("Error handling customer.subscription.created", zap.Error(err))
+			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
+		}
+	case "customer.subscription.deleted":
+		err := api.handleCustomerSubscriptionDeleted(c, event)
+		if err != nil {
+			api.log.Error("Error handling customer.subscription.deleted", zap.Error(err))
 			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
 		}
 	default:
@@ -165,6 +172,14 @@ func (api *Api) handleCustomerSubscriptionCreated(c context.Context, event strip
 	return nil
 }
 
+func (api *Api) handleCustomerSubscriptionDeleted(c context.Context, event stripe.Event) error {
+	err := api.handleSubscriptionEnded(c, event)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (api *Api) handleAddingTrialUsed(c context.Context, event stripe.Event) error {
 	var sub stripe.Subscription
 	err := json.Unmarshal(event.Data.Raw, &sub)
@@ -237,5 +252,67 @@ func (api *Api) handleAddingTrialUsed(c context.Context, event stripe.Event) err
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (api *Api) handleSubscriptionEnded(c context.Context, event stripe.Event) error {
+	var sub stripe.Subscription
+	err := json.Unmarshal(event.Data.Raw, &sub)
+	if err != nil {
+		return err
+	}
+	err = api.validate.Struct(sub)
+	if err != nil {
+		return err
+	}
+	status := sub.Status
+	if status != stripe.SubscriptionStatusCanceled {
+		api.log.Warn("Subscription is not canceled but customer.subscription.deleted was called.", zap.Any("SubscriptionID", sub.ID))
+		return errors.New("Subscription is not canceled but customer.subscription.deleted was called. SubscriptionID: " + sub.ID)
+	}
+	err = api.removeStripeUser(c, sub.Customer.ID)
+	if err != nil {
+		return err
+	}
+	err = api.removeSubscriptionSeats(c, sub.ID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (api *Api) removeStripeUser(c context.Context, customerID string) error {
+	stripe.Key = api.paymentHandler.StripeConnection.Key
+	params := &stripe.SubscriptionListParams{
+		Customer: stripe.String(customerID),
+	}
+	iter := subscription.List(params)
+	for iter.Next() {
+		subscription := iter.Subscription()
+		if subscription.Status != stripe.SubscriptionStatusCanceled {
+			api.log.Info("No need to remove user as there is an active subscription", zap.Any("SubscriptionID", subscription.ID))
+			return nil
+		}
+	}
+	err := api.paymentHandler.MongoConnection.DeleteUser(c, customerID)
+	if err != nil {
+		return err
+	}
+	api.log.Info("User removed because all subscriptions are canceled", zap.Any("CustomerID", customerID))
+	return nil
+}
+
+func (api *Api) removeSubscriptionSeats(c context.Context, subscriptionID string) error {
+	seats, err := api.paymentHandler.MongoConnection.GetAllSeats(c, subscriptionID)
+	if err != nil {
+		return err
+	}
+	for _, seat := range seats {
+		err = api.paymentHandler.MongoConnection.DeleteSeat(c, seat)
+		if err != nil {
+			return err
+		}
+	}
+	api.log.Info("All seats removed", zap.Any("SubscriptionID", subscriptionID))
 	return nil
 }

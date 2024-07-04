@@ -19,11 +19,8 @@ func (mongoConnection *MongoConnection) UpdateUser(ctx context.Context, user Use
 	return mongoConnection.updateDocument(ctx, databaseStripe, collectionUsers, user, filter)
 }
 
-func (mongoConnection *MongoConnection) DeleteUser(ctx context.Context, user User) error {
-	if user.UID == "" {
-		return errors.New("user.UID is empty")
-	}
-	filter := bson.M{"uid": user.UID}
+func (mongoConnection *MongoConnection) DeleteUser(ctx context.Context, customerID string) error {
+	filter := bson.M{"customerID": customerID}
 	return mongoConnection.deleteDocument(ctx, databaseStripe, collectionUsers, filter)
 }
 
