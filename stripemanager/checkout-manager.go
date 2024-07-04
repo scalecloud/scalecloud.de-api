@@ -30,7 +30,7 @@ func (paymentHandler *PaymentHandler) createCustomerAndUser(c context.Context, t
 	}
 }
 
-func (paymentHandler *PaymentHandler) searchOrCreateCustomer(c context.Context, filter mongomanager.User, tokenDetails firebasemanager.TokenDetails) (string, error) {
+func (paymentHandler *PaymentHandler) searchOrCreateCustomer(c context.Context, tokenDetails firebasemanager.TokenDetails) (string, error) {
 	customerID, err := paymentHandler.GetCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
 		paymentHandler.Log.Info("Could not find user in MongoDB. Going to create new Customer in MongoDB Database 'stripe' collection 'users'.")

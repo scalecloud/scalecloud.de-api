@@ -7,17 +7,13 @@ import (
 	"strings"
 
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
-	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 	"github.com/stripe/stripe-go/v78"
 	"github.com/stripe/stripe-go/v78/subscription"
 	"go.uber.org/zap"
 )
 
 func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Context, tokenDetails firebasemanager.TokenDetails, checkoutCreateSubscriptionRequest CheckoutCreateSubscriptionRequest) (CheckoutCreateSubscriptionReply, error) {
-	filter := mongomanager.User{
-		UID: tokenDetails.UID,
-	}
-	customerID, err := paymentHandler.searchOrCreateCustomer(c, filter, tokenDetails)
+	customerID, err := paymentHandler.searchOrCreateCustomer(c, tokenDetails)
 	if err != nil {
 		return CheckoutCreateSubscriptionReply{}, err
 	}

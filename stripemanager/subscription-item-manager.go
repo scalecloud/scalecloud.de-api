@@ -1,13 +1,11 @@
 package stripemanager
 
 import (
-	"context"
-
 	"github.com/stripe/stripe-go/v78"
 	"github.com/stripe/stripe-go/v78/subscriptionitem"
 )
 
-func updateSubscriptionItem(c context.Context, subscriptionItemID string, quantity int64) (*stripe.SubscriptionItem, error) {
+func updateSubscriptionItem(subscriptionItemID string, quantity int64) (*stripe.SubscriptionItem, error) {
 	params := &stripe.SubscriptionItemParams{
 		Quantity: stripe.Int64(quantity),
 	}

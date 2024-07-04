@@ -66,14 +66,14 @@ func (paymentHandler *PaymentHandler) ChangePaymentDefault(c context.Context, se
 		return err
 	}
 	paymentHandler.Log.Info("Customer updated", zap.Any("Customer", result.ID))
-	err = paymentHandler.detachPaymentMethodsButDefault(c, setupIntent)
+	err = paymentHandler.detachPaymentMethodsButDefault(setupIntent)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (paymentHandler *PaymentHandler) detachPaymentMethodsButDefault(c context.Context, setupIntent stripe.SetupIntent) error {
+func (paymentHandler *PaymentHandler) detachPaymentMethodsButDefault(setupIntent stripe.SetupIntent) error {
 	stripe.Key = paymentHandler.StripeConnection.Key
 	params := &stripe.PaymentMethodListParams{
 		Customer: stripe.String(setupIntent.Customer.ID),
