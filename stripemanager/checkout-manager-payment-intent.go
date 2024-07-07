@@ -7,26 +7,19 @@ import (
 	"strings"
 
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
+	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 	"github.com/stripe/stripe-go/v78"
 	"github.com/stripe/stripe-go/v78/subscription"
 	"go.uber.org/zap"
 )
 
 func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Context, tokenDetails firebasemanager.TokenDetails, checkoutCreateSubscriptionRequest CheckoutCreateSubscriptionRequest) (CheckoutCreateSubscriptionReply, error) {
-	customerID, err := paymentHandler.searchOrCreateCustomer(c, tokenDetails)
-	if err != nil {
-		return CheckoutCreateSubscriptionReply{}, err
-	}
-	if customerID == "" {
-		return CheckoutCreateSubscriptionReply{}, errors.New("customer ID is empty")
-	}
 	stripe.Key = paymentHandler.StripeConnection.Key
-
 	price, err := paymentHandler.StripeConnection.GetPrice(c, checkoutCreateSubscriptionRequest.ProductID)
 	if err != nil {
 		return CheckoutCreateSubscriptionReply{}, err
 	}
-	cus, err := GetCustomerByID(c, customerID)
+	cus, err := paymentHandler.GetCustomerByUID(c, tokenDetails.UID)
 	if err != nil {
 		return CheckoutCreateSubscriptionReply{}, err
 	}
@@ -44,7 +37,7 @@ func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Conte
 		return CheckoutCreateSubscriptionReply{}, err
 	}
 	subscriptionParams := &stripe.SubscriptionParams{
-		Customer: stripe.String(customerID),
+		Customer: stripe.String(cus.ID),
 		Items: []*stripe.SubscriptionItemsParams{
 			{
 				Price:    stripe.String(price.ID),
@@ -63,6 +56,7 @@ func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Conte
 	paymentHandler.Log.Info("Subscription created.", zap.Any("subscriptionID", sub.ID), zap.Any("status", sub.Status))
 	if sub.Status == stripe.SubscriptionStatusActive || sub.Status == stripe.SubscriptionStatusTrialing {
 		paymentHandler.Log.Info("Subscription is valid.")
+		createSeat(c, sub, tokenDetails, paymentHandler)
 	} else if sub.Status == stripe.SubscriptionStatusIncomplete || sub.Status == stripe.SubscriptionStatusIncompleteExpired {
 		paymentHandler.Log.Warn("First payment did not work. Subscription is incomplete.", zap.Any("subscriptionID", sub.ID), zap.Any("status", sub.Status))
 	} else {
@@ -80,6 +74,24 @@ func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Conte
 		TrialEnd:       sub.TrialEnd,
 	}
 	return checkoutSubscriptionModel, nil
+}
+
+func createSeat(c context.Context, sub *stripe.Subscription, tokenDetails firebasemanager.TokenDetails, paymentHandler *PaymentHandler) {
+	seat := mongomanager.Seat{
+		SubscriptionID: sub.ID,
+		UID:            tokenDetails.UID,
+		EMail:          tokenDetails.EMail,
+		Roles: []mongomanager.Role{
+			mongomanager.RoleOwner,
+			mongomanager.RoleAdministrator,
+			mongomanager.RoleUser,
+			mongomanager.RoleBilling,
+		},
+	}
+	err := paymentHandler.MongoConnection.CreateSeat(c, seat)
+	if err != nil {
+		paymentHandler.Log.Error("Error creating seat", zap.Error(err))
+	}
 }
 
 func (paymentHandler *PaymentHandler) GetCheckoutProduct(c context.Context, tokenDetails firebasemanager.TokenDetails, checkoutProductRequest CheckoutProductRequest) (CheckoutProductReply, error) {
