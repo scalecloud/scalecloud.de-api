@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
-	"github.com/stripe/stripe-go/v78"
+	"github.com/stripe/stripe-go/v79"
 )
 
 func (paymentHandler *PaymentHandler) GetPaymentMethodOverview(c context.Context, tokenDetails firebasemanager.TokenDetails) (PaymentMethodOverviewReply, error) {

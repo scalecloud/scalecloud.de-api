@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/stripe/stripe-go/v78"
-	"github.com/stripe/stripe-go/v78/price"
+	"github.com/stripe/stripe-go/v79"
+	"github.com/stripe/stripe-go/v79/price"
 	"go.uber.org/zap"
 	"google.golang.org/api/iterator"
 )

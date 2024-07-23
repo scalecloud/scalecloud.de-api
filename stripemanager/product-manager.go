@@ -6,8 +6,8 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/stripe/stripe-go/v78"
-	"github.com/stripe/stripe-go/v78/product"
+	"github.com/stripe/stripe-go/v79"
+	"github.com/stripe/stripe-go/v79/product"
 )
 
 func (paymentHandler *PaymentHandler) GetProductTiers(c context.Context, prodType ProductType) (ProductTiersReply, error) {
