@@ -26,7 +26,7 @@ require (
 	github.com/MicahParks/keyfunc v1.9.0 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20230905024940-24af94b03874 // indirect
 	github.com/bytedance/sonic v1.11.9 // indirect
-	github.com/bytedance/sonic/loader v0.1.1 // indirect
+	github.com/bytedance/sonic/loader v0.2.0 // indirect
 	github.com/cloudwego/base64x v0.1.4 // indirect
 	github.com/cloudwego/iasm v0.2.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
@@ -62,7 +62,7 @@ require (
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
-	github.com/youmark/pkcs8 v0.0.0-20240424034433-3c2c7870ae76 // indirect
+	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.53.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.53.0 // indirect
