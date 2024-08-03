@@ -9,14 +9,14 @@ require (
 	github.com/gin-contrib/cors v1.7.2
 	github.com/gin-gonic/autotls v1.1.0
 	github.com/go-playground/validator/v10 v10.22.0
-	github.com/stripe/stripe-go/v79 v79.5.0
+	github.com/stripe/stripe-go/v79 v79.6.0
 	go.uber.org/zap v1.27.0
-	google.golang.org/api v0.189.0
+	google.golang.org/api v0.190.0
 )
 
 require (
 	cloud.google.com/go v0.115.0 // indirect
-	cloud.google.com/go/auth v0.7.2 // indirect
+	cloud.google.com/go/auth v0.7.3 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.3 // indirect
 	cloud.google.com/go/compute/metadata v0.5.0 // indirect
 	cloud.google.com/go/firestore v1.16.0 // indirect
