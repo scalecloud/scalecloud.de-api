@@ -124,12 +124,9 @@ func (mongoConnection *MongoConnection) UpdateSeat(ctx context.Context, seat Sea
 }
 
 func (mongoConnection *MongoConnection) DeleteSeat(ctx context.Context, seat Seat) error {
-	if seat.SubscriptionID == "" {
-		return errors.New("subscription ID is empty")
+	filter := bson.M{
+		"subscriptionID": seat.SubscriptionID,
+		"uid":            seat.UID,
 	}
-	if seat.EMail == "" {
-		return errors.New("email is empty")
-	}
-	filter := bson.M{"subscriptionID": seat.SubscriptionID}
-	return mongoConnection.deleteDocument(ctx, databaseStripe, collectionUsers, filter)
+	return mongoConnection.deleteDocument(ctx, databaseSubscription, collectionSeats, filter)
 }

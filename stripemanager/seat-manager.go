@@ -168,17 +168,24 @@ func seatAvailable(seats []mongomanager.Seat, quantity int64) bool {
 }
 
 func (paymentHandler *PaymentHandler) GetSubscriptionRemoveSeat(c context.Context, tokenDetails firebasemanager.TokenDetails, request DeleteSeatRequest) (DeleteSeatReply, error) {
-	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SubscriptionID, []mongomanager.Role{mongomanager.RoleAdministrator})
+	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SeatToDelete.SubscriptionID, []mongomanager.Role{mongomanager.RoleAdministrator})
 	if err != nil {
 		return DeleteSeatReply{}, err
 	}
-	if request.SubscriptionID == "" {
-		return DeleteSeatReply{}, errors.New("subscriptionID is empty")
+	seatToRemove, err := paymentHandler.MongoConnection.GetSeat(c, request.SeatToDelete.SubscriptionID, request.SeatToDelete.UID)
+	if err != nil {
+		return DeleteSeatReply{}, err
+	}
+	if mongomanager.ContainsRole(seatToRemove, []mongomanager.Role{mongomanager.RoleOwner}) {
+		return DeleteSeatReply{}, errors.New("cannot remove owner")
+	}
+	err = paymentHandler.MongoConnection.DeleteSeat(c, seatToRemove)
+	if err != nil {
+		return DeleteSeatReply{}, err
 	}
 	reply := DeleteSeatReply{
-		SubscriptionID: request.SubscriptionID,
-		Success:        true,
-		EMail:          request.EMail,
+		DeletedSeat: seatToRemove,
+		Success:     true,
 	}
 	return reply, nil
 }

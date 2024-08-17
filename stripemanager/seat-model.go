@@ -29,14 +29,12 @@ type AddSeatReply struct {
 }
 
 type DeleteSeatRequest struct {
-	SubscriptionID string `json:"subscriptionID" validate:"required"`
-	EMail          string `json:"email" validate:"required"`
+	SeatToDelete mongomanager.Seat `json:"seatToDelete" validate:"required"`
 }
 
 type DeleteSeatReply struct {
-	SubscriptionID string `json:"subscriptionID" validate:"required"`
-	Success        bool   `json:"success" validate:"required"`
-	EMail          string `json:"email" validate:"required"`
+	DeletedSeat mongomanager.Seat `json:"deletedSeat" validate:"required"`
+	Success     bool              `json:"success" validate:"required"`
 }
 
 type SeatDetailRequest struct {

@@ -14,7 +14,7 @@ func (mongoConnection *MongoConnection) HasPermission(ctx context.Context, token
 		mongoConnection.Log.Warn("user with UID " + tokenDetails.UID + " tried to access subscriptionID " + subscriptionID + " error: " + err.Error())
 		return errors.New(http.StatusText(http.StatusForbidden))
 	}
-	if !containsRole(seat, requiredRoles) {
+	if !ContainsRole(seat, requiredRoles) {
 		mongoConnection.Log.Warn("user with UID " + tokenDetails.UID + " is missing role " + " on subscriptionID " + subscriptionID)
 		return errors.New(http.StatusText(http.StatusForbidden))
 	}
@@ -22,7 +22,7 @@ func (mongoConnection *MongoConnection) HasPermission(ctx context.Context, token
 	return nil
 }
 
-func containsRole(seat Seat, requiredRoles []Role) bool {
+func ContainsRole(seat Seat, requiredRoles []Role) bool {
 	// Convert requiredRoles slice to a map for constant-time lookups
 	roleMap := make(map[Role]bool)
 	for _, role := range requiredRoles {
