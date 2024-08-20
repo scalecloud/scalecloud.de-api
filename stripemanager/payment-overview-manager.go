@@ -10,7 +10,7 @@ import (
 )
 
 func (paymentHandler *PaymentHandler) GetPaymentMethodOverview(c context.Context, tokenDetails firebasemanager.TokenDetails) (PaymentMethodOverviewReply, error) {
-	_, err := paymentHandler.searchOrCreateCustomer(c, tokenDetails)
+	_, err := paymentHandler.searchOrCreateCustomer(c, tokenDetails.EMail, tokenDetails.UID)
 	if err != nil {
 		return PaymentMethodOverviewReply{}, err
 	}

@@ -3,20 +3,19 @@ package stripemanager
 import (
 	"context"
 
-	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 	"go.uber.org/zap"
 )
 
-func (paymentHandler *PaymentHandler) createCustomerAndUser(c context.Context, tokenDetails firebasemanager.TokenDetails) (mongomanager.User, error) {
-	customer, err := paymentHandler.StripeConnection.CreateCustomer(c, tokenDetails.EMail)
+func (paymentHandler *PaymentHandler) createCustomerAndUser(c context.Context, eMail, uid string) (mongomanager.User, error) {
+	customer, err := paymentHandler.StripeConnection.CreateCustomer(c, eMail)
 	if err != nil {
 		paymentHandler.Log.Error("Error creating customer", zap.Error(err))
 		return mongomanager.User{}, err
 	} else {
 		paymentHandler.Log.Info("New Customer was created with Customer.ID", zap.Any("customer.ID", customer.ID))
 		newUser := mongomanager.User{
-			UID:        tokenDetails.UID,
+			UID:        uid,
 			CustomerID: customer.ID,
 		}
 		err := paymentHandler.MongoConnection.CreateUser(c, newUser)
@@ -30,12 +29,12 @@ func (paymentHandler *PaymentHandler) createCustomerAndUser(c context.Context, t
 	}
 }
 
-func (paymentHandler *PaymentHandler) searchOrCreateCustomer(c context.Context, tokenDetails firebasemanager.TokenDetails) (string, error) {
-	customerID, err := paymentHandler.GetCustomerIDByUID(c, tokenDetails.UID)
+func (paymentHandler *PaymentHandler) searchOrCreateCustomer(c context.Context, eMail, uid string) (string, error) {
+	customerID, err := paymentHandler.GetCustomerIDByUID(c, uid)
 	if err != nil {
 		paymentHandler.Log.Info("Could not find user in MongoDB. Going to create new Customer in MongoDB Database 'stripe' collection 'users'.")
 		paymentHandler.Log.Debug("err", zap.Error(err))
-		newUser, err := paymentHandler.createCustomerAndUser(c, tokenDetails)
+		newUser, err := paymentHandler.createCustomerAndUser(c, eMail, uid)
 		if err != nil {
 			paymentHandler.Log.Error("Error creating user", zap.Error(err))
 			return "", err

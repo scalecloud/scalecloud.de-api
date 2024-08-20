@@ -84,6 +84,10 @@ func (paymentHandler *PaymentHandler) GetSubscriptionUpdateSeat(c context.Contex
 	if err != nil {
 		return UpdateSeatDetailReply{}, err
 	}
+	err = paymentHandler.handleOwnerTransfer(c, tokenDetails, request.SeatUpdated)
+	if err != nil {
+		return UpdateSeatDetailReply{}, err
+	}
 	err = paymentHandler.MongoConnection.UpdateSeat(c, request.SeatUpdated)
 	if err != nil {
 		return UpdateSeatDetailReply{}, err
@@ -139,6 +143,7 @@ func (paymentHandler *PaymentHandler) GetSubscriptionAddSeat(c context.Context, 
 		SubscriptionID: request.SubscriptionID,
 		UID:            userUID,
 		EMail:          request.EMail,
+		EMailVerified:  false,
 		Roles:          request.Roles,
 	}
 	err = paymentHandler.MongoConnection.CreateSeat(c, seat)

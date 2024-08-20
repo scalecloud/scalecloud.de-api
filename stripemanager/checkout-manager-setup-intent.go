@@ -10,7 +10,7 @@ import (
 )
 
 func (paymentHandler *PaymentHandler) CreateCheckoutSetupIntent(c context.Context, tokenDetails firebasemanager.TokenDetails, checkoutSetupIntentRequest CheckoutSetupIntentRequest) (CheckoutSetupIntentReply, error) {
-	customerID, err := paymentHandler.searchOrCreateCustomer(c, tokenDetails)
+	customerID, err := paymentHandler.searchOrCreateCustomer(c, tokenDetails.EMail, tokenDetails.UID)
 	if err != nil {
 		return CheckoutSetupIntentReply{}, err
 	}
