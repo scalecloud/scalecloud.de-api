@@ -109,6 +109,9 @@ func (paymentHandler *PaymentHandler) GetSubscriptionAddSeat(c context.Context, 
 	if len(request.Roles) == 0 {
 		return AddSeatReply{}, errors.New("no role selected")
 	}
+	if request.Roles[0] == mongomanager.RoleOwner {
+		return AddSeatReply{}, errors.New("cannot add user as owner")
+	}
 	seats, err := paymentHandler.MongoConnection.GetAllSeats(c, request.SubscriptionID)
 	if err != nil {
 		return AddSeatReply{}, err
