@@ -20,8 +20,8 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.2.4 // indirect
 	cloud.google.com/go/compute/metadata v0.5.0 // indirect
 	cloud.google.com/go/firestore v1.16.0 // indirect
-	cloud.google.com/go/iam v1.1.13 // indirect
-	cloud.google.com/go/longrunning v0.5.12 // indirect
+	cloud.google.com/go/iam v1.2.0 // indirect
+	cloud.google.com/go/longrunning v0.6.0 // indirect
 	cloud.google.com/go/storage v1.43.0 // indirect
 	github.com/MicahParks/keyfunc v1.9.0 // indirect
 	github.com/bradfitz/gomemcache v0.0.0-20230905024940-24af94b03874 // indirect
