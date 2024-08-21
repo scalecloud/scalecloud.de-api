@@ -53,8 +53,8 @@ func (paymentHandler *PaymentHandler) isCustomerDestinationVerified(c context.Co
 	if err != nil {
 		return err
 	}
-	if !seatCustomerDestination.EMailVerified {
-		return errors.New("new owners E-Mail is not verified")
+	if seatCustomerDestination.EMailVerified == nil || !*seatCustomerDestination.EMailVerified {
+		return errors.New("new owner's E-Mail is not verified")
 	}
 	return nil
 }

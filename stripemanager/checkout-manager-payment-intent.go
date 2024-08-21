@@ -77,10 +77,12 @@ func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Conte
 }
 
 func createSeat(c context.Context, sub *stripe.Subscription, tokenDetails firebasemanager.TokenDetails, paymentHandler *PaymentHandler) {
+	emailVerified := false
 	seat := mongomanager.Seat{
 		SubscriptionID: sub.ID,
 		UID:            tokenDetails.UID,
 		EMail:          tokenDetails.EMail,
+		EMailVerified:  &emailVerified,
 		Roles: []mongomanager.Role{
 			mongomanager.RoleOwner,
 			mongomanager.RoleAdministrator,

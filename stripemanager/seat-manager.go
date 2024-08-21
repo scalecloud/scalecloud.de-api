@@ -139,11 +139,12 @@ func (paymentHandler *PaymentHandler) GetSubscriptionAddSeat(c context.Context, 
 	if err != nil {
 		return AddSeatReply{}, err
 	}
+	emailVerified := false
 	seat := mongomanager.Seat{
 		SubscriptionID: request.SubscriptionID,
 		UID:            userUID,
 		EMail:          request.EMail,
-		EMailVerified:  false,
+		EMailVerified:  &emailVerified,
 		Roles:          request.Roles,
 	}
 	err = paymentHandler.MongoConnection.CreateSeat(c, seat)
