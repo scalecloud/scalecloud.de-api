@@ -22,6 +22,9 @@ func (paymentHandler *PaymentHandler) handleOwnerTransfer(c context.Context, tok
 	if err != nil {
 		return err
 	}
+	if isSourceAndDestinationOwner(ownerSeat, seatUpdateRequest) {
+		return nil
+	}
 	err = hasOwnerTriggeredOwnerTransfer(tokenDetails, ownerSeat)
 	if err != nil {
 		return err
@@ -46,6 +49,11 @@ func hasOwnerTriggeredOwnerTransfer(tokenDetails firebasemanager.TokenDetails, o
 		return errors.New("only owner can transfer owner role")
 	}
 	return nil
+}
+
+func isSourceAndDestinationOwner(ownerSeat mongomanager.Seat, seatUpdateRequest mongomanager.Seat) bool {
+	return mongomanager.ContainsRole(ownerSeat, []mongomanager.Role{mongomanager.RoleOwner}) &&
+		mongomanager.ContainsRole(seatUpdateRequest, []mongomanager.Role{mongomanager.RoleOwner})
 }
 
 func (paymentHandler *PaymentHandler) isCustomerDestinationVerified(c context.Context, seatUpdateRequest mongomanager.Seat) error {
