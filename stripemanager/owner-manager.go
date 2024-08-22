@@ -100,7 +100,7 @@ func (paymentHandler *PaymentHandler) handleStripeOwnerTransfer(c context.Contex
 	if err != nil {
 		return err
 	}
-	paymentHandler.removeSourceCustomerOwner(c, ownerSeat, tokenDetails)
+	paymentHandler.removeSourceCustomerOwner(c, ownerSeat)
 	paymentHandler.sendConfirmationMail()
 
 	return nil
@@ -136,7 +136,7 @@ func (paymentHandler *PaymentHandler) addCustomerTransferNote(customerIDToUpdate
 	return nil
 }
 
-func (paymentHandler *PaymentHandler) removeSourceCustomerOwner(c context.Context, sourceSeat mongomanager.Seat, tokenDetails firebasemanager.TokenDetails) error {
+func (paymentHandler *PaymentHandler) removeSourceCustomerOwner(c context.Context, sourceSeat mongomanager.Seat) error {
 	var filteredRoles []mongomanager.Role
 	for _, role := range sourceSeat.Roles {
 		if role != mongomanager.RoleOwner {
