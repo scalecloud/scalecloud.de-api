@@ -39,7 +39,6 @@ func (paymentHandler *PaymentHandler) searchOrCreateCustomer(c context.Context, 
 			paymentHandler.Log.Error("Error creating user", zap.Error(err))
 			return "", err
 		} else {
-			paymentHandler.Log.Info("New User was created in MongoDB with User.ID", zap.Any("user.ID", newUser.UID))
 			return newUser.CustomerID, nil
 		}
 	} else {

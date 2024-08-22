@@ -29,7 +29,15 @@ func (paymentHandler *PaymentHandler) handleOwnerTransfer(c context.Context, tok
 	if err != nil {
 		return err
 	}
-	err = paymentHandler.isCustomerDestinationVerified(c, seatUpdateRequest)
+	err = paymentHandler.isSeatDestinationVerified(c, seatUpdateRequest)
+	if err != nil {
+		return err
+	}
+	err = paymentHandler.isSeatDestinationStripeCustomer(c, seatUpdateRequest)
+	if err != nil {
+		return err
+	}
+	err = paymentHandler.hasCustomerOnlyOneActiveSubscription(c, ownerSeat)
 	if err != nil {
 		return err
 	}
@@ -57,7 +65,7 @@ func isOwnerSeatUpdate(ownerSeat mongomanager.Seat, seatUpdateRequest mongomanag
 
 }
 
-func (paymentHandler *PaymentHandler) isCustomerDestinationVerified(c context.Context, seatUpdateRequest mongomanager.Seat) error {
+func (paymentHandler *PaymentHandler) isSeatDestinationVerified(c context.Context, seatUpdateRequest mongomanager.Seat) error {
 	seatCustomerDestination, err := paymentHandler.MongoConnection.GetSeat(c, seatUpdateRequest.SubscriptionID, seatUpdateRequest.UID)
 	if err != nil {
 		return err
@@ -68,44 +76,80 @@ func (paymentHandler *PaymentHandler) isCustomerDestinationVerified(c context.Co
 	return nil
 }
 
+func (paymentHandler *PaymentHandler) isSeatDestinationStripeCustomer(c context.Context, seatUpdateRequest mongomanager.Seat) error {
+	exists, err := paymentHandler.existsCustomerByUID(c, seatUpdateRequest.UID)
+	if err != nil {
+		paymentHandler.Log.Error("Error checking if customer exists by UID", zap.Error(err))
+		return errors.New("error checking if customer exists by UID")
+	}
+	if exists {
+		return errors.New("transfer of ownership not possible please contact support")
+	}
+	return nil
+}
+
+func (paymentHandler *PaymentHandler) hasCustomerOnlyOneActiveSubscription(c context.Context, ownerSeat mongomanager.Seat) error {
+	ownerCustomerID, err := paymentHandler.GetCustomerIDByUID(c, ownerSeat.UID)
+	if err != nil {
+		paymentHandler.Log.Error("Error retrieving customerID by UID", zap.Error(err))
+		return errors.New("could not retrieve customerID by UID")
+	}
+	params := &stripe.SubscriptionListParams{
+		Customer: stripe.String(ownerCustomerID),
+	}
+	i := subscription.List(params)
+
+	activeSubscriptionsCount := 0
+	for i.Next() {
+		sub := i.Subscription()
+		switch sub.Status {
+		case stripe.SubscriptionStatusActive:
+			activeSubscriptionsCount++
+		case stripe.SubscriptionStatusIncompleteExpired:
+			paymentHandler.Log.Info("Incomplete expired subscriptions are ignored", zap.String("status", string(sub.Status)))
+		default:
+			return paymentHandler.handleSubscriptionStatusError(sub.Status)
+		}
+	}
+
+	if err := i.Err(); err != nil {
+		paymentHandler.Log.Error("Error listing subscriptions for customer", zap.Error(err))
+		return errors.New("error listing subscriptions for customer")
+	}
+
+	if activeSubscriptionsCount != 1 {
+		paymentHandler.Log.Error("Customer does not have exactly one active subscription", zap.Int("activeSubscriptionsCount", activeSubscriptionsCount))
+		return errors.New("ownership cannot be transferred if the customer has more than one active subscription, please contact support")
+	}
+
+	return nil
+}
+
+func (paymentHandler *PaymentHandler) handleSubscriptionStatusError(status stripe.SubscriptionStatus) error {
+	errorMessages := map[stripe.SubscriptionStatus]string{
+		stripe.SubscriptionStatusCanceled:   "ownership cannot be transferred if the subscription is canceled",
+		stripe.SubscriptionStatusIncomplete: "ownership cannot be transferred if the subscription is incomplete",
+		stripe.SubscriptionStatusPastDue:    "ownership cannot be transferred if the subscription is past due",
+		stripe.SubscriptionStatusPaused:     "ownership cannot be transferred if the subscription is paused",
+		stripe.SubscriptionStatusTrialing:   "ownership cannot be transferred if the subscription is in trial period",
+		stripe.SubscriptionStatusUnpaid:     "ownership cannot be transferred if the subscription is unpaid",
+	}
+
+	if msg, exists := errorMessages[status]; exists {
+		return errors.New(msg)
+	}
+
+	paymentHandler.Log.Error("Unhandled subscription status", zap.String("status", string(status)))
+	return errors.New("ownership cannot be transferred, please contact support")
+}
+
 func (paymentHandler *PaymentHandler) handleStripeOwnerTransfer(c context.Context, tokenDetails firebasemanager.TokenDetails, seatUpdateRequest, ownerSeat mongomanager.Seat) error {
 	paymentHandler.Log.Info("Owner transfer initiated", zap.Any("seatUpdateRequest", seatUpdateRequest))
-
-	// Retrieve the subscription
-	sub, err := paymentHandler.StripeConnection.GetSubscriptionByID(c, seatUpdateRequest.SubscriptionID)
-	if err != nil {
-		return err
-	}
-	if sub.Status != stripe.SubscriptionStatusActive {
-		return errors.New("subscription is not active")
-	}
-	if sub.Status == stripe.SubscriptionStatusTrialing {
-		return errors.New("subscription is in trial period")
-	}
-	paymentHandler.Log.Error("customerSourceID or customerDestinationID are wrong, fix and test!")
-	// Get the source customer ID
 	customerSourceID, err := paymentHandler.GetCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
 		return err
 	}
-
-	// Search or create the destination customer
-	customerDestinationID, err := paymentHandler.searchOrCreateCustomer(c, seatUpdateRequest.EMail, seatUpdateRequest.UID)
-	if err != nil {
-		return err
-	}
-
-	// Update the subscription to associate it with the new customer
-	err = paymentHandler.updateSubscriptionToNewCustomer(customerSourceID, customerDestinationID, seatUpdateRequest.SubscriptionID)
-	if err != nil {
-		return err
-	}
-
-	err = paymentHandler.addCustomerTransferNote(customerSourceID, customerSourceID, customerDestinationID, seatUpdateRequest.SubscriptionID)
-	if err != nil {
-		return err
-	}
-	err = paymentHandler.addCustomerTransferNote(customerDestinationID, customerSourceID, customerDestinationID, seatUpdateRequest.SubscriptionID)
+	err = paymentHandler.updateCustomerEMailToNewOwner(ownerSeat, seatUpdateRequest, customerSourceID)
 	if err != nil {
 		return err
 	}
@@ -115,33 +159,20 @@ func (paymentHandler *PaymentHandler) handleStripeOwnerTransfer(c context.Contex
 	return nil
 }
 
-func (paymentHandler *PaymentHandler) updateSubscriptionToNewCustomer(customerSourceID, customerDestinationID, subscriptionID string) error {
+func (paymentHandler *PaymentHandler) updateCustomerEMailToNewOwner(ownerSeat, seatUpdateRequest mongomanager.Seat, customerSourceID string) error {
 	timestamp := time.Now().Format("2006-01-02_15-04-05")
-	updateParams := &stripe.SubscriptionParams{
+	params := &stripe.CustomerParams{
+		Email: stripe.String(seatUpdateRequest.EMail),
 		Metadata: map[string]string{
-			fmt.Sprintf("transfer_ownership_%s", timestamp): fmt.Sprintf("Transferred this subscription from customerSourceID %s to customerDestinationID %s", customerSourceID, customerDestinationID),
+			fmt.Sprintf("transfer_ownership_%s", timestamp): fmt.Sprintf("Ownership was transferred from %s to %s for subscription %s", ownerSeat.EMail, seatUpdateRequest.EMail, ownerSeat.SubscriptionID),
 		},
 	}
-	_, err := subscription.Update(subscriptionID, updateParams)
+	_, err := customer.Update(customerSourceID, params)
 	if err != nil {
-		paymentHandler.Log.Error("Error transfering subscription to new owner", zap.Error(err))
-		return errors.New("error adding transfer note to customer")
+		paymentHandler.Log.Error("Error updating customer", zap.Error(err))
+		return errors.New("error updating customer")
 	}
-	return nil
-}
-
-func (paymentHandler *PaymentHandler) addCustomerTransferNote(customerIDToUpdate, customerSourceID, customerDestinationID, subscriptionID string) error {
-	timestamp := time.Now().Format("2006-01-02_15-04-05")
-	customerUpdateParams := &stripe.CustomerParams{
-		Metadata: map[string]string{
-			fmt.Sprintf("transfer_ownership_%s", timestamp): fmt.Sprintf("Transferred the subscription %s from customerSourceID %s to customerDestinationID %s", subscriptionID, customerSourceID, customerDestinationID),
-		},
-	}
-	_, err := customer.Update(customerIDToUpdate, customerUpdateParams)
-	if err != nil {
-		paymentHandler.Log.Error("Error adding transfer note to customer", zap.Error(err))
-		return errors.New("error adding transfer note to customer")
-	}
+	paymentHandler.Log.Error("implement update user in MongoDB")
 	return nil
 }
 
