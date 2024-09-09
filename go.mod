@@ -8,8 +8,8 @@ require (
 	github.com/gin-contrib/cache v1.3.0
 	github.com/gin-contrib/cors v1.7.2
 	github.com/gin-gonic/autotls v1.1.0
-	github.com/go-playground/validator/v10 v10.22.0
-	github.com/stripe/stripe-go/v79 v79.9.0
+	github.com/go-playground/validator/v10 v10.22.1
+	github.com/stripe/stripe-go/v79 v79.10.0
 	go.uber.org/zap v1.27.0
 	google.golang.org/api v0.196.0
 )
@@ -70,8 +70,8 @@ require (
 	go.opentelemetry.io/otel/metric v1.29.0 // indirect
 	go.opentelemetry.io/otel/trace v1.29.0 // indirect
 	golang.org/x/arch v0.10.0 // indirect
-	golang.org/x/crypto v0.26.0 // indirect
-	golang.org/x/net v0.28.0 // indirect
+	golang.org/x/crypto v0.27.0 // indirect
+	golang.org/x/net v0.29.0 // indirect
 	golang.org/x/oauth2 v0.23.0 // indirect
 	golang.org/x/sync v0.8.0 // indirect
 	golang.org/x/sys v0.25.0 // indirect
