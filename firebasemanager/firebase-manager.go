@@ -76,7 +76,7 @@ func (firebaseConnection *FirebaseConnection) GetTokenDetails(c *gin.Context) (t
 	if err != nil {
 		return TokenDetails{}, err
 	}
-	idToken, err := client.VerifyIDToken(c, jwtToken)
+	idToken, err := client.VerifyIDTokenAndCheckRevoked(c, jwtToken)
 	if err != nil {
 		return TokenDetails{}, err
 	}
