@@ -29,6 +29,23 @@ func (paymentHandler *PaymentHandler) GetSubscriptionDetailByID(c context.Contex
 	return subscriptionDetailReply, nil
 }
 
+func (paymentHandler *PaymentHandler) GetCancelState(c context.Context, tokenDetails firebasemanager.TokenDetails, subscriptionID string) (CancelStateReply, error) {
+	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, subscriptionID, []mongomanager.Role{mongomanager.RoleAdministrator})
+	if err != nil {
+		return CancelStateReply{}, err
+	}
+	stripe.Key = paymentHandler.StripeConnection.Key
+	subscription, err := paymentHandler.StripeConnection.GetSubscriptionByID(c, subscriptionID)
+	if err != nil {
+		return CancelStateReply{}, errors.New("subscription not found")
+	}
+	paymentHandler.Log.Debug("subscription", zap.Any("subscription", subscription))
+	return CancelStateReply{
+		SubscriptionID:    subscription.ID,
+		CancelAtPeriodEnd: &subscription.CancelAtPeriodEnd,
+	}, nil
+}
+
 func (stripeConnection *StripeConnection) mapSubscriptionItemToSubscriptionDetail(c context.Context, subscription *stripe.Subscription) (reply SubscriptionDetailReply, err error) {
 	reply.ID = subscription.ID
 	productID := subscription.Items.Data[0].Price.Product.ID

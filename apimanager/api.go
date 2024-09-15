@@ -148,6 +148,7 @@ func (api *Api) initRoutes() {
 	{
 		dashboard.GET("/subscriptions", api.getSubscriptionsOverview)
 		dashboard.GET("/subscription/:id", api.getSubscriptionByID)
+		dashboard.GET("/subscription/:id/cancel-state", api.getCancelState)
 		dashboard.POST("/subscription/permission", api.GetMyPermission)
 		dashboard.POST("/subscription/list-seats", api.getSubscriptionListSeats)
 		dashboard.POST("/subscription/seat-detail", api.getSubscriptionSeatDetail)

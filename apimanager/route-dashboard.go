@@ -37,6 +37,15 @@ func (api *Api) getSubscriptionByID(c *gin.Context) {
 	}
 }
 
+func (api *Api) getCancelState(c *gin.Context) {
+	tokenDetails, err := api.handleTokenDetails(c)
+	if err == nil {
+		subscriptionID := c.Param("id")
+		reply, err := api.paymentHandler.GetCancelState(c, tokenDetails, subscriptionID)
+		api.validateAndWriteReply(c, err, reply)
+	}
+}
+
 func (api *Api) GetMyPermission(c *gin.Context) {
 	var request stripemanager.PermissionRequest
 	tokenDetails, err := api.handleTokenDetails(c)
