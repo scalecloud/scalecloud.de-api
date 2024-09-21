@@ -115,8 +115,13 @@ func (paymentHandler *PaymentHandler) GetCheckoutProduct(c context.Context, toke
 		return CheckoutProductReply{}, err
 	}
 	paymentMethod, err := paymentHandler.StripeConnection.GetDefaultPaymentMethod(c, cus)
+	hasValidPaymentMethod := true
 	if err != nil {
-		return CheckoutProductReply{}, err
+		if err == ErrDefaultPaymentMethodNotFound {
+			hasValidPaymentMethod = false
+		} else {
+			return CheckoutProductReply{}, err
+		}
 	}
 	iTrialPeriodDays, err := paymentHandler.getTrialDaysForCustomer(c, 1, paymentMethod, product, cus)
 	if err != nil {
@@ -144,13 +149,14 @@ func (paymentHandler *PaymentHandler) GetCheckoutProduct(c context.Context, toke
 		return CheckoutProductReply{}, errors.New("Product name not found for priceID: " + price.ID)
 	}
 	checkoutProductReply := CheckoutProductReply{
-		ProductID:     checkoutProductRequest.ProductID,
-		Name:          productName,
-		StorageAmount: iStorageAmount,
-		StorageUnit:   storageUnit,
-		TrialDays:     iTrialPeriodDays,
-		PricePerMonth: price.UnitAmount,
-		Currency:      currency,
+		ProductID:             checkoutProductRequest.ProductID,
+		Name:                  productName,
+		StorageAmount:         iStorageAmount,
+		StorageUnit:           storageUnit,
+		TrialDays:             iTrialPeriodDays,
+		PricePerMonth:         price.UnitAmount,
+		Currency:              currency,
+		HasValidPaymentMethod: &hasValidPaymentMethod,
 	}
 	return checkoutProductReply, nil
 }

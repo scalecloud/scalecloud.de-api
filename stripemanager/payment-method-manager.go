@@ -8,6 +8,8 @@ import (
 	"github.com/stripe/stripe-go/v79/paymentmethod"
 )
 
+var ErrDefaultPaymentMethodNotFound = errors.New("DefaultPaymentMethod not found")
+
 func (stripeConnection *StripeConnection) GetPaymentMethod(c context.Context, paymentMethodID string) (*stripe.PaymentMethod, error) {
 	stripe.Key = stripeConnection.Key
 	pm, err := paymentmethod.Get(
@@ -26,7 +28,7 @@ func (stripeConnection *StripeConnection) GetDefaultPaymentMethod(c context.Cont
 	}
 	defaultPaymentMethod := cus.InvoiceSettings.DefaultPaymentMethod
 	if defaultPaymentMethod == nil {
-		return nil, errors.New("DefaultPaymentMethod not found")
+		return nil, ErrDefaultPaymentMethodNotFound
 	}
 	defaultPaymentID := defaultPaymentMethod.ID
 	if defaultPaymentID == "" {
