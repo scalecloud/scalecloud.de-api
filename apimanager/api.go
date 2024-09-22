@@ -155,6 +155,7 @@ func (api *Api) initRoutes() {
 		dashboard.POST("/subscription/update-seat", api.getSubscriptionUpdateSeat)
 		dashboard.POST("/subscription/add-seat", api.getSubscriptionAddSeat)
 		dashboard.POST("/subscription/delete-seat", api.getSubscriptionRemoveSeat)
+		dashboard.POST("/subscription/invoices", api.getSubscriptionInvoices)
 		dashboard.POST("/get-payment-method-overview", api.getPaymentMethodOverview)
 		dashboard.POST("/get-change-payment-setup-intent", api.getChangePaymentSetupIntent)
 		dashboard.POST("/resume-subscription", api.resumeSubscription)
