@@ -21,7 +21,7 @@ func (paymentHandler *PaymentHandler) GetSubscriptionInvoices(c context.Context,
 	}
 	stripe.Key = paymentHandler.StripeConnection.Key
 	params := &stripe.InvoiceListParams{
-		Customer: stripe.String(request.SubscriptionID),
+		Subscription: stripe.String(request.SubscriptionID),
 	}
 	params.Limit = stripe.Int64(int64(request.PageSize))
 	if request.PageIndex > 0 {
@@ -58,9 +58,8 @@ func (paymentHandler *PaymentHandler) CountTotalInvoices(subscriptionID string) 
 	stripe.Key = paymentHandler.StripeConnection.Key
 
 	params := &stripe.InvoiceListParams{
-		Customer: stripe.String(subscriptionID),
+		Subscription: stripe.String(subscriptionID),
 	}
-	params.Limit = stripe.Int64(1)
 	var totalResults int64
 	var iter *invoice.Iter
 	for {
