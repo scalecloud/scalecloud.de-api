@@ -15,7 +15,7 @@ func (paymentHandler *PaymentHandler) GetSubscriptionInvoices(c context.Context,
 	if err != nil {
 		return ListInvoicesReply{}, err
 	}
-	totalResults, err := paymentHandler.CountTotalInvoices(request.SubscriptionID)
+	totalResults, err := CountTotalInvoices(request.SubscriptionID)
 	if err != nil {
 		return ListInvoicesReply{}, err
 	}
@@ -53,24 +53,26 @@ func (paymentHandler *PaymentHandler) GetSubscriptionInvoices(c context.Context,
 	return reply, nil
 }
 
-func (paymentHandler *PaymentHandler) CountTotalInvoices(subscriptionID string) (int64, error) {
-	stripe.Key = paymentHandler.StripeConnection.Key
-
+func CountTotalInvoices(subscriptionID string) (int64, error) {
+	var totalResults int64
 	params := &stripe.InvoiceListParams{
 		Subscription: stripe.String(subscriptionID),
 	}
-	var totalResults int64
-	var iter *invoice.Iter
+	params.Limit = stripe.Int64(100) // Use a larger limit to reduce the number of API calls
+
 	for {
-		iter = invoice.List(params)
-		if !iter.Next() {
+		iter := invoice.List(params)
+		for iter.Next() {
+			totalResults++
+		}
+		if err := iter.Err(); err != nil {
+			return 0, err
+		}
+		if iter.Meta().HasMore {
+			params.StartingAfter = stripe.String(iter.Invoice().ID)
+		} else {
 			break
 		}
-		totalResults++
-		params.StartingAfter = stripe.String(iter.Invoice().ID)
-	}
-	if err := iter.Err(); err != nil {
-		return 0, err
 	}
 
 	return totalResults, nil
