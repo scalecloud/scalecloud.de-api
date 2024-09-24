@@ -26,8 +26,7 @@ func (paymentHandler *PaymentHandler) GetSubscriptionInvoices(c context.Context,
 	params.Limit = stripe.Int64(int64(request.PageSize))
 	if request.EndingBefore != "" {
 		params.EndingBefore = stripe.String(request.EndingBefore)
-	}
-	if request.StartingAfter != "" {
+	} else if request.StartingAfter != "" {
 		params.StartingAfter = stripe.String(request.StartingAfter)
 	}
 	invoiceList := invoice.List(params).InvoiceList()
@@ -49,7 +48,6 @@ func (paymentHandler *PaymentHandler) GetSubscriptionInvoices(c context.Context,
 	reply := ListInvoicesReply{
 		SubscriptionID: request.SubscriptionID,
 		Invoices:       invoices,
-		PageIndex:      request.PageIndex,
 		TotalResults:   totalResults,
 	}
 	return reply, nil
