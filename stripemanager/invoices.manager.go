@@ -2,7 +2,7 @@ package stripemanager
 
 import (
 	"context"
-	"strconv"
+	"errors"
 
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
@@ -24,14 +24,18 @@ func (paymentHandler *PaymentHandler) GetSubscriptionInvoices(c context.Context,
 		Subscription: stripe.String(request.SubscriptionID),
 	}
 	params.Limit = stripe.Int64(int64(request.PageSize))
-	if request.PageIndex > 0 {
-		startingAfter := request.PageIndex * request.PageSize
-		params.StartingAfter = stripe.String(strconv.Itoa(startingAfter))
+	if request.EndingBefore != "" {
+		params.EndingBefore = stripe.String(request.EndingBefore)
 	}
-	iter := invoice.List(params)
+	if request.StartingAfter != "" {
+		params.StartingAfter = stripe.String(request.StartingAfter)
+	}
+	invoiceList := invoice.List(params).InvoiceList()
+	if invoiceList == nil {
+		return ListInvoicesReply{}, errors.New("no invoices found")
+	}
 	var invoices []Invoice
-	for iter.Next() {
-		inv := iter.Invoice()
+	for _, inv := range invoiceList.Data {
 		invoices = append(invoices, Invoice{
 			InvoiceID:        inv.ID,
 			SubscriptionID:   inv.Customer.ID,
@@ -41,9 +45,6 @@ func (paymentHandler *PaymentHandler) GetSubscriptionInvoices(c context.Context,
 			Status:           inv.Status,
 			HostedInvoiceUrl: inv.HostedInvoiceURL,
 		})
-	}
-	if err := iter.Err(); err != nil {
-		return ListInvoicesReply{}, err
 	}
 	reply := ListInvoicesReply{
 		SubscriptionID: request.SubscriptionID,

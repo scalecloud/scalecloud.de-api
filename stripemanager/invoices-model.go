@@ -16,6 +16,8 @@ type ListInvoicesRequest struct {
 	SubscriptionID string `json:"subscriptionID" validate:"required"`
 	PageIndex      int    `json:"pageIndex" validate:"gte=0"`
 	PageSize       int    `json:"pageSize" validate:"gte=1"`
+	StartingAfter  string `json:"startingAfter"`
+	EndingBefore   string `json:"endingBefore"`
 }
 
 type ListInvoicesReply struct {
