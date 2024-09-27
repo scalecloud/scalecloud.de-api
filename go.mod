@@ -11,12 +11,12 @@ require (
 	github.com/go-playground/validator/v10 v10.22.1
 	github.com/stripe/stripe-go/v79 v79.12.0
 	go.uber.org/zap v1.27.0
-	google.golang.org/api v0.198.0
+	google.golang.org/api v0.199.0
 )
 
 require (
 	cloud.google.com/go v0.115.1 // indirect
-	cloud.google.com/go/auth v0.9.4 // indirect
+	cloud.google.com/go/auth v0.9.5 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.4 // indirect
 	cloud.google.com/go/compute/metadata v0.5.2 // indirect
 	cloud.google.com/go/firestore v1.17.0 // indirect
