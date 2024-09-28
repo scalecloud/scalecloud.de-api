@@ -16,7 +16,7 @@ import (
 func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Context, tokenDetails firebasemanager.TokenDetails, checkoutCreateSubscriptionRequest CheckoutCreateSubscriptionRequest) (CheckoutCreateSubscriptionReply, error) {
 	stripe.Key = paymentHandler.StripeConnection.Key
 	if checkoutCreateSubscriptionRequest.Quantity > 999 {
-		return CheckoutCreateSubscriptionReply{}, errors.New("quantity too high")
+		return CheckoutCreateSubscriptionReply{}, errors.New("quantity can not be higher than 999")
 	}
 	price, err := paymentHandler.StripeConnection.GetPrice(c, checkoutCreateSubscriptionRequest.ProductID)
 	if err != nil {
