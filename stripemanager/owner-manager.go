@@ -94,6 +94,7 @@ func (paymentHandler *PaymentHandler) hasCustomerOnlyOneActiveSubscription(c con
 		paymentHandler.Log.Error("Error retrieving customerID by UID", zap.Error(err))
 		return errors.New("could not retrieve customerID by UID")
 	}
+	stripe.Key = paymentHandler.StripeConnection.Key
 	params := &stripe.SubscriptionListParams{
 		Customer: stripe.String(ownerCustomerID),
 	}
