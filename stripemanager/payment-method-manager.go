@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"github.com/stripe/stripe-go/v79"
-	"github.com/stripe/stripe-go/v79/paymentmethod"
+	"github.com/stripe/stripe-go/v80"
+	"github.com/stripe/stripe-go/v80/paymentmethod"
 )
 
 var ErrDefaultPaymentMethodNotFound = errors.New("DefaultPaymentMethod not found")

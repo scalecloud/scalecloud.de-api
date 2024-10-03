@@ -1,6 +1,6 @@
 package stripemanager
 
-import "github.com/stripe/stripe-go/v79"
+import "github.com/stripe/stripe-go/v80"
 
 type Invoice struct {
 	InvoiceID        string               `json:"invoiceID" validate:"required"`

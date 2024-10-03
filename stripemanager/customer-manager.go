@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
-	"github.com/stripe/stripe-go/v79"
-	"github.com/stripe/stripe-go/v79/customer"
+	"github.com/stripe/stripe-go/v80"
+	"github.com/stripe/stripe-go/v80/customer"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 

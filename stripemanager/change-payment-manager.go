@@ -5,10 +5,10 @@ import (
 	"errors"
 
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
-	"github.com/stripe/stripe-go/v79"
-	"github.com/stripe/stripe-go/v79/customer"
-	"github.com/stripe/stripe-go/v79/paymentmethod"
-	"github.com/stripe/stripe-go/v79/setupintent"
+	"github.com/stripe/stripe-go/v80"
+	"github.com/stripe/stripe-go/v80/customer"
+	"github.com/stripe/stripe-go/v80/paymentmethod"
+	"github.com/stripe/stripe-go/v80/setupintent"
 	"go.uber.org/zap"
 )
 
