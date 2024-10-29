@@ -187,8 +187,8 @@ github.com/stretchr/testify v1.8.0/go.mod h1:yNjHg4UonilssWZ8iaSj1OCr/vHnekPRkoO
 github.com/stretchr/testify v1.8.1/go.mod h1:w2LPCIKwWwSfY2zedu0+kehJoqGctiVI29o6fzry7u4=
 github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsTg=
 github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
-github.com/stripe/stripe-go/v80 v80.2.0 h1:rCl1PyIAG+gi7tj9prOuWt6XNjKK0BjMoZSvtdiQwUc=
-github.com/stripe/stripe-go/v80 v80.2.0/go.mod h1:n7tsDvdltYlzOLGXlseMSJM6ik5uv3guptqtae/VSak=
+github.com/stripe/stripe-go/v80 v80.2.1 h1:1FQP5a/gpC4i0ezS8EPqdme3K/H9UlNWswqNHFekieY=
+github.com/stripe/stripe-go/v80 v80.2.1/go.mod h1:n7tsDvdltYlzOLGXlseMSJM6ik5uv3guptqtae/VSak=
 github.com/twitchyliquid64/golang-asm v0.15.1 h1:SU5vSMR7hnwNxj24w34ZyCi/FmDZTkS4MhqMhdFk5YI=
 github.com/twitchyliquid64/golang-asm v0.15.1/go.mod h1:a1lVb/DtPvCB8fslRZhAngC2+aY1QWCk3Cedj/Gdt08=
 github.com/ugorji/go/codec v1.2.12 h1:9LC83zGrHhuUA9l16C9AHXAqEV/2wBQ4nkvumAE65EE=
@@ -316,8 +316,8 @@ google.golang.org/grpc v1.27.0/go.mod h1:qbnxyOmOxrQa7FizSgH+ReBfzJrCY1pSN7KXBS8
 google.golang.org/grpc v1.33.2/go.mod h1:JMHMWHQWaTccqQQlmk3MJZS+GWXOdAesneDmEnv2fbc=
 google.golang.org/grpc v1.67.1 h1:zWnc1Vrcno+lHZCOofnIMvycFcc0QRGIzm9dhnDX68E=
 google.golang.org/grpc v1.67.1/go.mod h1:1gLDyUQU7CTLJI90u3nXZ9ekeghjeM7pTDZlqFNg2AA=
-google.golang.org/grpc/stats/opentelemetry v0.0.0-20241025160038-e0a730c111be h1:ynxNvpA7zI+z0OdyDnHFoiZMqTCuZbOzPQb0naLR+zE=
-google.golang.org/grpc/stats/opentelemetry v0.0.0-20241025160038-e0a730c111be/go.mod h1:jzYlkSMbKypzuu6xoAEijsNVo9ZeDF1u/zCfFgsx7jg=
+google.golang.org/grpc/stats/opentelemetry v0.0.0-20241028142157-ada6787961b3 h1:hUfOButuEtpc0UvYiaYRbNwxVYr0mQQOWq6X8beJ9Gc=
+google.golang.org/grpc/stats/opentelemetry v0.0.0-20241028142157-ada6787961b3/go.mod h1:jzYlkSMbKypzuu6xoAEijsNVo9ZeDF1u/zCfFgsx7jg=
 google.golang.org/protobuf v0.0.0-20200109180630-ec00e32a8dfd/go.mod h1:DFci5gLYBciE7Vtevhsrf46CRTquxDuWsQurQQe4oz8=
 google.golang.org/protobuf v0.0.0-20200221191635-4d8936d0db64/go.mod h1:kwYJMbMJ01Woi6D6+Kah6886xMZcty6N08ah7+eCXa0=
 google.golang.org/protobuf v0.0.0-20200228230310-ab0ca4ff8a60/go.mod h1:cfTl7dwQJ+fmap5saPgwCLgHXTUD7jkjRqWcaiX5VyM=
