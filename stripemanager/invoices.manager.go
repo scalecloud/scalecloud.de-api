@@ -6,8 +6,8 @@ import (
 
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
-	"github.com/stripe/stripe-go/v80"
-	"github.com/stripe/stripe-go/v80/invoice"
+	"github.com/stripe/stripe-go/v81"
+	"github.com/stripe/stripe-go/v81/invoice"
 )
 
 func (paymentHandler *PaymentHandler) GetSubscriptionInvoices(c context.Context, tokenDetails firebasemanager.TokenDetails, request ListInvoicesRequest) (ListInvoicesReply, error) {

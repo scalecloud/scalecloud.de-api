@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
-	"github.com/stripe/stripe-go/v80"
+	"github.com/stripe/stripe-go/v81"
 	"go.uber.org/zap"
 )
 
