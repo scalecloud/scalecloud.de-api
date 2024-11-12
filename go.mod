@@ -73,14 +73,14 @@ require (
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	go.opencensus.io v0.24.0 // indirect
-	go.opentelemetry.io/contrib/detectors/gcp v1.31.0 // indirect
-	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.56.0 // indirect
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.56.0 // indirect
-	go.opentelemetry.io/otel v1.31.0 // indirect
-	go.opentelemetry.io/otel/metric v1.31.0 // indirect
-	go.opentelemetry.io/otel/sdk v1.31.0 // indirect
-	go.opentelemetry.io/otel/sdk/metric v1.31.0 // indirect
-	go.opentelemetry.io/otel/trace v1.31.0 // indirect
+	go.opentelemetry.io/contrib/detectors/gcp v1.32.0 // indirect
+	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.57.0 // indirect
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.57.0 // indirect
+	go.opentelemetry.io/otel v1.32.0 // indirect
+	go.opentelemetry.io/otel/metric v1.32.0 // indirect
+	go.opentelemetry.io/otel/sdk v1.32.0 // indirect
+	go.opentelemetry.io/otel/sdk/metric v1.32.0 // indirect
+	go.opentelemetry.io/otel/trace v1.32.0 // indirect
 	golang.org/x/arch v0.12.0 // indirect
 	golang.org/x/crypto v0.29.0 // indirect
 	golang.org/x/net v0.31.0 // indirect
