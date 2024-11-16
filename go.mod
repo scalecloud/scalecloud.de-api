@@ -9,7 +9,7 @@ require (
 	github.com/go-playground/validator/v10 v10.22.1
 	github.com/stripe/stripe-go/v81 v81.0.0
 	go.uber.org/zap v1.27.0
-	google.golang.org/api v0.205.0
+	google.golang.org/api v0.206.0
 )
 
 require (
@@ -22,7 +22,7 @@ require (
 	cloud.google.com/go/iam v1.2.2 // indirect
 	cloud.google.com/go/longrunning v0.6.2 // indirect
 	cloud.google.com/go/monitoring v1.21.2 // indirect
-	cloud.google.com/go/storage v1.46.0 // indirect
+	cloud.google.com/go/storage v1.47.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.25.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.49.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.49.0 // indirect
