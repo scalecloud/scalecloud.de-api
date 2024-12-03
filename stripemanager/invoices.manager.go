@@ -36,13 +36,13 @@ func (paymentHandler *PaymentHandler) GetSubscriptionInvoices(c context.Context,
 	var invoices []Invoice
 	for _, inv := range invoiceList.Data {
 		invoices = append(invoices, Invoice{
-			InvoiceID:        inv.ID,
-			SubscriptionID:   inv.Customer.ID,
-			Created:          inv.Created,
-			Total:            inv.Total,
-			Currency:         string(inv.Currency),
-			Status:           inv.Status,
-			HostedInvoiceUrl: inv.HostedInvoiceURL,
+			InvoiceID:      inv.ID,
+			SubscriptionID: inv.Customer.ID,
+			Created:        inv.Created,
+			Total:          inv.Total,
+			Currency:       string(inv.Currency),
+			Status:         inv.Status,
+			InvoicePDF:     inv.InvoicePDF,
 		})
 	}
 	reply := ListInvoicesReply{
