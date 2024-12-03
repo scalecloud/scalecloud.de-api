@@ -97,5 +97,7 @@ func (stripeConnection *StripeConnection) mapSubscriptionItemToSubscriptionDetai
 
 	reply.TrialEnd = subscription.TrialEnd
 
+	reply.CurrentPeriodEnd = subscription.CurrentPeriodEnd
+
 	return reply, nil
 }

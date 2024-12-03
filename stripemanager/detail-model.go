@@ -13,6 +13,7 @@ type SubscriptionDetailReply struct {
 	CancelAt          int64  `json:"cancel_at"`
 	Status            string `json:"status" validate:"required"`
 	TrialEnd          int64  `json:"trial_end"`
+	CurrentPeriodEnd  int64  `json:"current_period_end" validate:"required"`
 }
 
 type CancelStateReply struct {
