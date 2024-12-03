@@ -157,7 +157,7 @@ func (api *Api) handleSetupIntentSucceeded(c context.Context, event stripe.Event
 		api.log.Info("createSubscription")
 	} else if metaKey == string(stripemanager.ChangePayment) {
 		api.paymentHandler.ChangePaymentDefault(c, request)
-		api.log.Info("changePayment")
+		api.paymentHandler.ChangeCustomerAddress(c, request)
 	} else {
 		return errors.New("Unknown metadata type")
 	}

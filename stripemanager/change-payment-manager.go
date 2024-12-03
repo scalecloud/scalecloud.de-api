@@ -94,3 +94,43 @@ func (paymentHandler *PaymentHandler) detachPaymentMethodsButDefault(setupIntent
 	}
 	return nil
 }
+
+func (paymentHandler *PaymentHandler) ChangeCustomerAddress(c context.Context, setupIntent stripe.SetupIntent) error {
+	stripe.Key = paymentHandler.StripeConnection.Key
+	cus := setupIntent.Customer
+	if cus == nil {
+		return errors.New("customer not set")
+	}
+	if cus.ID == "" {
+		return errors.New("customer ID not set")
+	}
+	paymentMethod, err := paymentHandler.StripeConnection.GetPaymentMethod(c, setupIntent.PaymentMethod.ID)
+	if err != nil {
+		return errors.New("payment method not found")
+	}
+	address := paymentMethod.BillingDetails.Address
+	if address == nil {
+		return errors.New("billing address not set")
+	}
+	if address.Line1 == "" {
+		return errors.New("billing address line1 not set")
+	}
+	params := &stripe.CustomerParams{
+		Name:  stripe.String(paymentMethod.BillingDetails.Name),
+		Phone: stripe.String(paymentMethod.BillingDetails.Phone),
+		Address: &stripe.AddressParams{
+			Line1:      stripe.String(address.Line1),
+			Line2:      stripe.String(address.Line2),
+			City:       stripe.String(address.City),
+			State:      stripe.String(address.State),
+			PostalCode: stripe.String(address.PostalCode),
+			Country:    stripe.String(address.Country),
+		},
+	}
+	updatedCustomer, err := customer.Update(cus.ID, params)
+	if err != nil {
+		return err
+	}
+	paymentHandler.Log.Info("Customer address updated", zap.Any("Customer", updatedCustomer.ID))
+	return nil
+}
