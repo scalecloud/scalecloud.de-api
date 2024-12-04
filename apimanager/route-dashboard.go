@@ -116,6 +116,26 @@ func (api *Api) getSubscriptionInvoices(c *gin.Context) {
 	}
 }
 
+func (api *Api) getBillingAddress(c *gin.Context) {
+	var request stripemanager.BillingAddressRequest
+	tokenDetails, err := api.handleTokenDetails(c)
+	if err == nil &&
+		api.handleBind(c, &request) {
+		reply, err := api.paymentHandler.GetBillingAddress(c, tokenDetails, request)
+		api.validateAndWriteReply(c, err, reply)
+	}
+}
+
+func (api *Api) updateBillingAddress(c *gin.Context) {
+	var request stripemanager.UpdateBillingAddressRequest
+	tokenDetails, err := api.handleTokenDetails(c)
+	if err == nil &&
+		api.handleBind(c, &request) {
+		reply, err := api.paymentHandler.UpdateBillingAddress(c, tokenDetails, request)
+		api.validateAndWriteReply(c, err, reply)
+	}
+}
+
 func (api *Api) handleBillingPortal(c *gin.Context) {
 	tokenDetails, err := api.handleTokenDetails(c)
 	if err == nil {
