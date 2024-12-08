@@ -8,6 +8,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.uber.org/zap"
 )
 
 func fileExists(filename string) bool {
@@ -64,7 +65,8 @@ func (mongoConnection *MongoConnection) createDocument(ctx context.Context, data
 	}
 	_, err = collection.InsertOne(ctx, document)
 	if err != nil {
-		return err
+		mongoConnection.Log.Error("Error inserting document", zap.Error(err))
+		return errors.New("error inserting document")
 	}
 	return nil
 }
@@ -82,7 +84,8 @@ func (mongoConnection *MongoConnection) updateDocument(ctx context.Context, data
 	}
 	_, err = collection.UpdateOne(ctx, filter, update)
 	if err != nil {
-		return err
+		mongoConnection.Log.Error("Error updating document", zap.Error(err))
+		return errors.New("error updating document")
 	}
 	return nil
 }
@@ -97,7 +100,8 @@ func (mongoConnection *MongoConnection) deleteDocument(ctx context.Context, data
 	}
 	_, err = collection.DeleteOne(ctx, filter)
 	if err != nil {
-		return err
+		mongoConnection.Log.Error("Error deleting document", zap.Error(err))
+		return errors.New("error deleting document")
 	}
 	return nil
 }
@@ -112,7 +116,8 @@ func (mongoConnection *MongoConnection) findOneDocument(ctx context.Context, dat
 	}
 	singleResult := collection.FindOne(ctx, filter)
 	if singleResult.Err() != nil {
-		return nil, singleResult.Err()
+		mongoConnection.Log.Error("Error finding document", zap.Error(singleResult.Err()))
+		return nil, errors.New("error finding document")
 	}
 	return singleResult, nil
 }
@@ -128,7 +133,8 @@ func (mongoConnection *MongoConnection) findDocuments(ctx context.Context, datab
 	// Call Find with sorting and pagination
 	cursor, err := collection.Find(ctx, filter, opts)
 	if err != nil {
-		return err
+		mongoConnection.Log.Error("Error finding documents", zap.Error(err))
+		return errors.New("error finding documents")
 	}
 	defer cursor.Close(ctx)
 	// Decode the results
@@ -148,7 +154,8 @@ func (mongoConnection *MongoConnection) countDocuments(ctx context.Context, data
 	}
 	count, err := collection.CountDocuments(ctx, filter)
 	if err != nil {
-		return 0, err
+		mongoConnection.Log.Error("Error counting documents", zap.Error(err))
+		return 0, errors.New("error counting documents")
 	}
 	return count, nil
 }
