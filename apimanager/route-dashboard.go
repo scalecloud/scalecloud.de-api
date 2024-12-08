@@ -17,15 +17,23 @@ func (api *Api) getProductTiersSynology(c *gin.Context) {
 
 func (api *Api) getSubscriptionsOverview(c *gin.Context) {
 	tokenDetails, err := api.handleTokenDetails(c)
-	if err == nil {
-		reply, err := api.paymentHandler.GetSubscriptionsOverview(c, tokenDetails)
-		for _, s := range reply {
-			if !api.validateReply(c, err, s) {
-				return
-			}
-		}
-		api.writeReply(c, reply)
+	if err != nil {
+		api.validateAndWriteReply(c, err, nil)
+		return
 	}
+
+	reply, err := api.paymentHandler.GetSubscriptionsOverview(c, tokenDetails)
+	if err != nil {
+		api.validateAndWriteReply(c, err, nil)
+		return
+	}
+
+	for _, s := range reply {
+		if !api.validateReply(c, err, s) {
+			return
+		}
+	}
+	api.writeReply(c, reply)
 }
 
 func (api *Api) getSubscriptionByID(c *gin.Context) {
