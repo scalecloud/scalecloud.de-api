@@ -39,7 +39,6 @@ func (paymentHandler *PaymentHandler) GetBillingAddress(c context.Context, token
 		Line1:      customer.Address.Line1,
 		Line2:      &customer.Address.Line2,
 		PostalCode: customer.Address.PostalCode,
-		State:      customer.Address.State,
 	}
 
 	reply := BillingAddressReply{
@@ -80,7 +79,6 @@ func (paymentHandler *PaymentHandler) UpdateBillingAddress(c context.Context, to
 			Line1:      stripe.String(request.Address.Line1),
 			Line2:      stripe.String(*request.Address.Line2),
 			PostalCode: stripe.String(request.Address.PostalCode),
-			State:      stripe.String(request.Address.State),
 		},
 		Phone: stripe.String(request.Phone),
 	}

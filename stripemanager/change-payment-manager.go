@@ -122,7 +122,6 @@ func (paymentHandler *PaymentHandler) ChangeCustomerAddress(c context.Context, s
 			Line1:      stripe.String(address.Line1),
 			Line2:      stripe.String(address.Line2),
 			City:       stripe.String(address.City),
-			State:      stripe.String(address.State),
 			PostalCode: stripe.String(address.PostalCode),
 			Country:    stripe.String(address.Country),
 		},

@@ -6,7 +6,6 @@ type Address struct {
 	Line1      string  `json:"line1" validate:"required"`
 	Line2      *string `json:"line2" validate:"required"`
 	PostalCode string  `json:"postal_code" validate:"required"`
-	State      string  `json:"state" validate:"required"`
 }
 
 type BillingAddressRequest struct {
