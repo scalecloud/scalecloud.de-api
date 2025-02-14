@@ -3,7 +3,7 @@ module github.com/scalecloud/scalecloud.de-api
 go 1.23.2
 
 require (
-	firebase.google.com/go/v4 v4.15.1
+	firebase.google.com/go/v4 v4.15.2
 	github.com/gin-contrib/cache v1.3.1
 	github.com/gin-contrib/cors v1.7.3
 	github.com/gin-gonic/autotls v1.1.1
@@ -16,7 +16,7 @@ require (
 )
 
 require (
-	cel.dev/expr v0.19.3 // indirect
+	cel.dev/expr v0.20.0 // indirect
 	cloud.google.com/go v0.118.2 // indirect
 	cloud.google.com/go/auth v0.14.1 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.7 // indirect
@@ -91,9 +91,9 @@ require (
 	golang.org/x/text v0.22.0 // indirect
 	golang.org/x/time v0.10.0 // indirect
 	google.golang.org/appengine/v2 v2.0.6 // indirect
-	google.golang.org/genproto v0.0.0-20250207221924-e9438ea467c6 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20250207221924-e9438ea467c6 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250207221924-e9438ea467c6 // indirect
+	google.golang.org/genproto v0.0.0-20250212204824-5a70512c5d8b // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20250212204824-5a70512c5d8b // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250212204824-5a70512c5d8b // indirect
 	google.golang.org/grpc v1.70.0 // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
