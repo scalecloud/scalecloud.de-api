@@ -8,7 +8,7 @@ require (
 	github.com/gin-contrib/cors v1.7.3
 	github.com/gin-gonic/autotls v1.1.1
 	github.com/gin-gonic/gin v1.10.0
-	github.com/go-playground/validator/v10 v10.24.0
+	github.com/go-playground/validator/v10 v10.25.0
 	github.com/stripe/stripe-go/v81 v81.3.1
 	go.mongodb.org/mongo-driver v1.17.2
 	go.uber.org/zap v1.27.0
