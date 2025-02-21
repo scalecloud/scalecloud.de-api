@@ -34,7 +34,6 @@ Stripe: `stripe-secret-key.txt`
 
 [![Bugs](https://sonarcloud.io/api/project_badges/measure?project=scalecloud_scalecloud.de-api&metric=bugs)](https://sonarcloud.io/summary/new_code?id=scalecloud_scalecloud.de-api)
 [![Code Smells](https://sonarcloud.io/api/project_badges/measure?project=scalecloud_scalecloud.de-api&metric=code_smells)](https://sonarcloud.io/summary/new_code?id=scalecloud_scalecloud.de-api)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=scalecloud_scalecloud.de-api&metric=coverage)](https://sonarcloud.io/summary/new_code?id=scalecloud_scalecloud.de-api)
 [![Duplicated Lines (%)](https://sonarcloud.io/api/project_badges/measure?project=scalecloud_scalecloud.de-api&metric=duplicated_lines_density)](https://sonarcloud.io/summary/new_code?id=scalecloud_scalecloud.de-api)
 [![Lines of Code](https://sonarcloud.io/api/project_badges/measure?project=scalecloud_scalecloud.de-api&metric=ncloc)](https://sonarcloud.io/summary/new_code?id=scalecloud_scalecloud.de-api)
 [![Maintainability Rating](https://sonarcloud.io/api/project_badges/measure?project=scalecloud_scalecloud.de-api&metric=sqale_rating)](https://sonarcloud.io/summary/new_code?id=scalecloud_scalecloud.de-api)
