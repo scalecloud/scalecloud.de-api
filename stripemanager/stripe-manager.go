@@ -3,6 +3,7 @@ package stripemanager
 import (
 	"context"
 
+	"github.com/scalecloud/scalecloud.de-api/emailmanager"
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 	"github.com/scalecloud/scalecloud.de-api/stripemanager/secret"
@@ -19,6 +20,7 @@ type PaymentHandler struct {
 	FirebaseConnection *firebasemanager.FirebaseConnection
 	StripeConnection   *StripeConnection
 	MongoConnection    *mongomanager.MongoConnection
+	EMailConnection    *emailmanager.EMailConnection
 	Log                *zap.Logger
 }
 

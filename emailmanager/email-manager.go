@@ -1,4 +1,4 @@
-package email
+package emailmanager
 
 import (
 	"encoding/json"
@@ -18,7 +18,7 @@ type smtpCredentials struct {
 	From     string `json:"from" validate:"required,email"`
 }
 
-type EMailHandler struct {
+type EMailConnection struct {
 	Dialer *gomail.Dialer
 	From   string
 	Log    *zap.Logger
@@ -30,7 +30,7 @@ type Email struct {
 	Body    string
 }
 
-func InitMailHandler(log *zap.Logger) (*EMailHandler, error) {
+func InitEMailConnection(log *zap.Logger) (*EMailConnection, error) {
 	log.Info("Init mail handler")
 	smtpConnection, err := initDialer(log)
 	if err != nil {
@@ -39,7 +39,7 @@ func InitMailHandler(log *zap.Logger) (*EMailHandler, error) {
 
 	dialer := gomail.NewDialer(smtpConnection.Host, smtpConnection.Port, smtpConnection.Username, smtpConnection.Password)
 
-	eMailHandler := &EMailHandler{
+	eMailHandler := &EMailConnection{
 		Dialer: dialer,
 		From:   smtpConnection.From,
 		Log:    log.Named("emailhandler"),
@@ -82,7 +82,7 @@ func initDialer(log *zap.Logger) (*smtpCredentials, error) {
 	return smtpConnection, nil
 }
 
-func (emailHandler *EMailHandler) sendEMail(email Email) error {
+func (emailHandler *EMailConnection) sendEMail(email Email) error {
 	m := gomail.NewMessage()
 	m.SetHeader("From", emailHandler.From)
 	m.SetHeader("To", email.To...)

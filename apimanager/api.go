@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/autotls"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/scalecloud/scalecloud.de-api/emailmanager"
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 	"github.com/scalecloud/scalecloud.de-api/stripemanager"
@@ -46,6 +47,11 @@ func InitAPI(log *zap.Logger, production bool, proxyIP string) (*Api, error) {
 	}
 
 	router := gin.Default()
+
+	emailConnection, err := emailmanager.InitEMailConnection(log)
+	if err != nil {
+		return &Api{}, err
+	}
 
 	firebaseConnection, err := firebasemanager.InitFirebaseConnection(context.Background(), log)
 	if err != nil {
@@ -87,6 +93,7 @@ func InitAPI(log *zap.Logger, production bool, proxyIP string) (*Api, error) {
 			FirebaseConnection: firebaseConnection,
 			MongoConnection:    mongoConnection,
 			StripeConnection:   stripeConnection,
+			EMailConnection:    emailConnection,
 			Log:                log.Named("paymenthandler"),
 		},
 		webhookHandler: &WebhookHandler{
