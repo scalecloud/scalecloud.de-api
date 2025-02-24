@@ -35,16 +35,6 @@ SMTP: `smtp-credentials.json`
 
 The `smtp-credentials.json` file should contain the following structure:
 
-```json
-{
-  "host": "your-smtp-host",
-  "port": "your-smtp-port",
-  "username": "your-smtp-username",
-  "password": "your-smtp-password",
-  "from": "from-email-address"
-}
-```
-
 Example:
 
 ```json

@@ -84,7 +84,7 @@ func initDialer(log *zap.Logger) (*smtpCredentials, error) {
 	return smtpConnection, nil
 }
 
-func (emailHandler *EMailConnection) sendEMail(email Email) error {
+func (emailHandler *EMailConnection) SendEMail(email Email) error {
 	m := gomail.NewMessage()
 	m.SetHeader("From", emailHandler.From)
 	m.SetHeader("To", email.To...)
