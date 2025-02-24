@@ -29,6 +29,33 @@ Firebase: `firebase-serviceAccountKey.json`
 MongoDB-Atlas X.509 Certificate: `mongodb-atlas.pem`  
 MongoDB-Atlas connection string: `mongodb-atlas-connection-string.txt`  
 Stripe: `stripe-secret-key.txt`  
+SMTP: `smtp-credentials.json`  
+
+#### SMTP Credentials File (`smtp-credentials.json`)
+
+The `smtp-credentials.json` file should contain the following structure:
+
+```json
+{
+  "host": "your-smtp-host",
+  "port": "your-smtp-port",
+  "username": "your-smtp-username",
+  "password": "your-smtp-password",
+  "from": "from-email-address"
+}
+```
+
+Example:
+
+```json
+{
+  "host": "smtp.example.com",
+  "port": 587,
+  "username": "user@example.com",
+  "password": "yourpassword",
+  "from": "noreply@example.com"
+}
+```
 
 ## SonarCloud.io
 

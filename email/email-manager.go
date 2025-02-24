@@ -1,21 +1,27 @@
 package email
 
 import (
+	"encoding/json"
+	"errors"
+	"os"
+
+	"github.com/go-playground/validator/v10"
 	"go.uber.org/zap"
 	"gopkg.in/gomail.v2"
 )
 
-type SMTPConnection struct {
-	Host     string
-	Port     int
-	Username string
-	Password string
-	From     string
+type smtpCredentials struct {
+	Host     string `json:"host" validate:"required"`
+	Port     int    `json:"port" validate:"required"`
+	Username string `json:"username" validate:"required"`
+	Password string `json:"password" validate:"required"`
+	From     string `json:"from" validate:"required,email"`
 }
 
 type EMailHandler struct {
-	EMailConnection *SMTPConnection
-	Log             *zap.Logger
+	Dialer *gomail.Dialer
+	From   string
+	Log    *zap.Logger
 }
 
 type Email struct {
@@ -24,16 +30,66 @@ type Email struct {
 	Body    string
 }
 
+func InitMailHandler(log *zap.Logger) (*EMailHandler, error) {
+	log.Info("Init mail handler")
+	smtpConnection, err := initDialer(log)
+	if err != nil {
+		return nil, err
+	}
+
+	dialer := gomail.NewDialer(smtpConnection.Host, smtpConnection.Port, smtpConnection.Username, smtpConnection.Password)
+
+	eMailHandler := &EMailHandler{
+		Dialer: dialer,
+		From:   smtpConnection.From,
+		Log:    log.Named("emailhandler"),
+	}
+
+	return eMailHandler, nil
+}
+
+func fileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
+}
+
+func initDialer(log *zap.Logger) (*smtpCredentials, error) {
+	keyFile := "./keys/smtp-credentials.json"
+	if !fileExists(keyFile) {
+		return nil, errors.New("Keyfile does not exist")
+	}
+
+	file, err := os.Open(keyFile)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	smtpConnection := &smtpCredentials{}
+	if err := json.NewDecoder(file).Decode(smtpConnection); err != nil {
+		return nil, err
+	}
+
+	validate := validator.New()
+	if err := validate.Struct(smtpConnection); err != nil {
+		return nil, errors.New("Incomplete or invalid SMTP credentials: " + err.Error())
+	}
+
+	log.Info("SMTP connection read", zap.String("host", smtpConnection.Host))
+	return smtpConnection, nil
+}
+
 func (emailHandler *EMailHandler) sendEMail(email Email) error {
 	m := gomail.NewMessage()
-	m.SetHeader("From", emailHandler.EMailConnection.From)
+	m.SetHeader("From", emailHandler.From)
 	m.SetHeader("To", email.To...)
 	m.SetHeader("Subject", email.Subject)
 	m.SetBody("text/html", email.Body)
 
-	d := gomail.NewDialer(emailHandler.EMailConnection.Host, emailHandler.EMailConnection.Port, emailHandler.EMailConnection.Username, emailHandler.EMailConnection.Password)
-
-	if err := d.DialAndSend(m); err != nil {
+	if err := emailHandler.Dialer.DialAndSend(m); err != nil {
 		emailHandler.Log.Error("Failed to send email", zap.Error(err))
 		return err
 	}
