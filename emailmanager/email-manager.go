@@ -57,12 +57,12 @@ func fileExists(filename string) bool {
 }
 
 func initDialer(log *zap.Logger) (*smtpCredentials, error) {
-	keyFile := "./keys/smtp-credentials.json"
-	if !fileExists(keyFile) {
-		return nil, errors.New("Keyfile does not exist")
+	credentialsFile := "./keys/smtp-credentials.json"
+	if !fileExists(credentialsFile) {
+		return nil, errors.New("required file does not exist: " + credentialsFile)
 	}
 
-	file, err := os.Open(keyFile)
+	file, err := os.Open(credentialsFile)
 	if err != nil {
 		return nil, err
 	}

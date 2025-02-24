@@ -41,13 +41,13 @@ func fileExists(filename string) bool {
 }
 
 func initFirebaseApp(ctx context.Context, log *zap.Logger) (*firebase.App, error) {
-	keyFile := "./keys/firebase-serviceAccountKey.json"
-	if fileExists(keyFile) {
-		log.Info("Keyfile exists. ", zap.String("file", keyFile))
+	firebaseAccountKey := "./keys/firebase-serviceAccountKey.json"
+	if fileExists(firebaseAccountKey) {
+		log.Info("keyfile exists. ", zap.String("file", firebaseAccountKey))
 	} else {
-		return nil, errors.New("Keyfile does not exist")
+		return nil, errors.New("required file does not exist: " + firebaseAccountKey)
 	}
-	app, err := firebase.NewApp(ctx, nil, option.WithCredentialsFile(keyFile))
+	app, err := firebase.NewApp(ctx, nil, option.WithCredentialsFile(firebaseAccountKey))
 	if err != nil {
 		return nil, err
 	}

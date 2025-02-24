@@ -35,7 +35,7 @@ func CheckMongoConnectionFiles(log *zap.Logger) error {
 	if fileExists(connectionString) {
 		log.Debug("connectionString exists. ", zap.String("file", connectionString))
 	} else {
-		return errors.New("connectionString does not exist")
+		return errors.New("required file does not exist: " + connectionString)
 	}
 	if fileExists(x509) {
 		log.Debug("x509 exists. ", zap.String("file", x509))

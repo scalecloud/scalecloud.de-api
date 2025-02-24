@@ -13,14 +13,14 @@ const endpointSecretFile = "keys/stripe-endpoint-secrets.txt"
 func CheckStripeKeyFiles(log *zap.Logger) error {
 	log.Info("Init stripe")
 	if fileExists(keyFile) {
-		log.Info("Keyfile exists. ", zap.String("file", keyFile))
+		log.Info("keyfile exists. ", zap.String("file", keyFile))
 	} else {
-		return errors.New("Keyfile does not exist")
+		return errors.New("required file does not exist: " + keyFile)
 	}
 	if fileExists(endpointSecretFile) {
 		log.Info("EndpointSecretFile exists. ", zap.String("file", endpointSecretFile))
 	} else {
-		return errors.New("endpointSecretFile does not exist")
+		return errors.New("required file does not exist: " + endpointSecretFile)
 	}
 	return nil
 }
