@@ -69,12 +69,14 @@ func initDialer(log *zap.Logger) (*smtpCredentials, error) {
 	defer file.Close()
 
 	smtpConnection := &smtpCredentials{}
-	if err := json.NewDecoder(file).Decode(smtpConnection); err != nil {
+	err = json.NewDecoder(file).Decode(smtpConnection)
+	if err != nil {
 		return nil, err
 	}
 
 	validate := validator.New()
-	if err := validate.Struct(smtpConnection); err != nil {
+	err = validate.Struct(smtpConnection)
+	if err != nil {
 		return nil, errors.New("Incomplete or invalid SMTP credentials: " + err.Error())
 	}
 
