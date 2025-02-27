@@ -84,18 +84,18 @@ func initDialer(log *zap.Logger) (*smtpCredentials, error) {
 	return smtpConnection, nil
 }
 
-func (emailHandler *EMailConnection) SendEMail(email Email) error {
+func (eMailConnection *EMailConnection) SendEMail(email Email) error {
 	m := gomail.NewMessage()
-	m.SetHeader("From", emailHandler.From)
+	m.SetHeader("From", eMailConnection.From)
 	m.SetHeader("To", email.To...)
 	m.SetHeader("Subject", email.Subject)
 	m.SetBody("text/html", email.Body)
 
-	if err := emailHandler.Dialer.DialAndSend(m); err != nil {
-		emailHandler.Log.Error("Failed to send email", zap.Error(err))
+	if err := eMailConnection.Dialer.DialAndSend(m); err != nil {
+		eMailConnection.Log.Error("Failed to send email", zap.Error(err))
 		return err
 	}
 
-	emailHandler.Log.Info("Email sent successfully")
+	eMailConnection.Log.Info("Email sent successfully")
 	return nil
 }
