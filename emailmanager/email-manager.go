@@ -24,7 +24,7 @@ type EMailConnection struct {
 	Log    *zap.Logger
 }
 
-type Email struct {
+type EMail struct {
 	To      []string
 	Subject string
 	Body    string
@@ -84,7 +84,7 @@ func initDialer(log *zap.Logger) (*smtpCredentials, error) {
 	return smtpConnection, nil
 }
 
-func (eMailConnection *EMailConnection) SendEMail(email Email) error {
+func (eMailConnection *EMailConnection) SendEMail(email EMail) error {
 	m := gomail.NewMessage()
 	m.SetHeader("From", eMailConnection.From)
 	m.SetHeader("To", email.To...)
