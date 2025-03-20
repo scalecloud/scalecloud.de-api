@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/gin-contrib/cache"
 	"github.com/gin-contrib/cache/persistence"
 	"github.com/gin-contrib/cors"
@@ -47,6 +48,10 @@ func InitAPI(log *zap.Logger, production bool, proxyIP string) (*Api, error) {
 	}
 
 	router := gin.Default()
+
+	router.Use(sentrygin.New(sentrygin.Options{
+		Repanic: true,
+	}))
 
 	emailConnection, err := emailmanager.InitEMailConnection(log)
 	if err != nil {

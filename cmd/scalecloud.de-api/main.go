@@ -2,7 +2,10 @@ package main
 
 import (
 	"flag"
+	"time"
 
+	"github.com/TheZeroSlave/zapsentry"
+	"github.com/getsentry/sentry-go"
 	"github.com/scalecloud/scalecloud.de-api/apimanager"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -10,10 +13,20 @@ import (
 
 func main() {
 	var log, err = zap.NewProduction()
+	production, proxyIP := parseFlags(log)
+
+	sentryClient, err := sentry.NewClient(sentry.ClientOptions{
+		Dsn:              "https://8195a374d52c2473d306fc8af2517849@o4508966853083136.ingest.de.sentry.io/4508972534661200",
+		EnableTracing:    true,
+		TracesSampleRate: 1.0,
+		Environment:      getEnvironment(production),
+	})
 	if err != nil {
 		log.Fatal("Error initializing production logger", zap.Error(err))
 	}
-	production, proxyIP := parseFlags(log)
+	log = modifyToSentryLogger(log, sentryClient)
+	defer sentry.Flush(2 * time.Second)
+
 	if production {
 		log.Info("Logging running in production mode.")
 	} else {
@@ -27,6 +40,7 @@ func main() {
 		if err != nil {
 			log.Fatal("Error initializing development logger", zap.Error(err))
 		}
+		log = modifyToSentryLogger(log, sentryClient)
 		log.Info("Logging switched to development mode.")
 	}
 	log.Info("Starting App.")
@@ -42,6 +56,13 @@ func main() {
 	log.Info("App finished.")
 }
 
+func getEnvironment(production bool) string {
+	if production {
+		return "production"
+	}
+	return "development"
+}
+
 func parseFlags(log *zap.Logger) (bool, string) {
 	var production bool
 	var proxyIP string
@@ -51,4 +72,21 @@ func parseFlags(log *zap.Logger) (bool, string) {
 	log.Info("Proxy IP", zap.String("proxyIP", proxyIP))
 	flag.Parse()
 	return production, proxyIP
+}
+
+func modifyToSentryLogger(log *zap.Logger, client *sentry.Client) *zap.Logger {
+	cfg := zapsentry.Configuration{
+		Level:             zapcore.ErrorLevel,
+		EnableBreadcrumbs: true,
+		BreadcrumbLevel:   zapcore.InfoLevel,
+	}
+	core, err := zapsentry.NewCore(cfg, zapsentry.NewSentryClientFromClient(client))
+
+	if err != nil {
+		panic(err)
+	}
+
+	log = zapsentry.AttachCoreToLogger(core, log)
+
+	return log.With(zapsentry.NewScope())
 }
