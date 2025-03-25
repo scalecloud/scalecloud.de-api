@@ -187,6 +187,12 @@ func (api *Api) initRoutes() {
 	{
 		checkoutSetupIntent.POST("/create-setup-intent", api.createCheckoutSetupIntent)
 	}
+	newsletters := api.router.Group("/newsletters")
+	{
+		newsletters.POST("/subscribe", api.newsletterSubscribe)
+		newsletters.POST("/confirm", api.newsletterConfirm)
+		newsletters.POST("/unsubscribe", api.newsletterUnsubscribe)
+	}
 }
 
 func (api *Api) initCertificate() {

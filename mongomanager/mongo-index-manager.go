@@ -5,6 +5,10 @@ func (mongoConnection *MongoConnection) EnsureIndexes() error {
 	if err != nil {
 		return err
 	}
-	mongoConnection.Log.Info("All required indexes are present.")
+	err = mongoConnection.ensureNewsletterIndex()
+	if err != nil {
+		return err
+	}
+	mongoConnection.Log.Info("all required indexes are present")
 	return nil
 }

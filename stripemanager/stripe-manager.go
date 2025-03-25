@@ -6,6 +6,7 @@ import (
 	"github.com/scalecloud/scalecloud.de-api/emailmanager"
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
+	newslettermanager "github.com/scalecloud/scalecloud.de-api/newsletter"
 	"github.com/scalecloud/scalecloud.de-api/stripemanager/secret"
 	"go.uber.org/zap"
 )
@@ -17,11 +18,12 @@ type StripeConnection struct {
 }
 
 type PaymentHandler struct {
-	FirebaseConnection *firebasemanager.FirebaseConnection
-	StripeConnection   *StripeConnection
-	MongoConnection    *mongomanager.MongoConnection
-	EMailConnection    *emailmanager.EMailConnection
-	Log                *zap.Logger
+	FirebaseConnection   *firebasemanager.FirebaseConnection
+	StripeConnection     *StripeConnection
+	MongoConnection      *mongomanager.MongoConnection
+	EMailConnection      *emailmanager.EMailConnection
+	NewsletterConnection *newslettermanager.NewsletterConnection
+	Log                  *zap.Logger
 }
 
 func InitStripeConnection(ctx context.Context, log *zap.Logger) (*StripeConnection, error) {
