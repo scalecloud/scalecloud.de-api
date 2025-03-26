@@ -15,6 +15,7 @@ import (
 	"github.com/scalecloud/scalecloud.de-api/emailmanager"
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
+	"github.com/scalecloud/scalecloud.de-api/newslettermanager"
 	"github.com/scalecloud/scalecloud.de-api/stripemanager"
 	"github.com/scalecloud/scalecloud.de-api/stripemanager/secret"
 	"go.uber.org/zap"
@@ -83,6 +84,11 @@ func InitAPI(log *zap.Logger, production bool, proxyIP string) (*Api, error) {
 		return &Api{}, err
 	}
 
+	newsletterConnection, err := newslettermanager.InitNewsletterConnection(context.Background(), log, mongoConnection, emailConnection)
+	if err != nil {
+		return &Api{}, err
+	}
+
 	stripeConnection, err := stripemanager.InitStripeConnection(context.Background(), log)
 	if err != nil {
 		return &Api{}, err
@@ -95,11 +101,12 @@ func InitAPI(log *zap.Logger, production bool, proxyIP string) (*Api, error) {
 		proxyIP:    proxyIP,
 		router:     router,
 		paymentHandler: &stripemanager.PaymentHandler{
-			FirebaseConnection: firebaseConnection,
-			MongoConnection:    mongoConnection,
-			StripeConnection:   stripeConnection,
-			EMailConnection:    emailConnection,
-			Log:                log.Named("paymenthandler"),
+			FirebaseConnection:   firebaseConnection,
+			MongoConnection:      mongoConnection,
+			StripeConnection:     stripeConnection,
+			EMailConnection:      emailConnection,
+			NewsletterConnection: newsletterConnection,
+			Log:                  log.Named("paymenthandler"),
 		},
 		webhookHandler: &WebhookHandler{
 			StripeConnection: stripeConnection,
@@ -129,8 +136,8 @@ func (api *Api) RunAPI() {
 func (api *Api) initHeaders() {
 	config := cors.DefaultConfig()
 	config.AllowOrigins = []string{"http://localhost:4200"}
-	config.AllowMethods = []string{"GET"}
-	config.AllowHeaders = []string{"Origin", "Content-Type", "Authorization"}
+	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
+	config.AllowHeaders = []string{"Origin", "Content-Type", "Authorization", "Baggage"}
 	config.AllowCredentials = true
 	config.ExposeHeaders = []string{"Content-Length"}
 	config.MaxAge = 12 * time.Hour
@@ -187,7 +194,7 @@ func (api *Api) initRoutes() {
 	{
 		checkoutSetupIntent.POST("/create-setup-intent", api.createCheckoutSetupIntent)
 	}
-	newsletters := api.router.Group("/newsletters")
+	newsletters := api.router.Group("/newsletter")
 	{
 		newsletters.POST("/subscribe", api.newsletterSubscribe)
 		newsletters.POST("/confirm", api.newsletterConfirm)

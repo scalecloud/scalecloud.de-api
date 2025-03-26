@@ -2,7 +2,7 @@ package apimanager
 
 import (
 	"github.com/gin-gonic/gin"
-	newslettermanager "github.com/scalecloud/scalecloud.de-api/newsletter"
+	"github.com/scalecloud/scalecloud.de-api/newslettermanager"
 )
 
 func (api *Api) newsletterSubscribe(c *gin.Context) {

@@ -19,6 +19,16 @@ type NewsletterConnection struct {
 	log             *zap.Logger
 }
 
+func InitNewsletterConnection(ctx context.Context, log *zap.Logger, mongoHandler *mongomanager.MongoConnection, eMailConnection *emailmanager.EMailConnection) (*NewsletterConnection, error) {
+	log.Info("Init Newsletter Connection")
+	stripeConnection := &NewsletterConnection{
+		mongoHandler:    mongoHandler,
+		eMailConnection: eMailConnection,
+		log:             log.Named("newsletterconnection"),
+	}
+	return stripeConnection, nil
+}
+
 const cooldownDuration = 10 * time.Minute
 
 func (newsletterHandler NewsletterConnection) NewsletterSubscribe(c context.Context, request NewsletterSubscribeRequest) (NewsletterSubscribeReply, error) {

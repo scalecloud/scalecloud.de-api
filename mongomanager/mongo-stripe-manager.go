@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.uber.org/zap"
 )
 
 func (mongoConnection *MongoConnection) CreateUser(ctx context.Context, user User) error {
@@ -31,7 +32,8 @@ func (mongoConnection *MongoConnection) GetUser(ctx context.Context, userFilter 
 	filter := bson.M{"uid": userFilter.UID}
 	singleResult, err := mongoConnection.findOneDocument(ctx, databaseStripe, collectionUsers, filter)
 	if err != nil {
-		return User{}, err
+		mongoConnection.Log.Error("Error finding user", zap.Error(err))
+		return User{}, errors.New("error finding user")
 	}
 	var user User
 	decodeErr := singleResult.Decode(&user)

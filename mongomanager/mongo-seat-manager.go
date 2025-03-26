@@ -80,7 +80,8 @@ func (mongoConnection *MongoConnection) GetSeat(ctx context.Context, subscriptio
 	}
 	singleResult, err := mongoConnection.findOneDocument(ctx, databaseSubscription, collectionSeats, filter)
 	if err != nil {
-		return Seat{}, err
+		mongoConnection.Log.Error("Error finding seat", zap.Error(err))
+		return Seat{}, errors.New("error finding seat")
 	}
 	var seat Seat
 	decodeErr := singleResult.Decode(&seat)
@@ -102,7 +103,8 @@ func (mongoConnection *MongoConnection) GetOwnerSeat(ctx context.Context, subscr
 	}
 	singleResult, err := mongoConnection.findOneDocument(ctx, databaseSubscription, collectionSeats, filter)
 	if err != nil {
-		return Seat{}, err
+		mongoConnection.Log.Error("Error finding seat", zap.Error(err))
+		return Seat{}, errors.New("error finding seat")
 	}
 	var seat Seat
 	decodeErr := singleResult.Decode(&seat)

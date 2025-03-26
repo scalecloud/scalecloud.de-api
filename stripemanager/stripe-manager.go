@@ -6,7 +6,7 @@ import (
 	"github.com/scalecloud/scalecloud.de-api/emailmanager"
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
-	newslettermanager "github.com/scalecloud/scalecloud.de-api/newsletter"
+	"github.com/scalecloud/scalecloud.de-api/newslettermanager"
 	"github.com/scalecloud/scalecloud.de-api/stripemanager/secret"
 	"go.uber.org/zap"
 )

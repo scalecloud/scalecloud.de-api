@@ -17,7 +17,7 @@ func (mongoConnection *MongoConnection) ensureNewsletterIndex() error {
 		},
 		Options: options.Index().SetUnique(true).SetName("UniqueNewsletterEmail"),
 	}
-	collection, err := mongoConnection.getCollection(context.Background(), databaseSubscription, collectionSeats)
+	collection, err := mongoConnection.getCollection(context.Background(), databaseNewsletters, collectionSubscribers)
 	if err != nil {
 		return err
 	}
@@ -36,11 +36,11 @@ func (mongoConnection *MongoConnection) CreateNewsletterSubscriber(ctx context.C
 	if err != nil {
 		return err
 	}
-	return mongoConnection.createDocument(ctx, databaseSubscription, collectionSeats, newsletterSubscriber)
+	return mongoConnection.createDocument(ctx, databaseNewsletters, collectionSubscribers, newsletterSubscriber)
 }
 
 func (mongoConnection *MongoConnection) CountNewsletterSubscriber(ctx context.Context, email string) (int64, error) {
-	return mongoConnection.countDocuments(ctx, databaseSubscription, collectionSeats, bson.M{"email": email})
+	return mongoConnection.countDocuments(ctx, databaseNewsletters, collectionSubscribers, bson.M{"email": email})
 }
 
 func (mongoConnection *MongoConnection) GetAllNewsletterSubscribers(ctx context.Context) ([]NewsletterSubscriber, error) {
@@ -56,7 +56,7 @@ func (mongoConnection *MongoConnection) GetNewsletterSubscribers(ctx context.Con
 	opts.SetLimit(int64(pageSize))
 	opts.SetSkip(int64(pageIndex * pageSize))
 	opts.SetSort(bson.D{{Key: "email", Value: 1}})
-	err := mongoConnection.findDocuments(ctx, databaseSubscription, collectionSeats, filter, &newsletterSubscribers, opts)
+	err := mongoConnection.findDocuments(ctx, databaseNewsletters, collectionSubscribers, filter, &newsletterSubscribers, opts)
 	if err != nil {
 		return []NewsletterSubscriber{}, err
 	}
@@ -71,9 +71,14 @@ func (mongoConnection *MongoConnection) GetNewsletterSubscriber(ctx context.Cont
 	filter := bson.M{
 		"email": email,
 	}
-	singleResult, err := mongoConnection.findOneDocument(ctx, databaseSubscription, collectionSeats, filter)
+	singleResult, err := mongoConnection.findOneDocument(ctx, databaseNewsletters, collectionSubscribers, filter)
 	if err != nil {
-		return NewsletterSubscriber{}, err
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return NewsletterSubscriber{}, nil
+		} else {
+			mongoConnection.Log.Error("Error finding document", zap.Error(err))
+			return NewsletterSubscriber{}, errors.New("error finding newsletter subscriber")
+		}
 	}
 	var newsletterSubscriber NewsletterSubscriber
 	decodeErr := singleResult.Decode(&newsletterSubscriber)
@@ -91,9 +96,10 @@ func (mongoConnection *MongoConnection) GetNewsletterSubscriberByVerificationTok
 	filter := bson.M{
 		"verificationToken": verificationToken,
 	}
-	singleResult, err := mongoConnection.findOneDocument(ctx, databaseSubscription, collectionSeats, filter)
+	singleResult, err := mongoConnection.findOneDocument(ctx, databaseNewsletters, collectionSubscribers, filter)
 	if err != nil {
-		return NewsletterSubscriber{}, err
+		mongoConnection.Log.Error("Error finding document", zap.Error(err))
+		return NewsletterSubscriber{}, errors.New("error finding newsletter subscriber")
 	}
 	var newsletterSubscriber NewsletterSubscriber
 	decodeErr := singleResult.Decode(&newsletterSubscriber)
@@ -110,9 +116,10 @@ func (mongoConnection *MongoConnection) GetNewsletterSubscriberByUnsubscribeToke
 	filter := bson.M{
 		"unsubscribeToken": unsubscribeToken,
 	}
-	singleResult, err := mongoConnection.findOneDocument(ctx, databaseSubscription, collectionSeats, filter)
+	singleResult, err := mongoConnection.findOneDocument(ctx, databaseNewsletters, collectionSubscribers, filter)
 	if err != nil {
-		return NewsletterSubscriber{}, err
+		mongoConnection.Log.Error("Error finding document", zap.Error(err))
+		return NewsletterSubscriber{}, errors.New("error finding newsletter subscriber")
 	}
 	var newsletterSubscriber NewsletterSubscriber
 	decodeErr := singleResult.Decode(&newsletterSubscriber)
@@ -129,12 +136,12 @@ func (mongoConnection *MongoConnection) UpdateNewsletterSubscriber(ctx context.C
 	update := bson.M{
 		"$set": newsletterSubscriber,
 	}
-	return mongoConnection.updateDocument(ctx, databaseSubscription, collectionSeats, filter, update)
+	return mongoConnection.updateDocument(ctx, databaseNewsletters, collectionSubscribers, filter, update)
 }
 
 func (mongoConnection *MongoConnection) DeleteNewsletterSubscriber(ctx context.Context, newsletterSubscriber NewsletterSubscriber) error {
 	filter := bson.M{
 		"email": newsletterSubscriber.EMail,
 	}
-	return mongoConnection.deleteDocument(ctx, databaseSubscription, collectionSeats, filter)
+	return mongoConnection.deleteDocument(ctx, databaseNewsletters, collectionSubscribers, filter)
 }
