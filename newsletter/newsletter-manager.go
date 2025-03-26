@@ -8,13 +8,15 @@ import (
 	"net/mail"
 	"time"
 
+	"github.com/scalecloud/scalecloud.de-api/emailmanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 	"go.uber.org/zap"
 )
 
 type NewsletterConnection struct {
-	mongoHandler *mongomanager.MongoConnection
-	log          *zap.Logger
+	mongoHandler    *mongomanager.MongoConnection
+	eMailConnection *emailmanager.EMailConnection
+	log             *zap.Logger
 }
 
 const cooldownDuration = 10 * time.Minute
@@ -73,7 +75,7 @@ func (newsletterHandler NewsletterConnection) newsletterSubscribeWithEntryFound(
 		}
 		newsletterSubscriber.VerificationToken = verificationToken
 	}
-	err = sendConfirmationMail(request.EMail, newsletterSubscriber.VerificationToken)
+	err = newsletterHandler.sendConfirmationMail(request.EMail, newsletterSubscriber.VerificationToken)
 	if err != nil {
 		return NewsletterSubscribeReply{}, err
 	}
@@ -103,7 +105,7 @@ func (newsletterHandler NewsletterConnection) newsletterSubscribeWithEntryNotFou
 	if err != nil {
 		return NewsletterSubscribeReply{}, err
 	}
-	err = sendConfirmationMail(request.EMail, verificationToken)
+	err = newsletterHandler.sendConfirmationMail(request.EMail, verificationToken)
 	if err != nil {
 		return NewsletterSubscribeReply{}, err
 	}
@@ -228,9 +230,35 @@ func generateVerificationToken() (string, error) {
 	return token, nil
 }
 
-func sendConfirmationMail(email, verificationToken string) error {
-	zap.L().Error("Sending confirmation mail to email: " + email)
-	// Send confirmation mail to email
+func (newsletterHandler NewsletterConnection) sendConfirmationMail(email, verificationToken string) error {
+	newsletterHandler.log.Info("Sending confirmation E-Mail to: " + email)
+
+	confirmationLink := "https://scalecloud.de/newsletter/confirm/" + verificationToken
+
+	subject := "Please confirm your newsletter subscription"
+	body := `
+        <html>
+        <body>
+            <p>Thank you for subscribing to our newsletter!</p>
+            <p>Please confirm your E-Mail address by clicking the link below:</p>
+            <p><a href="` + confirmationLink + `">Confirm Subscription</a></p>
+            <p>If you did not request this, you can safely ignore this E-Mail.</p>
+        </body>
+        </html>
+    `
+	emailMessage := emailmanager.EMail{
+		To:      []string{email},
+		Subject: subject,
+		Body:    body,
+	}
+
+	err := newsletterHandler.eMailConnection.SendEMail(emailMessage)
+	if err != nil {
+		newsletterHandler.log.Error("Failed to send confirmation E-Mail", zap.Error(err))
+		return err
+	}
+
+	newsletterHandler.log.Info("Confirmation E-Mail sent successfully to: " + email)
 	return nil
 }
 
