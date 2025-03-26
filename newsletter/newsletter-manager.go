@@ -17,7 +17,7 @@ type NewsletterConnection struct {
 	log          *zap.Logger
 }
 
-const CooldownDuration = 10 * time.Minute
+const cooldownDuration = 10 * time.Minute
 
 func (newsletterHandler NewsletterConnection) NewsletterSubscribe(c context.Context, request NewsletterSubscribeRequest) (NewsletterSubscribeReply, error) {
 	if !IsValidEmail(request.EMail) {
@@ -135,7 +135,7 @@ func CanSendVerificationEmail(sentAt *time.Time) error {
 	if sentAt == nil {
 		return nil
 	}
-	cooldownEnd := sentAt.Add(CooldownDuration)
+	cooldownEnd := sentAt.Add(cooldownDuration)
 	if time.Now().Before(cooldownEnd) {
 		return errors.New("verification E-Mail was sent recently, please wait before trying again")
 	}
