@@ -17,6 +17,8 @@ type NewsletterConnection struct {
 	log          *zap.Logger
 }
 
+const CooldownDuration = 10 * time.Minute
+
 func (newsletterHandler NewsletterConnection) NewsletterSubscribe(c context.Context, request NewsletterSubscribeRequest) (NewsletterSubscribeReply, error) {
 	if !IsValidEmail(request.EMail) {
 		newsletterHandler.log.Warn("Invalid E-Mail tried to subscribe to newsletter: " + request.EMail)
@@ -35,17 +37,64 @@ func (newsletterHandler NewsletterConnection) NewsletterSubscribe(c context.Cont
 		)
 		return NewsletterSubscribeReply{}, errors.New("Error while checking if E-Mail is already subscribed to newsletter: " + request.EMail)
 	}
-	if newsletterSubscriber != (mongomanager.NewsletterSubscriber{}) {
-		newsletterHandler.log.Warn("E-Mail is already subscribed to newsletter and tried to subscribe again: " + request.EMail)
-		if newsletterSubscriber.Status == mongomanager.NewsletterStatusActive {
-			newsletterHandler.log.Info("E-Mail is already subscribed to newsletter: " + request.EMail)
-			reply := NewsletterSubscribeReply{
-				NewsletterSubscribeReplyStatus: NewsletterSubscribeReplyStatusSuccess,
-				EMail:                          request.EMail,
-			}
-			return reply, nil
-		}
+	if newsletterSubscriber == (mongomanager.NewsletterSubscriber{}) {
+		return newsletterHandler.newsletterSubscribeWithEntryNotFound(c, request)
+	} else {
+		return newsletterHandler.newsletterSubscribeWithEntryFound(c, request, newsletterSubscriber)
 	}
+}
+
+func (newsletterHandler NewsletterConnection) newsletterSubscribeWithEntryFound(c context.Context, request NewsletterSubscribeRequest, newsletterSubscriber mongomanager.NewsletterSubscriber) (NewsletterSubscribeReply, error) {
+	newsletterHandler.log.Warn("E-Mail is already subscribed to newsletter and tried to subscribe again: " + request.EMail)
+	if newsletterSubscriber.Status == mongomanager.NewsletterStatusActive {
+		newsletterHandler.log.Info("E-Mail is already subscribed to newsletter: " + request.EMail)
+		reply := NewsletterSubscribeReply{
+			NewsletterSubscribeReplyStatus: NewsletterSubscribeReplyStatusSuccess,
+			EMail:                          request.EMail,
+		}
+		return reply, nil
+	}
+	if newsletterSubscriber.Status == mongomanager.NewsletterStatusBounced {
+		newsletterHandler.log.Warn("Newsletter subscriber tried to subscribe again after E-Mail bounced: " + request.EMail)
+	}
+	if newsletterSubscriber.Status == mongomanager.NewsletterStatusPending {
+		newsletterHandler.log.Warn("Newsletter subscriber tried to subscribe again after E-Mail was already pending: " + request.EMail)
+	}
+	err := CanSendVerificationEmail(&newsletterSubscriber.VerificationTokenSentAt)
+	if err != nil {
+		newsletterHandler.log.Warn("Verification E-Mail was sent recently at: " + newsletterSubscriber.VerificationTokenSentAt.String())
+		return NewsletterSubscribeReply{}, err
+	}
+	if newsletterSubscriber.VerificationToken == "" {
+		newsletterHandler.log.Warn("Verification token is empty for newsletter subscriber: " + request.EMail)
+		verificationToken, err := generateVerificationToken()
+		if err != nil {
+			return NewsletterSubscribeReply{}, err
+		}
+		newsletterSubscriber.VerificationToken = verificationToken
+	}
+	err = sendConfirmationMail(request.EMail, newsletterSubscriber.VerificationToken)
+	if err != nil {
+		return NewsletterSubscribeReply{}, err
+	}
+	timestamp := time.Now()
+	newsletterSubscriber.VerificationTokenSentAt = timestamp
+	newsletterSubscriber.LastUpdated = timestamp
+	err = newsletterHandler.mongoHandler.UpdateNewsletterSubscriber(c, newsletterSubscriber)
+	if err != nil {
+		newsletterHandler.log.Error("Error while updating newsletter subscriber",
+			zap.String("email", request.EMail),
+			zap.Error(err))
+		return NewsletterSubscribeReply{}, errors.New("Error while updating newsletter subscriber: " + request.EMail)
+	}
+	reply := NewsletterSubscribeReply{
+		NewsletterSubscribeReplyStatus: NewsletterSubscribeReplyStatusSuccess,
+		EMail:                          request.EMail,
+	}
+	return reply, nil
+}
+
+func (newsletterHandler NewsletterConnection) newsletterSubscribeWithEntryNotFound(c context.Context, request NewsletterSubscribeRequest) (NewsletterSubscribeReply, error) {
 	verificationToken, err := generateVerificationToken()
 	if err != nil {
 		return NewsletterSubscribeReply{}, err
@@ -59,13 +108,14 @@ func (newsletterHandler NewsletterConnection) NewsletterSubscribe(c context.Cont
 		return NewsletterSubscribeReply{}, err
 	}
 	timestamp := time.Now()
-	newsletterSubscriber = mongomanager.NewsletterSubscriber{
-		EMail:             request.EMail,
-		Status:            mongomanager.NewsletterStatusPending,
-		SubscribedAt:      timestamp,
-		VerificationToken: verificationToken,
-		UnsubscribeToken:  unsubscribeToken,
-		LastUpdated:       timestamp,
+	newsletterSubscriber := mongomanager.NewsletterSubscriber{
+		EMail:                   request.EMail,
+		Status:                  mongomanager.NewsletterStatusPending,
+		SubscribedAt:            timestamp,
+		VerificationToken:       verificationToken,
+		VerificationTokenSentAt: timestamp,
+		UnsubscribeToken:        unsubscribeToken,
+		LastUpdated:             timestamp,
 	}
 	err = newsletterHandler.mongoHandler.CreateNewsletterSubscriber(c, newsletterSubscriber)
 	if err != nil {
@@ -79,6 +129,17 @@ func (newsletterHandler NewsletterConnection) NewsletterSubscribe(c context.Cont
 		EMail:                          request.EMail,
 	}
 	return reply, nil
+}
+
+func CanSendVerificationEmail(sentAt *time.Time) error {
+	if sentAt == nil {
+		return nil
+	}
+	cooldownEnd := sentAt.Add(CooldownDuration)
+	if time.Now().Before(cooldownEnd) {
+		return errors.New("verification E-Mail was sent recently, please wait before trying again")
+	}
+	return nil
 }
 
 func (newsletterHandler NewsletterConnection) NewsletterConfirm(c context.Context, request NewsletterConfirmRequest) (NewsletterConfirmReply, error) {
