@@ -137,7 +137,7 @@ func (api *Api) initHeaders() {
 	config := cors.DefaultConfig()
 	config.AllowOrigins = []string{"http://localhost:4200"}
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
-	config.AllowHeaders = []string{"Origin", "Content-Type", "Authorization", "Baggage"}
+	config.AllowHeaders = []string{"Origin", "Content-Type", "Authorization", "Baggage", "sentry-trace"}
 	config.AllowCredentials = true
 	config.ExposeHeaders = []string{"Content-Length"}
 	config.MaxAge = 12 * time.Hour
