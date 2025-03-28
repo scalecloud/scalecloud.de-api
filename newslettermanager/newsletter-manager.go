@@ -231,7 +231,7 @@ func (newsletterHandler NewsletterConnection) NewsletterUnsubscribe(c context.Co
 }
 
 func generateVerificationToken() (string, error) {
-	tokenBytes := make([]byte, 32)
+	tokenBytes := make([]byte, 64)
 	_, err := rand.Read(tokenBytes)
 	if err != nil {
 		return "", errors.New("failed to generate verification token")
