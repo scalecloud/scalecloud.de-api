@@ -211,13 +211,11 @@ func (newsletterHandler NewsletterConnection) NewsletterUnsubscribe(c context.Co
 	}
 	if (newsletterSubscriber == mongomanager.NewsletterSubscriber{}) {
 		newsletterHandler.log.Warn("Tried to unsubscribe but no matching entry was found in the newsletter database: " + request.UnsubscribeToken)
-		unsubscribed := false
 		reply := NewsletterUnsubscribeReply{
-			Unsubscribed: &unsubscribed,
+			NewsletterUnsubscribeReplyStatus: NewsletterUnsubscribeReplyStatusNotFound,
 		}
 		return reply, nil
 	}
-
 	err = newsletterHandler.mongoHandler.DeleteNewsletterSubscriber(c, newsletterSubscriber)
 	if err != nil {
 		newsletterHandler.log.Error("Error while deleting newsletter subscriber",
@@ -225,10 +223,9 @@ func (newsletterHandler NewsletterConnection) NewsletterUnsubscribe(c context.Co
 			zap.Error(err))
 		return NewsletterUnsubscribeReply{}, errors.New("error while deleting newsletter subscriber")
 	}
-	unsubscribed := true
 	newsletterHandler.log.Info("Newsleter subscriber was deleted: " + newsletterSubscriber.EMail)
 	reply := NewsletterUnsubscribeReply{
-		Unsubscribed: &unsubscribed,
+		NewsletterUnsubscribeReplyStatus: NewsletterUnsubscribeReplyStatusUnsubscribed,
 	}
 	return reply, nil
 }

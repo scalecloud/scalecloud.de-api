@@ -119,7 +119,7 @@ func (mongoConnection *MongoConnection) GetNewsletterSubscriberByUnsubscribeToke
 	singleResult, err := mongoConnection.findOneDocument(ctx, databaseNewsletters, collectionSubscribers, filter)
 	if err != nil {
 		mongoConnection.Log.Error("Error finding document", zap.Error(err))
-		return NewsletterSubscriber{}, errors.New("error finding newsletter subscriber")
+		return NewsletterSubscriber{}, nil
 	}
 	var newsletterSubscriber NewsletterSubscriber
 	decodeErr := singleResult.Decode(&newsletterSubscriber)

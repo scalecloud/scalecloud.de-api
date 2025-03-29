@@ -29,6 +29,13 @@ type NewsletterUnsubscribeRequest struct {
 	UnsubscribeToken string `json:"unsubscribeToken" validate:"required"`
 }
 
+type NewsletterUnsubscribeReplyStatus string
+
+const (
+	NewsletterUnsubscribeReplyStatusUnsubscribed NewsletterUnsubscribeReplyStatus = "unsubscribed"
+	NewsletterUnsubscribeReplyStatusNotFound     NewsletterUnsubscribeReplyStatus = "not_found"
+)
+
 type NewsletterUnsubscribeReply struct {
-	Unsubscribed *bool `json:"unsubscribed" validate:"required"`
+	NewsletterUnsubscribeReplyStatus NewsletterUnsubscribeReplyStatus `json:"newsletterUnsubscribeReplyStatus" validate:"required"`
 }
