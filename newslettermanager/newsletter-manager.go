@@ -75,7 +75,10 @@ func (newsletterHandler NewsletterConnection) newsletterSubscribeWithEntryFound(
 	err := CanSendVerificationEmail(&newsletterSubscriber.VerificationTokenSentAt)
 	if err != nil {
 		newsletterHandler.log.Warn("Verification E-Mail was sent recently at: " + newsletterSubscriber.VerificationTokenSentAt.String())
-		return NewsletterSubscribeReply{}, err
+		return NewsletterSubscribeReply{
+			NewsletterSubscribeReplyStatus: NewsletterSubscribeReplyStatusRateLimited,
+			EMail:                          request.EMail,
+		}, nil
 	}
 	if newsletterSubscriber.VerificationToken == "" {
 		newsletterHandler.log.Warn("Verification token is empty for newsletter subscriber: " + request.EMail)

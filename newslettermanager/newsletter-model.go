@@ -5,6 +5,7 @@ type NewsletterSubscribeReplyStatus string
 const (
 	NewsletterSubscribeReplyStatusSuccess      NewsletterSubscribeReplyStatus = "success"
 	NewsletterSubscribeReplyStatusInvalidEmail NewsletterSubscribeReplyStatus = "invalid_email"
+	NewsletterSubscribeReplyStatusRateLimited  NewsletterSubscribeReplyStatus = "rate_limited"
 )
 
 type NewsletterSubscribeRequest struct {
