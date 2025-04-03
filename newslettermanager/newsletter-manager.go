@@ -243,7 +243,7 @@ func generateVerificationToken() (string, error) {
 func (newsletterHandler NewsletterConnection) sendConfirmationMail(email, verificationToken string) error {
 	newsletterHandler.log.Info("Sending confirmation E-Mail to: " + email)
 
-	confirmationLink := "https://scalecloud.de/newsletter/confirm/" + verificationToken
+	confirmationLink := "https://www.scalecloud.de/newsletter/confirm/" + verificationToken
 
 	subject := "Please confirm your newsletter subscription"
 	body := `
