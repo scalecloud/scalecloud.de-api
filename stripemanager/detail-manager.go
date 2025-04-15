@@ -7,7 +7,7 @@ import (
 
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
-	"github.com/stripe/stripe-go/v81"
+	"github.com/stripe/stripe-go/v82"
 	"go.uber.org/zap"
 )
 
@@ -97,7 +97,11 @@ func (stripeConnection *StripeConnection) mapSubscriptionItemToSubscriptionDetai
 
 	reply.TrialEnd = subscription.TrialEnd
 
-	reply.CurrentPeriodEnd = subscription.CurrentPeriodEnd
+	if len(subscription.Items.Data) > 0 {
+		reply.CurrentPeriodEnd = subscription.Items.Data[0].CurrentPeriodEnd
+	} else {
+		return SubscriptionDetailReply{}, errors.New("no subscription items found")
+	}
 
 	return reply, nil
 }
