@@ -1,6 +1,6 @@
 module github.com/scalecloud/scalecloud.de-api
 
-go 1.23.2
+go 1.24.2
 
 require (
 	firebase.google.com/go/v4 v4.15.2
