@@ -6,8 +6,8 @@ import (
 	"os"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/wneessen/go-mail"
 	"go.uber.org/zap"
-	"gopkg.in/gomail.v2"
 )
 
 type smtpCredentials struct {
@@ -19,7 +19,7 @@ type smtpCredentials struct {
 }
 
 type EMailConnection struct {
-	Dialer *gomail.Dialer
+	Client *mail.Client
 	From   string
 	Log    *zap.Logger
 }
@@ -32,15 +32,24 @@ type EMail struct {
 
 func InitEMailConnection(log *zap.Logger) (*EMailConnection, error) {
 	log.Info("Init mail handler")
-	smtpConnection, err := initDialer(log)
+	smtpConnection, err := readSMTPCredentials(log)
 	if err != nil {
 		return nil, err
 	}
 
-	dialer := gomail.NewDialer(smtpConnection.Host, smtpConnection.Port, smtpConnection.Username, smtpConnection.Password)
+	client, err := mail.NewClient(
+		smtpConnection.Host,
+		mail.WithPort(smtpConnection.Port),
+		mail.WithSMTPAuth(mail.SMTPAuthAutoDiscover),
+		mail.WithUsername(smtpConnection.Username),
+		mail.WithPassword(smtpConnection.Password),
+	)
+	if err != nil {
+		return nil, err
+	}
 
 	eMailHandler := &EMailConnection{
-		Dialer: dialer,
+		Client: client,
 		From:   smtpConnection.From,
 		Log:    log.Named("emailhandler"),
 	}
@@ -56,7 +65,7 @@ func fileExists(filename string) bool {
 	return !info.IsDir()
 }
 
-func initDialer(log *zap.Logger) (*smtpCredentials, error) {
+func readSMTPCredentials(log *zap.Logger) (*smtpCredentials, error) {
 	credentialsFile := "./keys/smtp-credentials.json"
 	if !fileExists(credentialsFile) {
 		return nil, errors.New("required file does not exist: " + credentialsFile)
@@ -85,13 +94,19 @@ func initDialer(log *zap.Logger) (*smtpCredentials, error) {
 }
 
 func (eMailConnection *EMailConnection) SendEMail(email EMail) error {
-	m := gomail.NewMessage()
-	m.SetHeader("From", eMailConnection.From)
-	m.SetHeader("To", email.To...)
-	m.SetHeader("Subject", email.Subject)
-	m.SetBody("text/html", email.Body)
+	m := mail.NewMsg()
+	if err := m.From(eMailConnection.From); err != nil {
+		eMailConnection.Log.Error("Failed to set From address", zap.Error(err))
+		return err
+	}
+	if err := m.To(email.To...); err != nil {
+		eMailConnection.Log.Error("Failed to set To address", zap.Error(err))
+		return err
+	}
+	m.Subject(email.Subject)
+	m.SetBodyString(mail.TypeTextHTML, email.Body)
 
-	if err := eMailConnection.Dialer.DialAndSend(m); err != nil {
+	if err := eMailConnection.Client.DialAndSend(m); err != nil {
 		eMailConnection.Log.Error("Failed to send email", zap.Error(err))
 		return err
 	}
