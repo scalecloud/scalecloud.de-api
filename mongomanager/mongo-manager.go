@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.uber.org/zap"
 )
 
@@ -24,7 +24,7 @@ func InitMongoConnection(ctx context.Context, log *zap.Logger) (*MongoConnection
 		return nil, err
 	}
 	mongoManager := &MongoConnection{
-		Log:    log.Named("firebasemanager"),
+		Log:    log.Named("mongomanager"),
 		Client: client,
 	}
 	return mongoManager, nil

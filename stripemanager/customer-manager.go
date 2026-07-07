@@ -7,7 +7,7 @@ import (
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 	"github.com/stripe/stripe-go/v86"
 	"github.com/stripe/stripe-go/v86/customer"
-	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 func (paymentHandler *PaymentHandler) GetCustomerByUID(ctx context.Context, uid string) (customerDetails *stripe.Customer, err error) {

@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.uber.org/zap"
 )
 
@@ -17,7 +17,8 @@ func (mongoConnection *MongoConnection) UpdateUser(ctx context.Context, user Use
 		return errors.New("user.UID is empty")
 	}
 	filter := bson.M{"uid": user.UID}
-	return mongoConnection.updateDocument(ctx, databaseStripe, collectionUsers, user, filter)
+	update := bson.M{"$set": user}
+	return mongoConnection.updateDocument(ctx, databaseStripe, collectionUsers, filter, update)
 }
 
 func (mongoConnection *MongoConnection) DeleteUser(ctx context.Context, customerID string) error {

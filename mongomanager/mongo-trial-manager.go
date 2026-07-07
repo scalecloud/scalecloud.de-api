@@ -5,8 +5,8 @@ import (
 	"errors"
 
 	"github.com/go-playground/validator/v10"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 func (mongoConnection *MongoConnection) CreateTrial(ctx context.Context, trial Trial) error {

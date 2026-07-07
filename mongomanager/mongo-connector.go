@@ -1,13 +1,16 @@
 package mongomanager
 
 import (
-	"bufio"
 	"context"
+	"crypto/tls"
 	"errors"
+	"fmt"
+	"net/url"
 	"os"
+	"strings"
 
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.uber.org/zap"
 )
 
@@ -19,18 +22,41 @@ func fileExists(filename string) bool {
 	return !info.IsDir()
 }
 
+func sanitizeURI(rawURI string) (string, error) {
+	parsed, err := url.Parse(rawURI)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse connection string: %w", err)
+	}
+	query := parsed.Query()
+	query.Del("tlsCertificateKeyFile")
+	query.Del("tlsCertificateFile")
+	query.Del("tlsPrivateKeyFile")
+	query.Del("tlsCertificateKeyFilePassword")
+	parsed.RawQuery = query.Encode()
+	return parsed.String(), nil
+}
+
 func getConnectionString() (string, error) {
-	file, err := os.Open(connectionString)
+	data, err := os.ReadFile(connectionString)
 	if err != nil {
 		return "", errors.New("connectionString does not exist")
 	}
-	defer file.Close()
-	var result string
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		result = scanner.Text()
+	uri := strings.TrimSpace(string(data))
+	if uri == "" {
+		return "", errors.New("connectionString file is empty")
 	}
-	return result, nil
+	return sanitizeURI(uri)
+}
+
+func loadClientCertificate() (tls.Certificate, error) {
+	if !fileExists(x509) {
+		return tls.Certificate{}, fmt.Errorf("x509 certificate file does not exist: %s", x509)
+	}
+	cert, err := tls.LoadX509KeyPair(x509, x509)
+	if err != nil {
+		return tls.Certificate{}, fmt.Errorf("failed to load x509 key pair from %s: %w", x509, err)
+	}
+	return cert, nil
 }
 
 func getClient(ctx context.Context) (*mongo.Client, error) {
@@ -38,13 +64,24 @@ func getClient(ctx context.Context) (*mongo.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1)
-	clientOptions := options.Client().
-		ApplyURI(uri + x509).
-		SetServerAPIOptions(serverAPIOptions)
-	client, err := mongo.Connect(ctx, clientOptions)
+	cert, err := loadClientCertificate()
 	if err != nil {
 		return nil, err
+	}
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+	}
+	serverAPIOptions := options.ServerAPI(options.ServerAPIVersion1)
+	clientOptions := options.Client().
+		ApplyURI(uri).
+		SetTLSConfig(tlsConfig).
+		SetServerAPIOptions(serverAPIOptions)
+	client, err := mongo.Connect(clientOptions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to mongo: %w", err)
+	}
+	if err := client.Ping(ctx, nil); err != nil {
+		return nil, fmt.Errorf("failed to ping mongo after connect: %w", err)
 	}
 	return client, nil
 }
@@ -122,7 +159,7 @@ func (mongoConnection *MongoConnection) findOneDocument(ctx context.Context, dat
 	return singleResult, nil
 }
 
-func (mongoConnection *MongoConnection) findDocuments(ctx context.Context, databaseName, collectionName string, filter interface{}, results interface{}, opts *options.FindOptions) error {
+func (mongoConnection *MongoConnection) findDocuments(ctx context.Context, databaseName, collectionName string, filter interface{}, results interface{}, opts options.Lister[options.FindOptions]) error {
 	collection, err := mongoConnection.getCollection(ctx, databaseName, collectionName)
 	if err != nil {
 		return err
