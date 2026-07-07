@@ -6,8 +6,8 @@ import (
 	"strconv"
 
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
-	"github.com/stripe/stripe-go/v82"
-	"github.com/stripe/stripe-go/v82/subscription"
+	"github.com/stripe/stripe-go/v86"
+	"github.com/stripe/stripe-go/v86/subscription"
 	"go.uber.org/zap"
 )
 

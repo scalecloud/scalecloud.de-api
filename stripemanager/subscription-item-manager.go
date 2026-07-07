@@ -1,8 +1,8 @@
 package stripemanager
 
 import (
-	"github.com/stripe/stripe-go/v82"
-	"github.com/stripe/stripe-go/v82/subscriptionitem"
+	"github.com/stripe/stripe-go/v86"
+	"github.com/stripe/stripe-go/v86/subscriptionitem"
 )
 
 func updateSubscriptionItem(subscriptionItemID string, quantity int64) (*stripe.SubscriptionItem, error) {
