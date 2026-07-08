@@ -3,7 +3,7 @@ name: Deploy scalecloud.de-api on merge
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   quality:
