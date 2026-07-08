@@ -3,29 +3,25 @@
 ##
 ## Build
 ##
-FROM golang:1.24 AS build
+FROM golang:1.26 AS build
 
 WORKDIR /build
 
+# Cache module downloads separately from source changes
+COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download && go mod verify
+
 COPY ./ ./
 
-RUN go mod tidy -v
-
-RUN go mod download -json
-
-RUN go mod verify
-
-RUN go build -v -o /scalecloud.de-api ./cmd/scalecloud.de-api
-
-##
-## Test
-##
-RUN go test ./... -json
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 go build -v -ldflags="-s -w" -o /scalecloud.de-api ./cmd/scalecloud.de-api
 
 ##
 ## Deploy
 ##
-FROM gcr.io/distroless/base-debian11:latest AS deploy
+FROM gcr.io/distroless/base-debian12:nonroot AS deploy
 
 WORKDIR /app
 

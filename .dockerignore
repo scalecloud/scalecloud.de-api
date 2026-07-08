@@ -1,0 +1,41 @@
+# Git
+.git
+.gitignore
+
+# CI/CD
+.github
+
+# Docs
+*.md
+README*
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# In keys folder are keys for:
+# firebase: firebase-serviceAccountKey.json
+# mongodb-atlas: mongodb-atlas.pem
+# stripe: stripe-secret-key.json
+keys/
+*.pem
+.env
+.env.*
+
+# SonarQube
+.scannerwork/
+sonar-project.properties
+
+# IDE / OS cruft
+.vscode/
+.idea/
+.DS_Store
