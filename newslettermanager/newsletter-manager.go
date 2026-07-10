@@ -29,7 +29,7 @@ func InitNewsletterConnection(ctx context.Context, log *zap.Logger, mongoHandler
 	return stripeConnection, nil
 }
 
-const cooldownDuration = 10 * time.Minute
+const cooldownDuration = 1 * time.Minute
 
 func (newsletterHandler NewsletterConnection) NewsletterSubscribe(c context.Context, request NewsletterSubscribeRequest) (NewsletterSubscribeReply, error) {
 	if !IsValidEmail(request.EMail) {
