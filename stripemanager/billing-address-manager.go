@@ -6,8 +6,8 @@ import (
 
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
-	"github.com/stripe/stripe-go/v86"
-	"github.com/stripe/stripe-go/v86/customer"
+	"github.com/stripe/stripe-go/v87"
+	"github.com/stripe/stripe-go/v87/customer"
 )
 
 func (paymentHandler *PaymentHandler) GetBillingAddress(c context.Context, tokenDetails firebasemanager.TokenDetails, request BillingAddressRequest) (BillingAddressReply, error) {

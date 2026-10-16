@@ -8,9 +8,9 @@ import (
 
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
-	"github.com/stripe/stripe-go/v86"
-	"github.com/stripe/stripe-go/v86/customer"
-	"github.com/stripe/stripe-go/v86/subscription"
+	"github.com/stripe/stripe-go/v87"
+	"github.com/stripe/stripe-go/v87/customer"
+	"github.com/stripe/stripe-go/v87/subscription"
 	"go.uber.org/zap"
 )
 
