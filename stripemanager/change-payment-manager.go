@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
+	"github.com/scalecloud/scalecloud.de-api/authmanager"
 	"github.com/stripe/stripe-go/v87"
 	"github.com/stripe/stripe-go/v87/customer"
 	"github.com/stripe/stripe-go/v87/paymentmethod"
@@ -21,7 +21,7 @@ const (
 	ChangePayment      SetupIntentMeta = "changePayment"
 )
 
-func (paymentHandler *PaymentHandler) GetChangePaymentSetupIntent(c context.Context, tokenDetails firebasemanager.TokenDetails) (ChangePaymentReply, error) {
+func (paymentHandler *PaymentHandler) GetChangePaymentSetupIntent(c context.Context, tokenDetails authmanager.TokenDetails) (ChangePaymentReply, error) {
 	customerID, err := paymentHandler.GetCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
 		return ChangePaymentReply{}, err

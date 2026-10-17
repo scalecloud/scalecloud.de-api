@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
+	"github.com/scalecloud/scalecloud.de-api/authmanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 	"github.com/stripe/stripe-go/v87"
 	"github.com/stripe/stripe-go/v87/customer"
@@ -14,7 +14,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (paymentHandler *PaymentHandler) handleOwnerTransfer(c context.Context, tokenDetails firebasemanager.TokenDetails, seatUpdateRequest mongomanager.Seat) error {
+func (paymentHandler *PaymentHandler) handleOwnerTransfer(c context.Context, tokenDetails authmanager.TokenDetails, seatUpdateRequest mongomanager.Seat) error {
 	if !isSeatUpdateOwnerTransfer(seatUpdateRequest) {
 		return nil
 	}
@@ -52,7 +52,7 @@ func isSeatUpdateOwnerTransfer(seatUpdateRequest mongomanager.Seat) bool {
 	return mongomanager.ContainsRole(seatUpdateRequest, []mongomanager.Role{mongomanager.RoleOwner})
 }
 
-func hasOwnerTriggeredOwnerTransfer(tokenDetails firebasemanager.TokenDetails, ownerSeat mongomanager.Seat) error {
+func hasOwnerTriggeredOwnerTransfer(tokenDetails authmanager.TokenDetails, ownerSeat mongomanager.Seat) error {
 	if tokenDetails.UID != ownerSeat.UID {
 		return errors.New("only owner can transfer owner role")
 	}
@@ -144,7 +144,7 @@ func (paymentHandler *PaymentHandler) handleSubscriptionStatusError(status strip
 	return errors.New("ownership cannot be transferred, please contact support")
 }
 
-func (paymentHandler *PaymentHandler) handleStripeOwnerTransfer(c context.Context, tokenDetails firebasemanager.TokenDetails, seatUpdateRequest, ownerSeat mongomanager.Seat) error {
+func (paymentHandler *PaymentHandler) handleStripeOwnerTransfer(c context.Context, tokenDetails authmanager.TokenDetails, seatUpdateRequest, ownerSeat mongomanager.Seat) error {
 	paymentHandler.Log.Info("Owner transfer initiated", zap.Any("seatUpdateRequest", seatUpdateRequest))
 	customerSourceID, err := paymentHandler.GetCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {

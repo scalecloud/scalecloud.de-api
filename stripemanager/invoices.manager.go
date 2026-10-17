@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 
-	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
+	"github.com/scalecloud/scalecloud.de-api/authmanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 	"github.com/stripe/stripe-go/v87"
 	"github.com/stripe/stripe-go/v87/invoice"
 )
 
-func (paymentHandler *PaymentHandler) GetSubscriptionInvoices(c context.Context, tokenDetails firebasemanager.TokenDetails, request ListInvoicesRequest) (ListInvoicesReply, error) {
+func (paymentHandler *PaymentHandler) GetSubscriptionInvoices(c context.Context, tokenDetails authmanager.TokenDetails, request ListInvoicesRequest) (ListInvoicesReply, error) {
 	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SubscriptionID, []mongomanager.Role{mongomanager.RoleBilling})
 	if err != nil {
 		return ListInvoicesReply{}, err

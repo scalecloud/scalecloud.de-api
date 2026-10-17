@@ -3,7 +3,7 @@
 Hello I'm the backend for www.scalecloud.de.
 
 Frontent: https://github.com/scalecloud/scalecloud.de  
-Auth: Firebase  
+Auth: Authentik (OpenID Connect)
 NoSQL: MongoDB-Atlas  
 Payment: Stripe  
 
@@ -17,6 +17,8 @@ docker pull scalecloudde/scalecloud.de-api:latest
 ```
 docker run -d --restart unless-stopped \
     -p 15000:15000 \
+  -e OIDC_ISSUER="https://auth.example.com/application/o/<provider-slug>/" \
+  -e OIDC_CLIENT_ID="<provider-client-id>" \
     --mount type=bind,source="<keys-dir>",destination=/app/keys \
     --log-driver local --log-opt max-size=100m --log-opt max-file=2 \
     --name scalecloud.de-api scalecloudde/scalecloud.de-api:latest
@@ -24,12 +26,17 @@ docker run -d --restart unless-stopped \
 
 ### Folder `<keys-dir>`
 
-The following files are required in the `<keys-dir>` folder:  
-Firebase: `firebase-serviceAccountKey.json`  
-MongoDB-Atlas X.509 Certificate: `mongodb-atlas.pem`  
-MongoDB-Atlas connection string: `mongodb-atlas-connection-string.txt`  
-Stripe: `stripe-secret-key.txt`  
-SMTP: `smtp-credentials.json`  
+The following files are required in the `<keys-dir>` folder:
+
+- Firebase Admin (used by the current seat-invitation flow): `firebase-serviceAccountKey.json`
+- MongoDB-Atlas X.509 Certificate: `mongodb-atlas.pem`
+- MongoDB-Atlas connection string: `mongodb-atlas-connection-string.txt`
+- Stripe: `stripe-secret-key.txt`
+- SMTP: `smtp-credentials.json`
+
+Set `OIDC_ISSUER` to the exact Authentik provider issuer URL (including the provider slug and trailing slash), and `OIDC_CLIENT_ID` to that provider's client ID. The API discovers the provider configuration at startup and verifies access-token signatures and claims using its JWKS; it does not call Authentik for every request. The token's `sub` claim is used as the user UID, so keep the Authentik subject stable and migrate existing Firebase UID records before changing the subject format. Request the `email` scope and include an email claim in the access token for API operations that create Stripe customers.
+
+Seat invitations still use Firebase Admin and store Firebase UIDs. They will not automatically match Authentik `sub` values; migrate that invitation/account-linking flow before relying on invited seats with Authentik accounts.
 
 #### SMTP Credentials File (`smtp-credentials.json`)
 

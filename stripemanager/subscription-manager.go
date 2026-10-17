@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
+	"github.com/scalecloud/scalecloud.de-api/authmanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 	"github.com/stripe/stripe-go/v87"
 	"github.com/stripe/stripe-go/v87/subscription"
@@ -16,7 +16,7 @@ func (stripeConnection *StripeConnection) GetSubscriptionByID(c context.Context,
 	return subscription.Get(subscriptionID, nil)
 }
 
-func (paymentHandler *PaymentHandler) ResumeSubscription(c context.Context, tokenDetails firebasemanager.TokenDetails, request SubscriptionResumeRequest) (SubscriptionResumeReply, error) {
+func (paymentHandler *PaymentHandler) ResumeSubscription(c context.Context, tokenDetails authmanager.TokenDetails, request SubscriptionResumeRequest) (SubscriptionResumeReply, error) {
 	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SubscriptionID, []mongomanager.Role{mongomanager.RoleAdministrator})
 	if err != nil {
 		return SubscriptionResumeReply{}, err
@@ -41,7 +41,7 @@ func (paymentHandler *PaymentHandler) ResumeSubscription(c context.Context, toke
 	return reply, nil
 }
 
-func (paymentHandler *PaymentHandler) CancelSubscription(c context.Context, tokenDetails firebasemanager.TokenDetails, request SubscriptionCancelRequest) (SubscriptionCancelReply, error) {
+func (paymentHandler *PaymentHandler) CancelSubscription(c context.Context, tokenDetails authmanager.TokenDetails, request SubscriptionCancelRequest) (SubscriptionCancelReply, error) {
 	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SubscriptionID, []mongomanager.Role{mongomanager.RoleAdministrator})
 	if err != nil {
 		return SubscriptionCancelReply{}, err

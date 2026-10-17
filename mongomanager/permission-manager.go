@@ -5,10 +5,10 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
+	"github.com/scalecloud/scalecloud.de-api/authmanager"
 )
 
-func (mongoConnection *MongoConnection) HasPermission(ctx context.Context, tokenDetails firebasemanager.TokenDetails, subscriptionID string, requiredRoles []Role) error {
+func (mongoConnection *MongoConnection) HasPermission(ctx context.Context, tokenDetails authmanager.TokenDetails, subscriptionID string, requiredRoles []Role) error {
 	seat, err := mongoConnection.GetSeat(ctx, subscriptionID, tokenDetails.UID)
 	if err != nil {
 		mongoConnection.Log.Warn("user with UID " + tokenDetails.UID + " tried to access subscriptionID " + subscriptionID + " error: " + err.Error())

@@ -2,7 +2,9 @@ package apimanager
 
 import (
 	"context"
+	"errors"
 	"net/http"
+	"strings"
 	"time"
 
 	sentrygin "github.com/getsentry/sentry-go/gin"
@@ -12,6 +14,7 @@ import (
 	"github.com/gin-gonic/autotls"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/scalecloud/scalecloud.de-api/authmanager"
 	"github.com/scalecloud/scalecloud.de-api/emailmanager"
 	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
@@ -27,6 +30,7 @@ type Api struct {
 	router         *gin.Engine
 	paymentHandler *stripemanager.PaymentHandler
 	webhookHandler *WebhookHandler
+	authConnection *authmanager.OIDCConnection
 	validate       *validator.Validate
 	log            *zap.Logger
 }
@@ -39,7 +43,12 @@ type WebhookHandler struct {
 func InitAPI(log *zap.Logger, production bool, proxyIP string) (*Api, error) {
 	log.Info("Init api")
 
-	err := mongomanager.CheckMongoConnectionFiles(log)
+	authConnection, err := authmanager.InitOIDCConnection(context.Background())
+	if err != nil {
+		return &Api{}, err
+	}
+
+	err = mongomanager.CheckMongoConnectionFiles(log)
 	if err != nil {
 		return &Api{}, err
 	}
@@ -97,9 +106,10 @@ func InitAPI(log *zap.Logger, production bool, proxyIP string) (*Api, error) {
 	validate := validator.New(validator.WithRequiredStructEnabled())
 
 	api := &Api{
-		production: production,
-		proxyIP:    proxyIP,
-		router:     router,
+		production:     production,
+		proxyIP:        proxyIP,
+		router:         router,
+		authConnection: authConnection,
 		paymentHandler: &stripemanager.PaymentHandler{
 			FirebaseConnection:   firebaseConnection,
 			MongoConnection:      mongoConnection,
@@ -135,7 +145,7 @@ func (api *Api) RunAPI() {
 
 func (api *Api) initHeaders() {
 	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"http://localhost:4200"}
+	config.AllowOrigins = []string{"http://localhost:4200", "https://www.scalecloud.de"}
 	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
 	config.AllowHeaders = []string{"Origin", "Content-Type", "Authorization", "Baggage", "sentry-trace"}
 	config.AllowCredentials = true
@@ -245,30 +255,38 @@ func (api *Api) startListening() {
 }
 
 func (api *Api) authRequired(c *gin.Context) {
-	token, err := firebasemanager.GetBearerToken(c)
+	authorization := strings.Fields(c.GetHeader("Authorization"))
+	if len(authorization) != 2 || !strings.EqualFold(authorization[0], "Bearer") {
+		api.log.Warn("Unauthorized: invalid authorization header")
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return
+	}
+	tokenDetails, err := api.authConnection.VerifyToken(c, authorization[1])
 	if err != nil {
 		api.log.Warn("Unauthorized", zap.Error(err))
 		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
-	err = api.paymentHandler.FirebaseConnection.VerifyIDToken(c, token)
-	if err != nil {
-		api.log.Warn("Unauthorized", zap.String("token:", token))
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-		return
-	}
-	api.log.Debug("Authenticated", zap.String("token:", token))
+	c.Set("tokenDetails", tokenDetails)
 	c.Next()
 }
 
-func (api *Api) handleTokenDetails(c *gin.Context) (firebasemanager.TokenDetails, error) {
-	tokenDetails, err := api.paymentHandler.FirebaseConnection.GetTokenDetails(c)
-	if err != nil {
+func (api *Api) handleTokenDetails(c *gin.Context) (authmanager.TokenDetails, error) {
+	tokenDetails, ok := c.Get("tokenDetails")
+	if !ok {
+		err := errors.New("authenticated token details are missing")
 		api.log.Error("Error getting token details", zap.Error(err))
-		c.SecureJSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
-		return firebasemanager.TokenDetails{}, err
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return authmanager.TokenDetails{}, err
 	}
-	return tokenDetails, nil
+	details, ok := tokenDetails.(authmanager.TokenDetails)
+	if !ok {
+		err := errors.New("authenticated token details have an invalid type")
+		api.log.Error("Error getting token details", zap.Error(err))
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+		return authmanager.TokenDetails{}, err
+	}
+	return details, nil
 }
 
 func (api *Api) handleBind(c *gin.Context, s interface{}) bool {

@@ -6,14 +6,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
+	"github.com/scalecloud/scalecloud.de-api/authmanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 	"github.com/stripe/stripe-go/v87"
 	"github.com/stripe/stripe-go/v87/subscription"
 	"go.uber.org/zap"
 )
 
-func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Context, tokenDetails firebasemanager.TokenDetails, checkoutCreateSubscriptionRequest CheckoutCreateSubscriptionRequest) (CheckoutCreateSubscriptionReply, error) {
+func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Context, tokenDetails authmanager.TokenDetails, checkoutCreateSubscriptionRequest CheckoutCreateSubscriptionRequest) (CheckoutCreateSubscriptionReply, error) {
 	stripe.Key = paymentHandler.StripeConnection.Key
 	if checkoutCreateSubscriptionRequest.Quantity > 999 {
 		return CheckoutCreateSubscriptionReply{}, errors.New("quantity can not be higher than 999")
@@ -79,7 +79,7 @@ func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Conte
 	return checkoutSubscriptionModel, nil
 }
 
-func createSeat(c context.Context, sub *stripe.Subscription, tokenDetails firebasemanager.TokenDetails, paymentHandler *PaymentHandler) {
+func createSeat(c context.Context, sub *stripe.Subscription, tokenDetails authmanager.TokenDetails, paymentHandler *PaymentHandler) {
 	emailVerified := false
 	seat := mongomanager.Seat{
 		SubscriptionID: sub.ID,
@@ -99,7 +99,7 @@ func createSeat(c context.Context, sub *stripe.Subscription, tokenDetails fireba
 	}
 }
 
-func (paymentHandler *PaymentHandler) GetCheckoutProduct(c context.Context, tokenDetails firebasemanager.TokenDetails, checkoutProductRequest CheckoutProductRequest) (CheckoutProductReply, error) {
+func (paymentHandler *PaymentHandler) GetCheckoutProduct(c context.Context, tokenDetails authmanager.TokenDetails, checkoutProductRequest CheckoutProductRequest) (CheckoutProductReply, error) {
 	stripe.Key = paymentHandler.StripeConnection.Key
 	price, err := paymentHandler.StripeConnection.GetPrice(c, checkoutProductRequest.ProductID)
 	if err != nil {

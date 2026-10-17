@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 
-	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
+	"github.com/scalecloud/scalecloud.de-api/authmanager"
 	"github.com/stripe/stripe-go/v87"
 	"github.com/stripe/stripe-go/v87/setupintent"
 )
 
-func (paymentHandler *PaymentHandler) CreateCheckoutSetupIntent(c context.Context, tokenDetails firebasemanager.TokenDetails, checkoutSetupIntentRequest CheckoutSetupIntentRequest) (CheckoutSetupIntentReply, error) {
+func (paymentHandler *PaymentHandler) CreateCheckoutSetupIntent(c context.Context, tokenDetails authmanager.TokenDetails, checkoutSetupIntentRequest CheckoutSetupIntentRequest) (CheckoutSetupIntentReply, error) {
 	customerID, err := paymentHandler.searchOrCreateCustomer(c, tokenDetails.EMail, tokenDetails.UID)
 	if err != nil {
 		return CheckoutSetupIntentReply{}, err

@@ -5,13 +5,13 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
+	"github.com/scalecloud/scalecloud.de-api/authmanager"
 	"github.com/stripe/stripe-go/v87"
 	"github.com/stripe/stripe-go/v87/subscription"
 	"go.uber.org/zap"
 )
 
-func (paymentHandler *PaymentHandler) GetSubscriptionsOverview(c context.Context, tokenDetails firebasemanager.TokenDetails) (subscriptionOverview []SubscriptionOverviewReply, err error) {
+func (paymentHandler *PaymentHandler) GetSubscriptionsOverview(c context.Context, tokenDetails authmanager.TokenDetails) (subscriptionOverview []SubscriptionOverviewReply, err error) {
 	paymentHandler.Log.Warn("Change implementation to not use GetCustomerIDByUID for permission check")
 	customerID, err := paymentHandler.GetCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {

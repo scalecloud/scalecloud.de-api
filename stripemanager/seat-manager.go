@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"net/mail"
 
-	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
+	"github.com/scalecloud/scalecloud.de-api/authmanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 )
 
-func (paymentHandler *PaymentHandler) GetMyPermission(c context.Context, tokenDetails firebasemanager.TokenDetails, request PermissionRequest) (PermissionReply, error) {
+func (paymentHandler *PaymentHandler) GetMyPermission(c context.Context, tokenDetails authmanager.TokenDetails, request PermissionRequest) (PermissionReply, error) {
 	mySeat, err := paymentHandler.MongoConnection.GetSeat(c, request.SubscriptionID, tokenDetails.UID)
 	if err != nil {
 		return PermissionReply{}, err
@@ -25,7 +25,7 @@ func (paymentHandler *PaymentHandler) GetMyPermission(c context.Context, tokenDe
 	return reply, nil
 }
 
-func (paymentHandler *PaymentHandler) GetSubscriptionListSeats(c context.Context, tokenDetails firebasemanager.TokenDetails, request ListSeatRequest) (ListSeatReply, error) {
+func (paymentHandler *PaymentHandler) GetSubscriptionListSeats(c context.Context, tokenDetails authmanager.TokenDetails, request ListSeatRequest) (ListSeatReply, error) {
 	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SubscriptionID, []mongomanager.Role{mongomanager.RoleAdministrator})
 	if err != nil {
 		return ListSeatReply{}, err
@@ -59,7 +59,7 @@ func (paymentHandler *PaymentHandler) GetSubscriptionListSeats(c context.Context
 	return reply, nil
 }
 
-func (paymentHandler *PaymentHandler) GetSubscriptionSeatDetail(c context.Context, tokenDetails firebasemanager.TokenDetails, request SeatDetailRequest) (SeatDetailReply, error) {
+func (paymentHandler *PaymentHandler) GetSubscriptionSeatDetail(c context.Context, tokenDetails authmanager.TokenDetails, request SeatDetailRequest) (SeatDetailReply, error) {
 	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SubscriptionID, []mongomanager.Role{mongomanager.RoleAdministrator})
 	if err != nil {
 		return SeatDetailReply{}, err
@@ -79,7 +79,7 @@ func (paymentHandler *PaymentHandler) GetSubscriptionSeatDetail(c context.Contex
 	return reply, nil
 }
 
-func (paymentHandler *PaymentHandler) GetSubscriptionUpdateSeat(c context.Context, tokenDetails firebasemanager.TokenDetails, request UpdateSeatDetailRequest) (UpdateSeatDetailReply, error) {
+func (paymentHandler *PaymentHandler) GetSubscriptionUpdateSeat(c context.Context, tokenDetails authmanager.TokenDetails, request UpdateSeatDetailRequest) (UpdateSeatDetailReply, error) {
 	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SeatUpdated.SubscriptionID, []mongomanager.Role{mongomanager.RoleAdministrator})
 	if err != nil {
 		return UpdateSeatDetailReply{}, err
@@ -102,7 +102,7 @@ func (paymentHandler *PaymentHandler) GetSubscriptionUpdateSeat(c context.Contex
 	return reply, nil
 }
 
-func (paymentHandler *PaymentHandler) GetSubscriptionAddSeat(c context.Context, tokenDetails firebasemanager.TokenDetails, request AddSeatRequest) (AddSeatReply, error) {
+func (paymentHandler *PaymentHandler) GetSubscriptionAddSeat(c context.Context, tokenDetails authmanager.TokenDetails, request AddSeatRequest) (AddSeatReply, error) {
 	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SubscriptionID, []mongomanager.Role{mongomanager.RoleAdministrator})
 	if err != nil {
 		return AddSeatReply{}, err
@@ -176,7 +176,7 @@ func seatAvailable(seats []mongomanager.Seat, quantity int64) bool {
 	return int64(len(seats)) < quantity
 }
 
-func (paymentHandler *PaymentHandler) GetSubscriptionRemoveSeat(c context.Context, tokenDetails firebasemanager.TokenDetails, request DeleteSeatRequest) (DeleteSeatReply, error) {
+func (paymentHandler *PaymentHandler) GetSubscriptionRemoveSeat(c context.Context, tokenDetails authmanager.TokenDetails, request DeleteSeatRequest) (DeleteSeatReply, error) {
 	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SeatToDelete.SubscriptionID, []mongomanager.Role{mongomanager.RoleAdministrator})
 	if err != nil {
 		return DeleteSeatReply{}, err

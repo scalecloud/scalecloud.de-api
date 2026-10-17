@@ -5,13 +5,13 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
+	"github.com/scalecloud/scalecloud.de-api/authmanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 	"github.com/stripe/stripe-go/v87"
 	"go.uber.org/zap"
 )
 
-func (paymentHandler *PaymentHandler) GetSubscriptionDetailByID(c context.Context, tokenDetails firebasemanager.TokenDetails, subscriptionID string) (SubscriptionDetailReply, error) {
+func (paymentHandler *PaymentHandler) GetSubscriptionDetailByID(c context.Context, tokenDetails authmanager.TokenDetails, subscriptionID string) (SubscriptionDetailReply, error) {
 	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, subscriptionID, []mongomanager.Role{mongomanager.RoleBilling, mongomanager.RoleUser, mongomanager.RoleAdministrator})
 	if err != nil {
 		return SubscriptionDetailReply{}, err
@@ -29,7 +29,7 @@ func (paymentHandler *PaymentHandler) GetSubscriptionDetailByID(c context.Contex
 	return subscriptionDetailReply, nil
 }
 
-func (paymentHandler *PaymentHandler) GetCancelState(c context.Context, tokenDetails firebasemanager.TokenDetails, subscriptionID string) (CancelStateReply, error) {
+func (paymentHandler *PaymentHandler) GetCancelState(c context.Context, tokenDetails authmanager.TokenDetails, subscriptionID string) (CancelStateReply, error) {
 	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, subscriptionID, []mongomanager.Role{mongomanager.RoleAdministrator})
 	if err != nil {
 		return CancelStateReply{}, err

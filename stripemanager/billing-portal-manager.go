@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 
-	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
+	"github.com/scalecloud/scalecloud.de-api/authmanager"
 	"github.com/stripe/stripe-go/v87"
 	"github.com/stripe/stripe-go/v87/billingportal/session"
 )
 
-func (paymentHandler *PaymentHandler) GetBillingPortal(c context.Context, tokenDetails firebasemanager.TokenDetails) (billingPortalModel BillingPortalReply, err error) {
+func (paymentHandler *PaymentHandler) GetBillingPortal(c context.Context, tokenDetails authmanager.TokenDetails) (billingPortalModel BillingPortalReply, err error) {
 	customerID, err := paymentHandler.GetCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
 		return BillingPortalReply{}, err

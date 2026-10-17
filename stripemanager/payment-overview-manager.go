@@ -5,11 +5,11 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/scalecloud/scalecloud.de-api/firebasemanager"
+	"github.com/scalecloud/scalecloud.de-api/authmanager"
 	"github.com/stripe/stripe-go/v87"
 )
 
-func (paymentHandler *PaymentHandler) GetPaymentMethodOverview(c context.Context, tokenDetails firebasemanager.TokenDetails) (PaymentMethodOverviewReply, error) {
+func (paymentHandler *PaymentHandler) GetPaymentMethodOverview(c context.Context, tokenDetails authmanager.TokenDetails) (PaymentMethodOverviewReply, error) {
 	_, err := paymentHandler.searchOrCreateCustomer(c, tokenDetails.EMail, tokenDetails.UID)
 	if err != nil {
 		return PaymentMethodOverviewReply{}, err
