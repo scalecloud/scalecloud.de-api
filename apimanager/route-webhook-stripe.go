@@ -308,7 +308,14 @@ func (api *Api) removeSubscriptionSeats(c context.Context, subscriptionID string
 		return err
 	}
 	for _, seat := range seats {
-		err = api.paymentHandler.MongoConnection.DeleteSeat(c, seat)
+		if seat.Status == mongomanager.SeatStatusPending {
+			err = api.paymentHandler.MongoConnection.DeletePendingSeat(c, seat.SubscriptionID, seat.EMail)
+		} else {
+			err = api.paymentHandler.RemoveSeatFromSubscriptionGroup(c, seat)
+			if err == nil {
+				err = api.paymentHandler.MongoConnection.DeleteSeat(c, seat)
+			}
+		}
 		if err != nil {
 			return err
 		}

@@ -5,6 +5,10 @@ func (mongoConnection *MongoConnection) EnsureIndexes() error {
 	if err != nil {
 		return err
 	}
+	err = mongoConnection.ensureSeatInvitationTokenIndex()
+	if err != nil {
+		return err
+	}
 	err = mongoConnection.ensureNewsletterIndex()
 	if err != nil {
 		return err

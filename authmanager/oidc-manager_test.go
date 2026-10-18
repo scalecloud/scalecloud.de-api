@@ -63,7 +63,7 @@ func TestVerifyTokenChecksSignatureAndAudience(t *testing.T) {
 	if err != nil {
 		t.Fatalf("valid token rejected: %v", err)
 	}
-	if details.UID != "user-123" || details.EMail != "user@example.com" {
+	if details.UID != "user-123" || details.EMail != "user@example.com" || !details.EmailVerified {
 		t.Fatalf("unexpected token details: %+v", details)
 	}
 
@@ -92,12 +92,13 @@ func signTestToken(t *testing.T, privateKey *rsa.PrivateKey, issuer, audience st
 	}
 	now := time.Now()
 	claims, err := json.Marshal(map[string]any{
-		"iss":   issuer,
-		"aud":   audience,
-		"sub":   "user-123",
-		"email": "user@example.com",
-		"iat":   now.Unix(),
-		"exp":   now.Add(time.Hour).Unix(),
+		"iss":            issuer,
+		"aud":            audience,
+		"sub":            "user-123",
+		"email":          "user@example.com",
+		"email_verified": true,
+		"iat":            now.Unix(),
+		"exp":            now.Add(time.Hour).Unix(),
 	})
 	if err != nil {
 		t.Fatal(err)

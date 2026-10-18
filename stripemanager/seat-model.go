@@ -28,6 +28,24 @@ type AddSeatReply struct {
 	EMail          string `json:"email" validate:"required"`
 }
 
+type SeatInvitationPreviewReply struct {
+	ProductName   string              `json:"productName"`
+	StorageAmount int64               `json:"storageAmount"`
+	StorageUnit   string              `json:"storageUnit"`
+	EMail         string              `json:"email"`
+	Roles         []mongomanager.Role `json:"roles"`
+	ExpiresAt     int64               `json:"expiresAt"`
+}
+
+type SeatInvitationClaimReply struct {
+	SubscriptionID string              `json:"subscriptionID"`
+	ProductName    string              `json:"productName"`
+	StorageAmount  int64               `json:"storageAmount"`
+	StorageUnit    string              `json:"storageUnit"`
+	Roles          []mongomanager.Role `json:"roles"`
+	Success        bool                `json:"success"`
+}
+
 type DeleteSeatRequest struct {
 	SeatToDelete mongomanager.Seat `json:"seatToDelete" validate:"required"`
 }

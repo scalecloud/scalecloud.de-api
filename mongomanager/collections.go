@@ -3,6 +3,7 @@ package mongomanager
 const (
 	databaseSubscription = "subscription"
 	collectionSeats      = "seats"
+	collectionSeatLocks  = "seat-reservation-locks"
 
 	databaseProduct = "product"
 	collectionTrial = "trial"

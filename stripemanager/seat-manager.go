@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/mail"
+	"strings"
 
 	"github.com/scalecloud/scalecloud.de-api/authmanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
@@ -107,14 +108,20 @@ func (paymentHandler *PaymentHandler) GetSubscriptionAddSeat(c context.Context, 
 	if err != nil {
 		return AddSeatReply{}, err
 	}
-	if !IsValidEmail(request.EMail) {
+	parsedEmail, err := mail.ParseAddress(request.EMail)
+	if err != nil {
 		return AddSeatReply{}, errors.New("E-Mail is invalid")
 	}
+	request.EMail = strings.ToLower(parsedEmail.Address)
 	if len(request.Roles) == 0 {
 		return AddSeatReply{}, errors.New("no role selected")
 	}
-	if request.Roles[0] == mongomanager.RoleOwner {
-		return AddSeatReply{}, errors.New("cannot add user as owner")
+	for _, role := range request.Roles {
+		switch role {
+		case mongomanager.RoleAdministrator, mongomanager.RoleUser, mongomanager.RoleBilling:
+		default:
+			return AddSeatReply{}, errors.New("invalid role for invited seat")
+		}
 	}
 	seats, err := paymentHandler.MongoConnection.GetAllSeats(c, request.SubscriptionID)
 	if err != nil {
@@ -135,29 +142,7 @@ func (paymentHandler *PaymentHandler) GetSubscriptionAddSeat(c context.Context, 
 	if !seatAvailable(seats, quantity) {
 		return AddSeatReply{}, errors.New("already used all seats")
 	}
-	userUID, err := paymentHandler.FirebaseConnection.InviteSeat(c, request.EMail)
-	if err != nil {
-		return AddSeatReply{}, err
-	}
-	emailVerified := false
-	seat := mongomanager.Seat{
-		SubscriptionID: request.SubscriptionID,
-		UID:            userUID,
-		EMail:          request.EMail,
-		EMailVerified:  &emailVerified,
-		Roles:          request.Roles,
-	}
-	err = paymentHandler.MongoConnection.CreateSeat(c, seat)
-	if err != nil {
-		return AddSeatReply{}, err
-	}
-	paymentHandler.Log.Error("Invite E-Mail should be sent to " + request.EMail)
-	reply := AddSeatReply{
-		SubscriptionID: request.SubscriptionID,
-		Success:        true,
-		EMail:          request.EMail,
-	}
-	return reply, nil
+	return paymentHandler.CreateSeatInvitation(c, request.SubscriptionID, request.EMail, request.Roles, quantity)
 }
 
 func containsEmail(seats []mongomanager.Seat, email string) bool {
@@ -165,7 +150,7 @@ func containsEmail(seats []mongomanager.Seat, email string) bool {
 		return false
 	}
 	for _, seat := range seats {
-		if seat.EMail == email {
+		if strings.EqualFold(strings.TrimSpace(seat.EMail), strings.TrimSpace(email)) {
 			return true
 		}
 	}
@@ -182,13 +167,23 @@ func (paymentHandler *PaymentHandler) GetSubscriptionRemoveSeat(c context.Contex
 		return DeleteSeatReply{}, err
 	}
 	seatToRemove, err := paymentHandler.MongoConnection.GetSeat(c, request.SeatToDelete.SubscriptionID, request.SeatToDelete.UID)
+	if request.SeatToDelete.UID == "" && request.SeatToDelete.EMail != "" {
+		seatToRemove, err = paymentHandler.MongoConnection.GetSeatByEmail(c, request.SeatToDelete.SubscriptionID, strings.ToLower(strings.TrimSpace(request.SeatToDelete.EMail)))
+	}
 	if err != nil {
 		return DeleteSeatReply{}, err
 	}
 	if mongomanager.ContainsRole(seatToRemove, []mongomanager.Role{mongomanager.RoleOwner}) {
 		return DeleteSeatReply{}, errors.New("cannot remove owner")
 	}
-	err = paymentHandler.MongoConnection.DeleteSeat(c, seatToRemove)
+	if seatToRemove.Status == mongomanager.SeatStatusPending {
+		err = paymentHandler.MongoConnection.DeletePendingSeat(c, seatToRemove.SubscriptionID, seatToRemove.EMail)
+	} else {
+		err = paymentHandler.RemoveSeatFromSubscriptionGroup(c, seatToRemove)
+		if err == nil {
+			err = paymentHandler.MongoConnection.DeleteSeat(c, seatToRemove)
+		}
+	}
 	if err != nil {
 		return DeleteSeatReply{}, err
 	}

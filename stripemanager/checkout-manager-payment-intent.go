@@ -80,12 +80,13 @@ func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Conte
 }
 
 func createSeat(c context.Context, sub *stripe.Subscription, tokenDetails authmanager.TokenDetails, paymentHandler *PaymentHandler) {
-	emailVerified := false
+	emailVerified := tokenDetails.EmailVerified
 	seat := mongomanager.Seat{
 		SubscriptionID: sub.ID,
 		UID:            tokenDetails.UID,
 		EMail:          tokenDetails.EMail,
 		EMailVerified:  &emailVerified,
+		Status:         mongomanager.SeatStatusActive,
 		Roles: []mongomanager.Role{
 			mongomanager.RoleOwner,
 			mongomanager.RoleAdministrator,
@@ -96,6 +97,23 @@ func createSeat(c context.Context, sub *stripe.Subscription, tokenDetails authma
 	err := paymentHandler.MongoConnection.CreateSeat(c, seat)
 	if err != nil {
 		paymentHandler.Log.Error("Error creating seat", zap.Error(err))
+		return
+	}
+	user, err := paymentHandler.AuthentikConnection.FindUserByEmail(c, seat.EMail)
+	if err != nil {
+		paymentHandler.Log.Warn("Could not resolve owner in Authentik; group sync will retry", zap.String("subscriptionID", sub.ID), zap.Error(err))
+		return
+	}
+	if !user.IsActive {
+		paymentHandler.Log.Warn("Owner Authentik account is inactive; group sync will retry", zap.String("subscriptionID", sub.ID))
+		return
+	}
+	if err := paymentHandler.AuthentikConnection.AddUserPKToSubscription(c, sub.ID, user.PK); err != nil {
+		paymentHandler.Log.Warn("Could not add owner to Authentik subscription group; group sync will retry", zap.String("subscriptionID", sub.ID), zap.Error(err))
+		return
+	}
+	if err := paymentHandler.MongoConnection.CompleteSeatGroupSync(c, sub.ID, tokenDetails.UID, user.PK); err != nil {
+		paymentHandler.Log.Warn("Could not save owner group-sync state; group sync will retry", zap.String("subscriptionID", sub.ID), zap.Error(err))
 	}
 }
 
