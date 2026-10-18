@@ -3,7 +3,7 @@
 ##
 ## Build
 ##
-FROM golang:1.26 AS build
+FROM golang:1.27 AS build
 
 WORKDIR /build
 
