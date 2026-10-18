@@ -181,7 +181,7 @@ func (mongoConnection *MongoConnection) GetPendingSeatByInvitationTokenHash(ctx 
 	return seat, nil
 }
 
-func (mongoConnection *MongoConnection) ClaimPendingSeat(ctx context.Context, tokenHash, email, uid string, authentikUserPK int64, now time.Time) (Seat, error) {
+func (mongoConnection *MongoConnection) BeginSeatClaim(ctx context.Context, tokenHash, email, uid string, authentikUserPK int64, now time.Time) (Seat, error) {
 	if uid == "" {
 		return Seat{}, errors.New("uid is empty")
 	}
@@ -199,11 +199,10 @@ func (mongoConnection *MongoConnection) ClaimPendingSeat(ctx context.Context, to
 			"email":               email,
 		},
 		bson.M{"$set": bson.M{
-			"status":               SeatStatusActive,
-			"uid":                  uid,
-			"emailVerified":        verified,
-			"authentikUserPk":      authentikUserPK,
-			"authentikGroupSynced": false,
+			"status":          SeatStatusClaiming,
+			"uid":             uid,
+			"emailVerified":   verified,
+			"authentikUserPk": authentikUserPK,
 		}},
 		options.FindOneAndUpdate().SetReturnDocument(options.After),
 	)
@@ -214,47 +213,26 @@ func (mongoConnection *MongoConnection) ClaimPendingSeat(ctx context.Context, to
 	return seat, nil
 }
 
-func (mongoConnection *MongoConnection) CompleteSeatGroupSync(ctx context.Context, subscriptionID, uid string, authentikUserPK int64) error {
+func (mongoConnection *MongoConnection) CompleteSeatClaim(ctx context.Context, tokenHash, uid string) error {
 	collection, err := mongoConnection.getCollection(ctx, databaseSubscription, collectionSeats)
 	if err != nil {
 		return err
 	}
 	result, err := collection.UpdateOne(
 		ctx,
+		bson.M{"invitationTokenHash": tokenHash, "uid": uid, "status": SeatStatusClaiming},
 		bson.M{
-			"subscriptionID": subscriptionID,
-			"uid":            uid,
-			"$or": []bson.M{
-				{"status": SeatStatusActive},
-				{"status": bson.M{"$exists": false}},
-			},
+			"$set":   bson.M{"status": SeatStatusActive},
+			"$unset": bson.M{"invitationTokenHash": "", "invitationExpiresAt": ""},
 		},
-		bson.M{"$set": bson.M{"authentikGroupSynced": true, "authentikUserPk": authentikUserPK}},
 	)
 	if err != nil {
 		return err
 	}
 	if result.MatchedCount == 0 {
-		return errors.New("active seat not found while completing group sync")
+		return errors.New("seat claim no longer belongs to this user")
 	}
 	return nil
-}
-
-func (mongoConnection *MongoConnection) GetSeatsNeedingGroupSync(ctx context.Context) ([]Seat, error) {
-	filter := bson.M{
-		"uid": bson.M{"$ne": ""},
-		"$or": []bson.M{
-			{"status": SeatStatusActive},
-			{"status": bson.M{"$exists": false}},
-		},
-		"authentikGroupSynced": bson.M{"$ne": true},
-	}
-	var seats []Seat
-	options := options.Find().SetSort(bson.D{{Key: "subscriptionID", Value: 1}, {Key: "email", Value: 1}})
-	if err := mongoConnection.findDocuments(ctx, databaseSubscription, collectionSeats, filter, &seats, options); err != nil {
-		return nil, err
-	}
-	return seats, nil
 }
 
 func (mongoConnection *MongoConnection) DeletePendingSeat(ctx context.Context, subscriptionID, email string) error {

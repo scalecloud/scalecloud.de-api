@@ -59,7 +59,16 @@ func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Conte
 	paymentHandler.Log.Info("Subscription created.", zap.Any("subscriptionID", sub.ID), zap.Any("status", sub.Status))
 	if sub.Status == stripe.SubscriptionStatusActive || sub.Status == stripe.SubscriptionStatusTrialing {
 		paymentHandler.Log.Info("Subscription is valid.")
-		createSeat(c, sub, tokenDetails, paymentHandler)
+		if err := createSeat(c, sub, tokenDetails, paymentHandler); err != nil {
+			paymentHandler.Log.Error("Could not provision subscription owner", zap.Error(err))
+			canceledSubscription, cancelErr := subscription.Cancel(sub.ID, nil)
+			if cancelErr != nil {
+				paymentHandler.Log.Error("Could not cancel subscription after owner provisioning failed", zap.Error(cancelErr))
+			} else {
+				sub = canceledSubscription
+			}
+			return CheckoutCreateSubscriptionReply{}, err
+		}
 	} else if sub.Status == stripe.SubscriptionStatusIncomplete || sub.Status == stripe.SubscriptionStatusIncompleteExpired {
 		paymentHandler.Log.Warn("First payment did not work. Subscription is incomplete.", zap.Any("subscriptionID", sub.ID), zap.Any("status", sub.Status))
 	} else {
@@ -79,7 +88,7 @@ func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Conte
 	return checkoutSubscriptionModel, nil
 }
 
-func createSeat(c context.Context, sub *stripe.Subscription, tokenDetails authmanager.TokenDetails, paymentHandler *PaymentHandler) {
+func createSeat(c context.Context, sub *stripe.Subscription, tokenDetails authmanager.TokenDetails, paymentHandler *PaymentHandler) error {
 	emailVerified := tokenDetails.EmailVerified
 	seat := mongomanager.Seat{
 		SubscriptionID: sub.ID,
@@ -94,27 +103,24 @@ func createSeat(c context.Context, sub *stripe.Subscription, tokenDetails authma
 			mongomanager.RoleBilling,
 		},
 	}
-	err := paymentHandler.MongoConnection.CreateSeat(c, seat)
-	if err != nil {
-		paymentHandler.Log.Error("Error creating seat", zap.Error(err))
-		return
-	}
 	user, err := paymentHandler.AuthentikConnection.FindUserByEmail(c, seat.EMail)
 	if err != nil {
-		paymentHandler.Log.Warn("Could not resolve owner in Authentik; group sync will retry", zap.String("subscriptionID", sub.ID), zap.Error(err))
-		return
+		return err
 	}
 	if !user.IsActive {
-		paymentHandler.Log.Warn("Owner Authentik account is inactive; group sync will retry", zap.String("subscriptionID", sub.ID))
-		return
+		return errors.New("owner Authentik account is inactive")
 	}
+	seat.AuthentikUserPK = user.PK
 	if err := paymentHandler.AuthentikConnection.AddUserPKToSubscription(c, sub.ID, user.PK); err != nil {
-		paymentHandler.Log.Warn("Could not add owner to Authentik subscription group; group sync will retry", zap.String("subscriptionID", sub.ID), zap.Error(err))
-		return
+		return err
 	}
-	if err := paymentHandler.MongoConnection.CompleteSeatGroupSync(c, sub.ID, tokenDetails.UID, user.PK); err != nil {
-		paymentHandler.Log.Warn("Could not save owner group-sync state; group sync will retry", zap.String("subscriptionID", sub.ID), zap.Error(err))
+	if err := paymentHandler.MongoConnection.CreateSeat(c, seat); err != nil {
+		if removeErr := paymentHandler.AuthentikConnection.RemoveUserFromSubscription(c, sub.ID, user.PK); removeErr != nil {
+			paymentHandler.Log.Error("Could not roll back owner group membership after seat creation failed", zap.Error(removeErr))
+		}
+		return err
 	}
+	return nil
 }
 
 func (paymentHandler *PaymentHandler) GetCheckoutProduct(c context.Context, tokenDetails authmanager.TokenDetails, checkoutProductRequest CheckoutProductRequest) (CheckoutProductReply, error) {

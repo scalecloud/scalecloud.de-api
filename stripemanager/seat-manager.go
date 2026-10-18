@@ -9,6 +9,7 @@ import (
 
 	"github.com/scalecloud/scalecloud.de-api/authmanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
+	"go.uber.org/zap"
 )
 
 func (paymentHandler *PaymentHandler) GetMyPermission(c context.Context, tokenDetails authmanager.TokenDetails, request PermissionRequest) (PermissionReply, error) {
@@ -182,6 +183,11 @@ func (paymentHandler *PaymentHandler) GetSubscriptionRemoveSeat(c context.Contex
 		err = paymentHandler.RemoveSeatFromSubscriptionGroup(c, seatToRemove)
 		if err == nil {
 			err = paymentHandler.MongoConnection.DeleteSeat(c, seatToRemove)
+			if err != nil {
+				if restoreErr := paymentHandler.AddSeatToSubscriptionGroup(c, seatToRemove); restoreErr != nil {
+					paymentHandler.Log.Error("Could not restore Authentik membership after seat delete failed", zap.Error(restoreErr))
+				}
+			}
 		}
 	}
 	if err != nil {

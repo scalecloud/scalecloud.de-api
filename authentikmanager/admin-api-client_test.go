@@ -60,7 +60,7 @@ func TestAddUserToSubscriptionCreatesGroupAndAddsUser(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	client := NewClient(baseURL, "test-api-token", server.Client())
+	client := NewAdminAPIClient(baseURL, "test-api-token", server.Client())
 	if err := client.AddUserToSubscription(context.Background(), "sub_test", "invite@example.com"); err != nil {
 		t.Fatal(err)
 	}

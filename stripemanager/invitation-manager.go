@@ -119,7 +119,8 @@ func (paymentHandler *PaymentHandler) ClaimSeatInvitation(ctx context.Context, t
 		}
 		return SeatInvitationClaimReply{}, err
 	}
-	if seat.Status == mongomanager.SeatStatusPending {
+	switch seat.Status {
+	case mongomanager.SeatStatusPending:
 		if seat.InvitationExpiresAt == nil || !seat.InvitationExpiresAt.After(time.Now().UTC()) {
 			return SeatInvitationClaimReply{}, ErrInvitationUnavailable
 		}
@@ -130,28 +131,40 @@ func (paymentHandler *PaymentHandler) ClaimSeatInvitation(ctx context.Context, t
 		if !user.IsActive {
 			return SeatInvitationClaimReply{}, errors.New("Authentik user is inactive")
 		}
-		seat, err = paymentHandler.MongoConnection.ClaimPendingSeat(ctx, tokenHash, email, tokenDetails.UID, user.PK, time.Now().UTC())
+		seat, err = paymentHandler.MongoConnection.BeginSeatClaim(ctx, tokenHash, email, tokenDetails.UID, user.PK, time.Now().UTC())
 		if err != nil {
+			claimingSeat, lookupErr := paymentHandler.MongoConnection.GetSeatByInvitationTokenHash(ctx, tokenHash)
+			if lookupErr != nil || claimingSeat.Status != mongomanager.SeatStatusClaiming || claimingSeat.UID != tokenDetails.UID {
+				return SeatInvitationClaimReply{}, ErrInvitationUnavailable
+			}
+			seat = claimingSeat
+		}
+	case mongomanager.SeatStatusClaiming:
+		if seat.UID != tokenDetails.UID || seat.AuthentikUserPK == 0 {
 			return SeatInvitationClaimReply{}, ErrInvitationUnavailable
 		}
-	} else if seat.Status != mongomanager.SeatStatusActive || seat.UID != tokenDetails.UID {
+	default:
 		return SeatInvitationClaimReply{}, ErrInvitationUnavailable
 	}
 
-	if !seat.AuthentikGroupSynced {
-		if seat.AuthentikUserPK == 0 {
-			user, err := paymentHandler.AuthentikConnection.FindUserByEmail(ctx, email)
-			if err != nil {
-				return SeatInvitationClaimReply{}, err
+	if err := paymentHandler.AuthentikConnection.AddUserPKToSubscription(ctx, seat.SubscriptionID, seat.AuthentikUserPK); err != nil {
+		if rollbackErr := paymentHandler.AuthentikConnection.RemoveUserFromSubscription(ctx, seat.SubscriptionID, seat.AuthentikUserPK); rollbackErr != nil {
+			paymentHandler.Log.Error("Could not roll back Authentik group membership after invite claim failed", zap.Error(rollbackErr))
+		}
+		return SeatInvitationClaimReply{}, err
+	}
+	if err := paymentHandler.MongoConnection.CompleteSeatClaim(ctx, tokenHash, seat.UID); err != nil {
+		claimedSeat, lookupErr := paymentHandler.MongoConnection.GetSeat(ctx, seat.SubscriptionID, seat.UID)
+		if lookupErr == nil && claimedSeat.Status == mongomanager.SeatStatusActive && claimedSeat.AuthentikUserPK == seat.AuthentikUserPK {
+			seat = claimedSeat
+		} else {
+			if rollbackErr := paymentHandler.AuthentikConnection.RemoveUserFromSubscription(ctx, seat.SubscriptionID, seat.AuthentikUserPK); rollbackErr != nil {
+				paymentHandler.Log.Error("Could not roll back Authentik group membership after seat activation failed", zap.Error(rollbackErr))
 			}
-			seat.AuthentikUserPK = user.PK
-		}
-		if err := paymentHandler.AuthentikConnection.AddUserPKToSubscription(ctx, seat.SubscriptionID, seat.AuthentikUserPK); err != nil {
 			return SeatInvitationClaimReply{}, err
 		}
-		if err := paymentHandler.MongoConnection.CompleteSeatGroupSync(ctx, seat.SubscriptionID, seat.UID, seat.AuthentikUserPK); err != nil {
-			return SeatInvitationClaimReply{}, err
-		}
+	} else {
+		seat.Status = mongomanager.SeatStatusActive
 	}
 
 	return SeatInvitationClaimReply{
@@ -168,18 +181,36 @@ func (paymentHandler *PaymentHandler) RemoveSeatFromSubscriptionGroup(ctx contex
 	if seat.Status == mongomanager.SeatStatusPending {
 		return nil
 	}
-	userPK := seat.AuthentikUserPK
-	if userPK == 0 {
-		user, err := paymentHandler.AuthentikConnection.FindUserByEmail(ctx, seat.EMail)
-		if err != nil {
-			if errors.Is(err, authentikmanager.ErrUserNotFound) {
-				return nil
-			}
-			return err
-		}
-		userPK = user.PK
+	userPK, err := paymentHandler.getAuthentikUserPK(ctx, seat)
+	if errors.Is(err, authentikmanager.ErrUserNotFound) {
+		return nil
+	}
+	if err != nil {
+		return err
 	}
 	return paymentHandler.AuthentikConnection.RemoveUserFromSubscription(ctx, seat.SubscriptionID, userPK)
+}
+
+func (paymentHandler *PaymentHandler) AddSeatToSubscriptionGroup(ctx context.Context, seat mongomanager.Seat) error {
+	userPK, err := paymentHandler.getAuthentikUserPK(ctx, seat)
+	if errors.Is(err, authentikmanager.ErrUserNotFound) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	return paymentHandler.AuthentikConnection.AddUserPKToSubscription(ctx, seat.SubscriptionID, userPK)
+}
+
+func (paymentHandler *PaymentHandler) getAuthentikUserPK(ctx context.Context, seat mongomanager.Seat) (int64, error) {
+	if seat.AuthentikUserPK != 0 {
+		return seat.AuthentikUserPK, nil
+	}
+	user, err := paymentHandler.AuthentikConnection.FindUserByEmail(ctx, seat.EMail)
+	if err != nil {
+		return 0, err
+	}
+	return user.PK, nil
 }
 
 func (paymentHandler *PaymentHandler) getSeatProductDetails(ctx context.Context, subscriptionID string) (string, int64, string, error) {

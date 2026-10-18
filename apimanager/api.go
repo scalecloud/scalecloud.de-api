@@ -49,7 +49,7 @@ func InitAPI(log *zap.Logger, production bool, proxyIP string) (*Api, error) {
 	if err != nil {
 		return &Api{}, err
 	}
-	authentikConnection, err := authentikmanager.NewClientFromEnv()
+	authentikConnection, err := authentikmanager.NewAdminAPIClientFromEnv()
 	if err != nil {
 		return &Api{}, err
 	}
@@ -148,7 +148,6 @@ func (api *Api) CloseMongoClient() {
 func (api *Api) RunAPI() {
 	api.initHeaders()
 	api.initRoutes()
-	api.startAuthentikGroupSync()
 	api.initCertificate()
 	api.initTrustedProxies()
 	api.startListening()
@@ -223,48 +222,6 @@ func (api *Api) initRoutes() {
 		newsletters.POST("/subscribe", api.newsletterSubscribe)
 		newsletters.POST("/confirm", api.newsletterConfirm)
 		newsletters.POST("/unsubscribe", api.newsletterUnsubscribe)
-	}
-}
-
-func (api *Api) startAuthentikGroupSync() {
-	go func() {
-		api.syncAuthentikGroups()
-		ticker := time.NewTicker(time.Minute)
-		defer ticker.Stop()
-		for range ticker.C {
-			api.syncAuthentikGroups()
-		}
-	}()
-}
-
-func (api *Api) syncAuthentikGroups() {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-	seats, err := api.paymentHandler.MongoConnection.GetSeatsNeedingGroupSync(ctx)
-	if err != nil {
-		api.log.Error("Could not load seats requiring Authentik group sync", zap.Error(err))
-		return
-	}
-	for _, seat := range seats {
-		userPK := seat.AuthentikUserPK
-		if userPK == 0 {
-			user, err := api.paymentHandler.AuthentikConnection.FindUserByEmail(ctx, seat.EMail)
-			if err != nil {
-				api.log.Warn("Could not resolve seat user in Authentik", zap.String("subscriptionID", seat.SubscriptionID), zap.Error(err))
-				continue
-			}
-			if !user.IsActive {
-				continue
-			}
-			userPK = user.PK
-		}
-		if err := api.paymentHandler.AuthentikConnection.AddUserPKToSubscription(ctx, seat.SubscriptionID, userPK); err != nil {
-			api.log.Warn("Could not add seat user to Authentik group", zap.String("subscriptionID", seat.SubscriptionID), zap.Error(err))
-			continue
-		}
-		if err := api.paymentHandler.MongoConnection.CompleteSeatGroupSync(ctx, seat.SubscriptionID, seat.UID, userPK); err != nil {
-			api.log.Warn("Could not save Authentik group sync state", zap.String("subscriptionID", seat.SubscriptionID), zap.Error(err))
-		}
 	}
 }
 

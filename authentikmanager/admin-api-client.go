@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-type Client struct {
+type AdminAPIClient struct {
 	baseURL    *url.URL
 	apiToken   string
 	httpClient *http.Client
@@ -37,7 +37,7 @@ type listResponse[T any] struct {
 	Results []T `json:"results"`
 }
 
-func NewClientFromEnv() (*Client, error) {
+func NewAdminAPIClientFromEnv() (*AdminAPIClient, error) {
 	apiURL := strings.TrimRight(os.Getenv("AUTHENTIK_API_URL"), "/")
 	apiToken := os.Getenv("AUTHENTIK_API_TOKEN")
 	if apiURL == "" {
@@ -52,16 +52,16 @@ func NewClientFromEnv() (*Client, error) {
 		return nil, errors.New("AUTHENTIK_API_URL must be an absolute HTTPS URL without credentials or query parameters")
 	}
 
-	return NewClient(parsedURL, apiToken, &http.Client{Timeout: 10 * time.Second}), nil
+	return NewAdminAPIClient(parsedURL, apiToken, &http.Client{Timeout: 10 * time.Second}), nil
 }
 
-func NewClient(baseURL *url.URL, apiToken string, httpClient *http.Client) *Client {
+func NewAdminAPIClient(baseURL *url.URL, apiToken string, httpClient *http.Client) *AdminAPIClient {
 	base := *baseURL
 	base.Path = strings.TrimRight(base.Path, "/") + "/"
-	return &Client{baseURL: &base, apiToken: apiToken, httpClient: httpClient}
+	return &AdminAPIClient{baseURL: &base, apiToken: apiToken, httpClient: httpClient}
 }
 
-func (client *Client) AddUserToSubscription(ctx context.Context, subscriptionID, email string) error {
+func (client *AdminAPIClient) AddUserToSubscription(ctx context.Context, subscriptionID, email string) error {
 	user, err := client.FindUserByEmail(ctx, email)
 	if err != nil {
 		return err
@@ -72,11 +72,11 @@ func (client *Client) AddUserToSubscription(ctx context.Context, subscriptionID,
 	return client.AddUserPKToSubscription(ctx, subscriptionID, user.PK)
 }
 
-func (client *Client) FindUserByEmail(ctx context.Context, email string) (User, error) {
+func (client *AdminAPIClient) FindUserByEmail(ctx context.Context, email string) (User, error) {
 	return client.findUserByEmail(ctx, email)
 }
 
-func (client *Client) AddUserPKToSubscription(ctx context.Context, subscriptionID string, userPK int64) error {
+func (client *AdminAPIClient) AddUserPKToSubscription(ctx context.Context, subscriptionID string, userPK int64) error {
 	group, err := client.ensureSubscriptionGroup(ctx, subscriptionID)
 	if err != nil {
 		return err
@@ -84,7 +84,7 @@ func (client *Client) AddUserPKToSubscription(ctx context.Context, subscriptionI
 	return client.changeGroupMembership(ctx, group.PK, userPK, "add_user")
 }
 
-func (client *Client) RemoveUserFromSubscription(ctx context.Context, subscriptionID string, userPK int64) error {
+func (client *AdminAPIClient) RemoveUserFromSubscription(ctx context.Context, subscriptionID string, userPK int64) error {
 	group, err := client.findSubscriptionGroup(ctx, subscriptionID)
 	if err != nil {
 		return err
@@ -95,7 +95,7 @@ func (client *Client) RemoveUserFromSubscription(ctx context.Context, subscripti
 	return client.changeGroupMembership(ctx, group.PK, userPK, "remove_user")
 }
 
-func (client *Client) findUserByEmail(ctx context.Context, email string) (User, error) {
+func (client *AdminAPIClient) findUserByEmail(ctx context.Context, email string) (User, error) {
 	query := url.Values{}
 	query.Set("search", email)
 	query.Set("page_size", "100")
@@ -124,7 +124,7 @@ func (client *Client) findUserByEmail(ctx context.Context, email string) (User, 
 	return *match, nil
 }
 
-func (client *Client) ensureSubscriptionGroup(ctx context.Context, subscriptionID string) (Group, error) {
+func (client *AdminAPIClient) ensureSubscriptionGroup(ctx context.Context, subscriptionID string) (Group, error) {
 	group, err := client.findSubscriptionGroup(ctx, subscriptionID)
 	if err != nil {
 		return Group{}, err
@@ -147,7 +147,7 @@ func (client *Client) ensureSubscriptionGroup(ctx context.Context, subscriptionI
 	return Group{}, err
 }
 
-func (client *Client) findSubscriptionGroup(ctx context.Context, subscriptionID string) (*Group, error) {
+func (client *AdminAPIClient) findSubscriptionGroup(ctx context.Context, subscriptionID string) (*Group, error) {
 	query := url.Values{}
 	query.Set("search", subscriptionGroupName(subscriptionID))
 	query.Set("page_size", "100")
@@ -167,7 +167,7 @@ func (client *Client) findSubscriptionGroup(ctx context.Context, subscriptionID 
 	return nil, nil
 }
 
-func (client *Client) changeGroupMembership(ctx context.Context, groupPK, userPK int64, action string) error {
+func (client *AdminAPIClient) changeGroupMembership(ctx context.Context, groupPK, userPK int64, action string) error {
 	if action != "add_user" && action != "remove_user" {
 		return errors.New("invalid group membership action")
 	}
@@ -175,7 +175,7 @@ func (client *Client) changeGroupMembership(ctx context.Context, groupPK, userPK
 	return client.requestJSON(ctx, http.MethodPost, path, map[string]int64{"pk": userPK}, nil)
 }
 
-func (client *Client) requestJSON(ctx context.Context, method, path string, requestBody, responseBody any) error {
+func (client *AdminAPIClient) requestJSON(ctx context.Context, method, path string, requestBody, responseBody any) error {
 	endpoint := *client.baseURL
 	relative, err := url.Parse(path)
 	if err != nil {
