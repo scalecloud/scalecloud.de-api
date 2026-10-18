@@ -3,6 +3,7 @@ package mongomanager
 import (
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/url"
@@ -13,14 +14,6 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 	"go.uber.org/zap"
 )
-
-func fileExists(filename string) bool {
-	info, err := os.Stat(filename)
-	if os.IsNotExist(err) {
-		return false
-	}
-	return !info.IsDir()
-}
 
 func sanitizeURI(rawURI string) (string, error) {
 	parsed, err := url.Parse(rawURI)
@@ -37,24 +30,25 @@ func sanitizeURI(rawURI string) (string, error) {
 }
 
 func getConnectionString() (string, error) {
-	data, err := os.ReadFile(connectionString)
-	if err != nil {
-		return "", errors.New("connectionString does not exist")
-	}
-	uri := strings.TrimSpace(string(data))
+	uri := strings.TrimSpace(os.Getenv("MONGODB_URI"))
 	if uri == "" {
-		return "", errors.New("connectionString file is empty")
+		return "", errors.New("MONGODB_URI is empty")
 	}
 	return sanitizeURI(uri)
 }
 
 func loadClientCertificate() (tls.Certificate, error) {
-	if !fileExists(x509) {
-		return tls.Certificate{}, fmt.Errorf("x509 certificate file does not exist: %s", x509)
+	encodedCertificate := strings.TrimSpace(os.Getenv("MONGODB_TLS_CERT_BASE64"))
+	if encodedCertificate == "" {
+		return tls.Certificate{}, errors.New("MONGODB_TLS_CERT_BASE64 is empty")
 	}
-	cert, err := tls.LoadX509KeyPair(x509, x509)
+	pemBytes, err := base64.StdEncoding.DecodeString(encodedCertificate)
 	if err != nil {
-		return tls.Certificate{}, fmt.Errorf("failed to load x509 key pair from %s: %w", x509, err)
+		return tls.Certificate{}, fmt.Errorf("MONGODB_TLS_CERT_BASE64 is not valid standard Base64: %w", err)
+	}
+	cert, err := tls.X509KeyPair(pemBytes, pemBytes)
+	if err != nil {
+		return tls.Certificate{}, fmt.Errorf("failed to parse MongoDB TLS certificate and private key: %w", err)
 	}
 	return cert, nil
 }

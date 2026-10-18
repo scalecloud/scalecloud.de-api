@@ -9,9 +9,6 @@ import (
 	"go.uber.org/zap"
 )
 
-const x509 = "keys/mongodb-atlas.pem"
-const connectionString = "keys/mongodb-atlas-connection-string.txt"
-
 type MongoConnection struct {
 	Client *mongo.Client
 	Log    *zap.Logger
@@ -30,19 +27,15 @@ func InitMongoConnection(ctx context.Context, log *zap.Logger) (*MongoConnection
 	return mongoManager, nil
 }
 
-func CheckMongoConnectionFiles(log *zap.Logger) error {
-	log.Info("Init Mongo")
-	if fileExists(connectionString) {
-		log.Debug("connectionString exists. ", zap.String("file", connectionString))
-	} else {
-		return errors.New("required file does not exist: " + connectionString)
+func CheckMongoConfig(log *zap.Logger) error {
+	log.Info("Checking MongoDB configuration")
+	if _, err := getConnectionString(); err != nil {
+		return err
 	}
-	if fileExists(x509) {
-		log.Debug("x509 exists. ", zap.String("file", x509))
-	} else {
-		return errors.New("x509 does not exist")
+	if _, err := loadClientCertificate(); err != nil {
+		return err
 	}
-	log.Info("Required secrets for MongoDB are present.")
+	log.Info("MongoDB configuration is present")
 	return nil
 }
 

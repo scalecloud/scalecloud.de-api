@@ -14,6 +14,11 @@
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
+# Local environment files; commit only the placeholder template
+.env
+.env.*
+!.env.example
+
 # In keys folder are keys for:
 # mongodb-atlas: mongodb-atlas.pem
 # stripe: stripe-secret-key.json

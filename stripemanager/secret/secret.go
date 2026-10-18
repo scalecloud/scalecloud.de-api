@@ -3,50 +3,34 @@ package secret
 import (
 	"errors"
 	"os"
+	"strings"
 
 	"go.uber.org/zap"
 )
 
-const keyFile = "keys/stripe-secret-key.txt"
-const endpointSecretFile = "keys/stripe-endpoint-secrets.txt"
-
-func CheckStripeKeyFiles(log *zap.Logger) error {
-	log.Info("Init stripe")
-	if fileExists(keyFile) {
-		log.Info("keyfile exists. ", zap.String("file", keyFile))
-	} else {
-		return errors.New("required file does not exist: " + keyFile)
+func CheckStripeConfig(log *zap.Logger) error {
+	log.Info("Checking Stripe configuration")
+	if strings.TrimSpace(os.Getenv("STRIPE_SECRET_KEY")) == "" {
+		return errors.New("STRIPE_SECRET_KEY is empty")
 	}
-	if fileExists(endpointSecretFile) {
-		log.Info("EndpointSecretFile exists. ", zap.String("file", endpointSecretFile))
-	} else {
-		return errors.New("required file does not exist: " + endpointSecretFile)
+	if strings.TrimSpace(os.Getenv("STRIPE_ENDPOINT_SECRET")) == "" {
+		return errors.New("STRIPE_ENDPOINT_SECRET is empty")
 	}
 	return nil
 }
 
-func fileExists(filename string) bool {
-	info, err := os.Stat(filename)
-	if os.IsNotExist(err) {
-		return false
-	}
-	return !info.IsDir()
-}
-
 func GetStripeKey() (string, error) {
-	content, err := os.ReadFile(keyFile)
-	if err != nil {
-		return "", err
+	key := strings.TrimSpace(os.Getenv("STRIPE_SECRET_KEY"))
+	if key == "" {
+		return "", errors.New("STRIPE_SECRET_KEY is empty")
 	}
-	key := string(content)
 	return key, nil
 }
 
 func GetStripeEndpointSecret() (string, error) {
-	content, err := os.ReadFile(endpointSecretFile)
-	if err != nil {
-		return "", err
+	key := strings.TrimSpace(os.Getenv("STRIPE_ENDPOINT_SECRET"))
+	if key == "" {
+		return "", errors.New("STRIPE_ENDPOINT_SECRET is empty")
 	}
-	key := string(content)
 	return key, nil
 }

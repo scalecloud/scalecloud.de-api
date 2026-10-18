@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"net/url"
-	"os"
 	"strings"
 	"time"
 
@@ -16,6 +14,7 @@ import (
 	"github.com/gin-gonic/autotls"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/scalecloud/scalecloud.de-api/appconfig"
 	"github.com/scalecloud/scalecloud.de-api/authentikmanager"
 	"github.com/scalecloud/scalecloud.de-api/authmanager"
 	"github.com/scalecloud/scalecloud.de-api/emailmanager"
@@ -27,8 +26,7 @@ import (
 )
 
 type Api struct {
-	production     bool
-	proxyIP        string
+	config         appconfig.Config
 	router         *gin.Engine
 	paymentHandler *stripemanager.PaymentHandler
 	webhookHandler *WebhookHandler
@@ -42,7 +40,7 @@ type WebhookHandler struct {
 	Log              *zap.Logger
 }
 
-func InitAPI(log *zap.Logger, production bool, proxyIP string) (*Api, error) {
+func InitAPI(log *zap.Logger, config appconfig.Config) (*Api, error) {
 	log.Info("Init api")
 
 	authConnection, err := authmanager.InitOIDCConnection(context.Background())
@@ -53,20 +51,13 @@ func InitAPI(log *zap.Logger, production bool, proxyIP string) (*Api, error) {
 	if err != nil {
 		return &Api{}, err
 	}
-	invitationClaimURL := strings.TrimSpace(os.Getenv("INVITATION_CLAIM_URL"))
-	parsedInvitationClaimURL, err := url.ParseRequestURI(invitationClaimURL)
-	if err != nil || parsedInvitationClaimURL.Scheme == "" || parsedInvitationClaimURL.Host == "" {
-		return &Api{}, errors.New("INVITATION_CLAIM_URL must be an absolute URL")
-	}
-	if production && parsedInvitationClaimURL.Scheme != "https" {
-		return &Api{}, errors.New("INVITATION_CLAIM_URL must use HTTPS in production")
-	}
+	invitationClaimURL := config.FrontendURL + "/claim-invite"
 
-	err = mongomanager.CheckMongoConnectionFiles(log)
+	err = mongomanager.CheckMongoConfig(log)
 	if err != nil {
 		return &Api{}, err
 	}
-	err = secret.CheckStripeKeyFiles(log)
+	err = secret.CheckStripeConfig(log)
 	if err != nil {
 		return &Api{}, err
 	}
@@ -115,8 +106,7 @@ func InitAPI(log *zap.Logger, production bool, proxyIP string) (*Api, error) {
 	validate := validator.New(validator.WithRequiredStructEnabled())
 
 	api := &Api{
-		production:     production,
-		proxyIP:        proxyIP,
+		config:         config,
 		router:         router,
 		authConnection: authConnection,
 		paymentHandler: &stripemanager.PaymentHandler{
@@ -154,14 +144,14 @@ func (api *Api) RunAPI() {
 }
 
 func (api *Api) initHeaders() {
-	config := cors.DefaultConfig()
-	config.AllowOrigins = []string{"http://localhost:4200", "https://www.scalecloud.de"}
-	config.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
-	config.AllowHeaders = []string{"Origin", "Content-Type", "Authorization", "Baggage", "sentry-trace"}
-	config.AllowCredentials = true
-	config.ExposeHeaders = []string{"Content-Length"}
-	config.MaxAge = 12 * time.Hour
-	api.router.Use(cors.New(config))
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowOrigins = []string{api.config.FrontendURL}
+	corsConfig.AllowMethods = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
+	corsConfig.AllowHeaders = []string{"Origin", "Content-Type", "Authorization", "Baggage", "sentry-trace"}
+	corsConfig.AllowCredentials = true
+	corsConfig.ExposeHeaders = []string{"Content-Length"}
+	corsConfig.MaxAge = 12 * time.Hour
+	api.router.Use(cors.New(corsConfig))
 }
 
 func (api *Api) initRoutes() {
@@ -226,9 +216,9 @@ func (api *Api) initRoutes() {
 }
 
 func (api *Api) initCertificate() {
-	if api.production {
+	if api.config.Environment.IsProductionLike() {
 		api.log.Info("Setting up certificate...")
-		err := autotls.Run(api.router, "api.scalecloud.de")
+		err := autotls.Run(api.router, api.config.APIDomain)
 		if err != nil {
 			api.log.Error("Could not setup certificate", zap.Error(err))
 			panic(err)
@@ -238,17 +228,12 @@ func (api *Api) initCertificate() {
 }
 
 func (api *Api) initTrustedProxies() {
-	if api.production {
-		if api.proxyIP == "" {
-			api.log.Fatal("Proxy IP is empty")
-		} else {
-			err := api.router.SetTrustedProxies([]string{api.proxyIP})
-			if err != nil {
-				api.log.Fatal("Could not set trusted proxy", zap.Error(err))
-			} else {
-				api.log.Info("Trusted proxy set", zap.String("proxyIP", api.proxyIP))
-			}
+	if api.config.Environment.IsProductionLike() {
+		err := api.router.SetTrustedProxies([]string{api.config.TrustedProxyIP})
+		if err != nil {
+			api.log.Fatal("Could not set trusted proxy", zap.Error(err))
 		}
+		api.log.Info("Trusted proxy set", zap.String("proxyIP", api.config.TrustedProxyIP))
 	} else {
 		err := api.router.SetTrustedProxies([]string{"127.0.0.1"})
 		if err != nil {

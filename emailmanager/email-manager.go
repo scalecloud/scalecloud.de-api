@@ -1,9 +1,10 @@
 package emailmanager
 
 import (
-	"encoding/json"
 	"errors"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/wneessen/go-mail"
@@ -57,30 +58,17 @@ func InitEMailConnection(log *zap.Logger) (*EMailConnection, error) {
 	return eMailHandler, nil
 }
 
-func fileExists(filename string) bool {
-	info, err := os.Stat(filename)
-	if os.IsNotExist(err) {
-		return false
-	}
-	return !info.IsDir()
-}
-
 func readSMTPCredentials(log *zap.Logger) (*smtpCredentials, error) {
-	credentialsFile := "./keys/smtp-credentials.json"
-	if !fileExists(credentialsFile) {
-		return nil, errors.New("required file does not exist: " + credentialsFile)
-	}
-
-	file, err := os.Open(credentialsFile)
+	port, err := strconv.Atoi(strings.TrimSpace(os.Getenv("SMTP_PORT")))
 	if err != nil {
-		return nil, err
+		return nil, errors.New("SMTP_PORT must be a valid integer")
 	}
-	defer file.Close()
-
-	smtpConnection := &smtpCredentials{}
-	err = json.NewDecoder(file).Decode(smtpConnection)
-	if err != nil {
-		return nil, err
+	smtpConnection := &smtpCredentials{
+		Host:     strings.TrimSpace(os.Getenv("SMTP_HOST")),
+		Port:     port,
+		Username: strings.TrimSpace(os.Getenv("SMTP_USERNAME")),
+		Password: os.Getenv("SMTP_PASSWORD"),
+		From:     strings.TrimSpace(os.Getenv("SMTP_FROM")),
 	}
 
 	validate := validator.New()
