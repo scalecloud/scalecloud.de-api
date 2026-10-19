@@ -113,7 +113,7 @@ type stripeCustomerCreator interface {
 	CreateCustomer(context.Context, string, string) (*stripe.Customer, error)
 }
 
-var ErrCustomerProvisioningInProgress = errors.New("Stripe customer provisioning is already in progress")
+var ErrCustomerProvisioningInProgress = errors.New("stripe customer provisioning is already in progress")
 
 const customerProvisioningLeaseDuration = 2 * time.Minute
 const customerProvisioningWaitDuration = 5 * time.Second
@@ -183,7 +183,7 @@ func createStripeCustomerUnderLease(ctx context.Context, store stripeCustomerMap
 		return "", releaseCustomerLease(ctx, store, uid, token, fmt.Errorf("create Stripe customer: %w", err))
 	}
 	if stripeCustomer == nil || stripeCustomer.ID == "" {
-		return "", releaseCustomerLease(ctx, store, uid, token, errors.New("Stripe returned a customer without an ID"))
+		return "", releaseCustomerLease(ctx, store, uid, token, errors.New("stripe returned a customer without an ID"))
 	}
 
 	if err := store.SetUserCustomerID(ctx, uid, token, stripeCustomer.ID); err != nil {
