@@ -94,7 +94,7 @@ func (mongoConnection *MongoConnection) createDocument(ctx context.Context, data
 	_, err = collection.InsertOne(ctx, document)
 	if err != nil {
 		mongoConnection.Log.Error("Error inserting document", zap.Error(err))
-		return errors.New("error inserting document")
+		return fmt.Errorf("error inserting document: %w", err)
 	}
 	return nil
 }

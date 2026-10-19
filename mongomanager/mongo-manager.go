@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"sync/atomic"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -11,10 +12,11 @@ import (
 )
 
 type MongoConnection struct {
-	Client       *mongo.Client
-	Log          *zap.Logger
-	indexesMu    sync.Mutex
-	indexesReady bool
+	Client                  *mongo.Client
+	Log                     *zap.Logger
+	indexesMu               sync.Mutex
+	indexesReady            bool
+	stripeUserUIDIndexReady atomic.Bool
 }
 
 func InitMongoConnection(ctx context.Context, log *zap.Logger) (*MongoConnection, error) {

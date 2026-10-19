@@ -15,6 +15,10 @@ func (mongoConnection *MongoConnection) EnsureIndexes(ctx context.Context) error
 	if err != nil {
 		return err
 	}
+	err = mongoConnection.ensureStripeUserUIDIndex(ctx)
+	if err != nil {
+		return err
+	}
 	mongoConnection.Log.Info("all required indexes are present")
 	return nil
 }

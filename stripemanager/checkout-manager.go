@@ -2,47 +2,21 @@ package stripemanager
 
 import (
 	"context"
+	"errors"
 
-	"github.com/scalecloud/scalecloud.de-api/mongomanager"
+	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.uber.org/zap"
 )
 
-func (paymentHandler *PaymentHandler) createCustomerAndUser(c context.Context, eMail, uid string) (mongomanager.User, error) {
-	customer, err := paymentHandler.StripeConnection.CreateCustomer(c, eMail)
-	if err != nil {
-		paymentHandler.Log.Error("Error creating customer", zap.Error(err))
-		return mongomanager.User{}, err
-	} else {
-		paymentHandler.Log.Info("New Customer was created with Customer.ID", zap.Any("customer.ID", customer.ID))
-		newUser := mongomanager.User{
-			UID:        uid,
-			CustomerID: customer.ID,
-		}
-		err := paymentHandler.MongoConnection.CreateUser(c, newUser)
-		if err != nil {
-			paymentHandler.Log.Error("Error creating user in MongoDB.", zap.Error(err))
-			return mongomanager.User{}, err
-		} else {
-			paymentHandler.Log.Info("New User was created in MongoDB with User.ID", zap.Any("user.ID", newUser.UID))
-			return newUser, nil
-		}
-	}
-}
-
 func (paymentHandler *PaymentHandler) searchOrCreateCustomer(c context.Context, eMail, uid string) (string, error) {
-	customerID, err := paymentHandler.GetCustomerIDByUID(c, uid)
+	customerID, err := paymentHandler.getOrCreateCustomer(c, eMail, uid)
 	if err != nil {
-		paymentHandler.Log.Info("Could not find user in MongoDB. Going to create new Customer in MongoDB Database 'stripe' collection 'users'.")
-		paymentHandler.Log.Debug("err", zap.Error(err))
-		newUser, err := paymentHandler.createCustomerAndUser(c, eMail, uid)
-		if err != nil {
-			paymentHandler.Log.Error("Error creating user", zap.Error(err))
-			return "", err
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			paymentHandler.Log.Error("Unable to resolve Stripe customer mapping", zap.Error(err))
 		} else {
-			return newUser.CustomerID, nil
+			paymentHandler.Log.Error("Unable to get or create Stripe customer", zap.Error(err))
 		}
-	} else {
-		paymentHandler.Log.Info("User was found in MongoDB with customerID", zap.Any("customerID", customerID))
-		return customerID, nil
+		return "", err
 	}
+	return customerID, nil
 }
