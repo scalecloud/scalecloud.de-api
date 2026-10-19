@@ -13,9 +13,22 @@ import (
 	"go.uber.org/zap"
 )
 
+type newsletterStore interface {
+	GetNewsletterSubscriber(context.Context, string) (mongomanager.NewsletterSubscriber, error)
+	CreateNewsletterSubscriber(context.Context, mongomanager.NewsletterSubscriber) error
+	UpdateNewsletterSubscriber(context.Context, mongomanager.NewsletterSubscriber) error
+	GetNewsletterSubscriberByVerificationToken(context.Context, string) (mongomanager.NewsletterSubscriber, error)
+	GetNewsletterSubscriberByUnsubscribeToken(context.Context, string) (mongomanager.NewsletterSubscriber, error)
+	DeleteNewsletterSubscriber(context.Context, mongomanager.NewsletterSubscriber) error
+}
+
+type newsletterMailer interface {
+	SendEMail(emailmanager.EMail) error
+}
+
 type NewsletterConnection struct {
-	mongoHandler    *mongomanager.MongoConnection
-	eMailConnection *emailmanager.EMailConnection
+	mongoHandler    newsletterStore
+	eMailConnection newsletterMailer
 	log             *zap.Logger
 }
 
