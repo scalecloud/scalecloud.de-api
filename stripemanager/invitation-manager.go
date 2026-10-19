@@ -31,6 +31,31 @@ var (
 
 const seatInvitationLifetime = 7 * 24 * time.Hour
 
+type invitationClaimStore interface {
+	GetSeatByInvitationTokenHash(context.Context, string) (mongomanager.Seat, error)
+	BeginSeatClaim(context.Context, string, string, string, int64, time.Time) (mongomanager.Seat, error)
+	CompleteSeatClaim(context.Context, string, string) error
+	GetSeat(context.Context, string, string) (mongomanager.Seat, error)
+}
+
+type invitationClaimAuthentik interface {
+	FindUserByEmail(context.Context, string) (authentikmanager.User, error)
+	AddUserPKToSubscription(context.Context, string, int64) error
+	RemoveUserFromSubscription(context.Context, string, int64) error
+}
+
+type invitationClaimStripe interface {
+	GetSubscriptionByID(context.Context, string) (*stripe.Subscription, error)
+	GetProduct(context.Context, string) (*stripe.Product, error)
+}
+
+type invitationClaimDependencies struct {
+	store     invitationClaimStore
+	authentik invitationClaimAuthentik
+	stripe    invitationClaimStripe
+	logger    *zap.Logger
+}
+
 func (paymentHandler *PaymentHandler) CreateSeatInvitation(ctx context.Context, subscriptionID, email string, roles []mongomanager.Role, maxSeats int64) (AddSeatReply, error) {
 	token, tokenHash, err := createSeatInvitationToken()
 	if err != nil {
@@ -79,7 +104,7 @@ func (paymentHandler *PaymentHandler) PreviewSeatInvitation(ctx context.Context,
 	if err != nil {
 		return SeatInvitationPreviewReply{}, ErrInvitationUnavailable
 	}
-	productName, storageAmount, storageUnit, err := paymentHandler.getSeatProductDetails(ctx, seat.SubscriptionID)
+	productName, storageAmount, storageUnit, err := getSeatProductDetails(ctx, paymentHandler.StripeConnection, seat.SubscriptionID)
 	if err != nil {
 		if errors.Is(err, ErrInvitationSubscription) {
 			return SeatInvitationPreviewReply{}, ErrInvitationUnavailable
@@ -97,6 +122,15 @@ func (paymentHandler *PaymentHandler) PreviewSeatInvitation(ctx context.Context,
 }
 
 func (paymentHandler *PaymentHandler) ClaimSeatInvitation(ctx context.Context, token string, tokenDetails authmanager.TokenDetails) (SeatInvitationClaimReply, error) {
+	return claimSeatInvitation(ctx, token, tokenDetails, invitationClaimDependencies{
+		store:     paymentHandler.MongoConnection,
+		authentik: paymentHandler.AuthentikConnection,
+		stripe:    paymentHandler.StripeConnection,
+		logger:    paymentHandler.Log,
+	})
+}
+
+func claimSeatInvitation(ctx context.Context, token string, tokenDetails authmanager.TokenDetails, dependencies invitationClaimDependencies) (SeatInvitationClaimReply, error) {
 	if !tokenDetails.EmailVerified {
 		return SeatInvitationClaimReply{}, ErrInvitationEmailUnverified
 	}
@@ -105,14 +139,14 @@ func (paymentHandler *PaymentHandler) ClaimSeatInvitation(ctx context.Context, t
 	}
 	email := normalizeInvitationEmail(tokenDetails.EMail)
 	tokenHash := hashSeatInvitationToken(token)
-	seat, err := paymentHandler.MongoConnection.GetSeatByInvitationTokenHash(ctx, tokenHash)
+	seat, err := dependencies.store.GetSeatByInvitationTokenHash(ctx, tokenHash)
 	if err != nil {
 		return SeatInvitationClaimReply{}, ErrInvitationUnavailable
 	}
 	if normalizeInvitationEmail(seat.EMail) != email {
 		return SeatInvitationClaimReply{}, ErrInvitationEmailMismatch
 	}
-	productName, storageAmount, storageUnit, err := paymentHandler.getSeatProductDetails(ctx, seat.SubscriptionID)
+	productName, storageAmount, storageUnit, err := getSeatProductDetails(ctx, dependencies.stripe, seat.SubscriptionID)
 	if err != nil {
 		if errors.Is(err, ErrInvitationSubscription) {
 			return SeatInvitationClaimReply{}, ErrInvitationUnavailable
@@ -124,16 +158,16 @@ func (paymentHandler *PaymentHandler) ClaimSeatInvitation(ctx context.Context, t
 		if seat.InvitationExpiresAt == nil || !seat.InvitationExpiresAt.After(time.Now().UTC()) {
 			return SeatInvitationClaimReply{}, ErrInvitationUnavailable
 		}
-		user, err := paymentHandler.AuthentikConnection.FindUserByEmail(ctx, email)
+		user, err := dependencies.authentik.FindUserByEmail(ctx, email)
 		if err != nil {
 			return SeatInvitationClaimReply{}, err
 		}
 		if !user.IsActive {
 			return SeatInvitationClaimReply{}, errors.New("authentik user is inactive")
 		}
-		seat, err = paymentHandler.MongoConnection.BeginSeatClaim(ctx, tokenHash, email, tokenDetails.UID, user.PK, time.Now().UTC())
+		seat, err = dependencies.store.BeginSeatClaim(ctx, tokenHash, email, tokenDetails.UID, user.PK, time.Now().UTC())
 		if err != nil {
-			claimingSeat, lookupErr := paymentHandler.MongoConnection.GetSeatByInvitationTokenHash(ctx, tokenHash)
+			claimingSeat, lookupErr := dependencies.store.GetSeatByInvitationTokenHash(ctx, tokenHash)
 			if lookupErr != nil || claimingSeat.Status != mongomanager.SeatStatusClaiming || claimingSeat.UID != tokenDetails.UID {
 				return SeatInvitationClaimReply{}, ErrInvitationUnavailable
 			}
@@ -147,19 +181,19 @@ func (paymentHandler *PaymentHandler) ClaimSeatInvitation(ctx context.Context, t
 		return SeatInvitationClaimReply{}, ErrInvitationUnavailable
 	}
 
-	if err := paymentHandler.AuthentikConnection.AddUserPKToSubscription(ctx, seat.SubscriptionID, seat.AuthentikUserPK); err != nil {
-		if rollbackErr := paymentHandler.AuthentikConnection.RemoveUserFromSubscription(ctx, seat.SubscriptionID, seat.AuthentikUserPK); rollbackErr != nil {
-			paymentHandler.Log.Error("Could not roll back Authentik group membership after invite claim failed", zap.Error(rollbackErr))
+	if err := dependencies.authentik.AddUserPKToSubscription(ctx, seat.SubscriptionID, seat.AuthentikUserPK); err != nil {
+		if rollbackErr := dependencies.authentik.RemoveUserFromSubscription(ctx, seat.SubscriptionID, seat.AuthentikUserPK); rollbackErr != nil {
+			dependencies.logger.Error("Could not roll back Authentik group membership after invite claim failed", zap.Error(rollbackErr))
 		}
 		return SeatInvitationClaimReply{}, err
 	}
-	if err := paymentHandler.MongoConnection.CompleteSeatClaim(ctx, tokenHash, seat.UID); err != nil {
-		claimedSeat, lookupErr := paymentHandler.MongoConnection.GetSeat(ctx, seat.SubscriptionID, seat.UID)
+	if err := dependencies.store.CompleteSeatClaim(ctx, tokenHash, seat.UID); err != nil {
+		claimedSeat, lookupErr := dependencies.store.GetSeat(ctx, seat.SubscriptionID, seat.UID)
 		if lookupErr == nil && claimedSeat.Status == mongomanager.SeatStatusActive && claimedSeat.AuthentikUserPK == seat.AuthentikUserPK {
 			seat = claimedSeat
 		} else {
-			if rollbackErr := paymentHandler.AuthentikConnection.RemoveUserFromSubscription(ctx, seat.SubscriptionID, seat.AuthentikUserPK); rollbackErr != nil {
-				paymentHandler.Log.Error("Could not roll back Authentik group membership after seat activation failed", zap.Error(rollbackErr))
+			if rollbackErr := dependencies.authentik.RemoveUserFromSubscription(ctx, seat.SubscriptionID, seat.AuthentikUserPK); rollbackErr != nil {
+				dependencies.logger.Error("Could not roll back Authentik group membership after seat activation failed", zap.Error(rollbackErr))
 			}
 			return SeatInvitationClaimReply{}, err
 		}
@@ -213,15 +247,15 @@ func (paymentHandler *PaymentHandler) getAuthentikUserPK(ctx context.Context, se
 	return user.PK, nil
 }
 
-func (paymentHandler *PaymentHandler) getSeatProductDetails(ctx context.Context, subscriptionID string) (string, int64, string, error) {
-	stripeSubscription, err := paymentHandler.StripeConnection.GetSubscriptionByID(ctx, subscriptionID)
+func getSeatProductDetails(ctx context.Context, stripeConnection invitationClaimStripe, subscriptionID string) (string, int64, string, error) {
+	stripeSubscription, err := stripeConnection.GetSubscriptionByID(ctx, subscriptionID)
 	if err != nil || len(stripeSubscription.Items.Data) == 0 || stripeSubscription.Items.Data[0].Price == nil || stripeSubscription.Items.Data[0].Price.Product == nil {
 		return "", 0, "", errors.New("subscription product not found")
 	}
 	if stripeSubscription.Status != stripe.SubscriptionStatusActive && stripeSubscription.Status != stripe.SubscriptionStatusTrialing {
 		return "", 0, "", ErrInvitationSubscription
 	}
-	product, err := paymentHandler.StripeConnection.GetProduct(ctx, stripeSubscription.Items.Data[0].Price.Product.ID)
+	product, err := stripeConnection.GetProduct(ctx, stripeSubscription.Items.Data[0].Price.Product.ID)
 	if err != nil {
 		return "", 0, "", err
 	}

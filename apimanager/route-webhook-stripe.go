@@ -49,16 +49,19 @@ func (api *Api) handleStripeWebhook(c *gin.Context) {
 	if endpointSecret == "" {
 		api.log.Error("Missing endpoint secret")
 		c.SecureJSON(http.StatusServiceUnavailable, gin.H{"message": "Service unavailable"})
+		return
 	}
 	payload, err := c.GetRawData()
 	if err != nil {
 		api.log.Error("Error getting raw data", zap.Error(err))
-		c.SecureJSON(http.StatusNoContent, gin.H{"message": "Error getting raw data"})
+		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "Error getting raw data"})
+		return
 	}
 	event, err := webhook.ConstructEvent(payload, c.Request.Header.Get("Stripe-Signature"), endpointSecret)
 	if err != nil {
 		api.log.Error("Signature verification failed", zap.Error(err))
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Signature verification failed"})
+		return
 	}
 	switch event.Type {
 	case "payment_method.attached":
