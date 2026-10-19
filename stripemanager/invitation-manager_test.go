@@ -251,6 +251,128 @@ func TestCreateSeatInvitationStopsWhenCapacityReservationFails(t *testing.T) {
 	}
 }
 
+func TestGetSeatProductDetails(t *testing.T) {
+	baseSubscription := &stripe.Subscription{
+		ID:     "sub_123",
+		Status: stripe.SubscriptionStatusActive,
+		Items: &stripe.SubscriptionItemList{Data: []*stripe.SubscriptionItem{{
+			Price: &stripe.Price{Product: &stripe.Product{ID: "prod_123"}},
+		}}},
+	}
+	baseProduct := &stripe.Product{
+		ID:       "prod_123",
+		Name:     "Cloud Storage",
+		Metadata: map[string]string{"storageAmount": "100", "storageUnit": "GB"},
+	}
+	productErr := errors.New("Stripe product unavailable")
+	tests := []struct {
+		name            string
+		subscription    *stripe.Subscription
+		subscriptionErr error
+		product         *stripe.Product
+		productErr      error
+		wantName        string
+		wantAmount      int64
+		wantUnit        string
+		wantErr         error
+	}{
+		{
+			name:         "active subscription",
+			subscription: baseSubscription,
+			product:      baseProduct,
+			wantName:     "Cloud Storage",
+			wantAmount:   100,
+			wantUnit:     "GB",
+		},
+		{
+			name: "trialing subscription",
+			subscription: func() *stripe.Subscription {
+				copy := *baseSubscription
+				copy.Status = stripe.SubscriptionStatusTrialing
+				return &copy
+			}(),
+			product:    baseProduct,
+			wantName:   "Cloud Storage",
+			wantAmount: 100,
+			wantUnit:   "GB",
+		},
+		{
+			name: "canceled subscription",
+			subscription: func() *stripe.Subscription {
+				copy := *baseSubscription
+				copy.Status = stripe.SubscriptionStatusCanceled
+				return &copy
+			}(),
+			product: baseProduct,
+			wantErr: ErrInvitationSubscription,
+		},
+		{
+			name: "subscription without product reference",
+			subscription: &stripe.Subscription{
+				Status: stripe.SubscriptionStatusActive,
+				Items:  &stripe.SubscriptionItemList{Data: []*stripe.SubscriptionItem{{Price: &stripe.Price{}}}},
+			},
+			product: baseProduct,
+			wantErr: errors.New("subscription product not found"),
+		},
+		{
+			name:            "subscription lookup error",
+			subscription:    baseSubscription,
+			subscriptionErr: errors.New("Stripe subscription unavailable"),
+			product:         baseProduct,
+			wantErr:         errors.New("subscription product not found"),
+		},
+		{
+			name:         "product lookup error is propagated",
+			subscription: baseSubscription,
+			productErr:   productErr,
+			wantErr:      productErr,
+		},
+		{
+			name:         "invalid storage amount",
+			subscription: baseSubscription,
+			product: &stripe.Product{
+				Name:     "Cloud Storage",
+				Metadata: map[string]string{"storageAmount": "many", "storageUnit": "GB"},
+			},
+			wantErr: errors.New("subscription storage amount not found"),
+		},
+		{
+			name:         "incomplete product metadata",
+			subscription: baseSubscription,
+			product: &stripe.Product{
+				Name:     "Cloud Storage",
+				Metadata: map[string]string{"storageAmount": "100"},
+			},
+			wantErr: errors.New("subscription product details are incomplete"),
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			stripeClient := &fakeInvitationStripe{
+				subscription:    testCase.subscription,
+				product:         testCase.product,
+				subscriptionErr: testCase.subscriptionErr,
+				productErr:      testCase.productErr,
+			}
+			name, amount, unit, err := getSeatProductDetails(t.Context(), stripeClient, "sub_123")
+			if testCase.wantErr != nil {
+				if err == nil || err.Error() != testCase.wantErr.Error() {
+					t.Fatalf("getSeatProductDetails() error = %v, want %v", err, testCase.wantErr)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("getSeatProductDetails() error = %v", err)
+			}
+			if name != testCase.wantName || amount != testCase.wantAmount || unit != testCase.wantUnit {
+				t.Fatalf("getSeatProductDetails() = (%q, %d, %q), want (%q, %d, %q)", name, amount, unit, testCase.wantName, testCase.wantAmount, testCase.wantUnit)
+			}
+		})
+	}
+}
+
 func newInvitationCreateTestDependencies(sendErr, reserveErr error) (invitationCreateDependencies, *fakeInvitationCreateStore, *fakeInvitationCreateMailer) {
 	store := &fakeInvitationCreateStore{createErr: reserveErr}
 	mailer := &fakeInvitationCreateMailer{store: store, sendErr: sendErr}
@@ -443,6 +565,7 @@ type fakeInvitationStripe struct {
 	product         *stripe.Product
 	subscriptionErr error
 	productErr      error
+	productCalls    int
 }
 
 func (stripeClient *fakeInvitationStripe) GetSubscriptionByID(context.Context, string) (*stripe.Subscription, error) {
@@ -450,5 +573,6 @@ func (stripeClient *fakeInvitationStripe) GetSubscriptionByID(context.Context, s
 }
 
 func (stripeClient *fakeInvitationStripe) GetProduct(context.Context, string) (*stripe.Product, error) {
+	stripeClient.productCalls++
 	return stripeClient.product, stripeClient.productErr
 }
