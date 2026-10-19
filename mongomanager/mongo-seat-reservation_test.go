@@ -25,29 +25,8 @@ func TestCreatePendingSeatWithinCapacityRejectsNonPositiveCapacity(t *testing.T)
 }
 
 func TestCreatePendingSeatWithinCapacitySerializesConcurrentReservations(t *testing.T) {
-	uri := os.Getenv("MONGODB_TEST_URI")
-	if uri == "" {
-		t.Skip("set MONGODB_TEST_URI to run the MongoDB integration test")
-	}
-
-	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
-	defer cancel()
-	client, err := mongo.Connect(options.Client().ApplyURI(uri))
-	if err != nil {
-		t.Fatalf("connect to test MongoDB: %v", err)
-	}
-	t.Cleanup(func() {
-		cleanupContext, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cleanupCancel()
-		if err := client.Disconnect(cleanupContext); err != nil {
-			t.Errorf("disconnect test MongoDB client: %v", err)
-		}
-	})
-	if err := client.Ping(ctx, nil); err != nil {
-		t.Fatalf("ping test MongoDB: %v", err)
-	}
-
-	connection := &MongoConnection{Client: client, Log: zap.NewNop()}
+	connection, ctx := newTestMongoConnection(t)
+	client := connection.Client
 	subscriptionID := fmt.Sprintf("capacity-test-%d", time.Now().UnixNano())
 	seats := client.Database(databaseSubscription).Collection(collectionSeats)
 	t.Cleanup(func() {
@@ -107,4 +86,29 @@ func TestCreatePendingSeatWithinCapacitySerializesConcurrentReservations(t *test
 	if count != maxSeats {
 		t.Fatalf("stored %d seats, want capacity limit %d", count, maxSeats)
 	}
+}
+
+func newTestMongoConnection(t *testing.T) (*MongoConnection, context.Context) {
+	t.Helper()
+	uri := os.Getenv("MONGODB_TEST_URI")
+	if uri == "" {
+		t.Skip("set MONGODB_TEST_URI to run the MongoDB integration test")
+	}
+	ctx, cancel := context.WithTimeout(t.Context(), 30*time.Second)
+	t.Cleanup(cancel)
+	client, err := mongo.Connect(options.Client().ApplyURI(uri))
+	if err != nil {
+		t.Fatalf("connect to test MongoDB: %v", err)
+	}
+	t.Cleanup(func() {
+		cleanupContext, cleanupCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cleanupCancel()
+		if err := client.Disconnect(cleanupContext); err != nil {
+			t.Errorf("disconnect test MongoDB client: %v", err)
+		}
+	})
+	if err := client.Ping(ctx, nil); err != nil {
+		t.Fatalf("ping test MongoDB: %v", err)
+	}
+	return &MongoConnection{Client: client, Log: zap.NewNop()}, ctx
 }
