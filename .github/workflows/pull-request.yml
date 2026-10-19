@@ -26,8 +26,7 @@ jobs:
           working-directory: ./cmd/scalecloud.de-api
 
       - name: Test with coverage
-        working-directory: ./cmd/scalecloud.de-api
-        run: go test -v ./... -coverprofile=coverage.out
+        run: go test -v -coverprofile=coverage.out ./...
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v8
