@@ -3,6 +3,7 @@ package newslettermanager
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -101,6 +102,18 @@ func TestNewsletterSubscribeCreatesPendingSubscriberAndSendsToken(t *testing.T) 
 	}
 }
 
+func TestNewsletterSubscribeDoesNotCreateSubscriberWhenEmailFails(t *testing.T) {
+	mailer := &fakeNewsletterMailer{err: errors.New("smtp unavailable")}
+	store := &fakeNewsletterStore{}
+	_, err := newTestNewsletterConnection(store, mailer).NewsletterSubscribe(t.Context(), NewsletterSubscribeRequest{EMail: "person@example.com"})
+	if err == nil {
+		t.Fatal("NewsletterSubscribe() succeeded despite confirmation email failure")
+	}
+	if mailer.calls != 1 || store.createCalls != 0 {
+		t.Fatalf("email failure should prevent record creation: mailCalls=%d createCalls=%d", mailer.calls, store.createCalls)
+	}
+}
+
 func TestNewsletterSubscribeDoesNotResendToActiveSubscriber(t *testing.T) {
 	store := &fakeNewsletterStore{
 		existing: true,
@@ -159,6 +172,22 @@ func TestNewsletterConfirmActivatesPendingSubscriber(t *testing.T) {
 	}
 }
 
+func TestNewsletterConfirmDoesNotReportSuccessWhenUpdateFails(t *testing.T) {
+	store := &fakeNewsletterStore{
+		subscriber: mongomanager.NewsletterSubscriber{
+			EMail:  "person@example.com",
+			Status: mongomanager.NewsletterStatusPending,
+		},
+		updateErr: errors.New("database unavailable"),
+	}
+	if _, err := newTestNewsletterConnection(store, &fakeNewsletterMailer{}).NewsletterConfirm(t.Context(), NewsletterConfirmRequest{VerificationToken: "valid-token"}); err == nil {
+		t.Fatal("NewsletterConfirm() reported success despite update failure")
+	}
+	if store.updateCalls != 1 || store.subscriber.Status != mongomanager.NewsletterStatusPending {
+		t.Fatalf("failed confirmation unexpectedly changed state: calls=%d subscriber=%+v", store.updateCalls, store.subscriber)
+	}
+}
+
 func TestNewsletterConfirmIsIdempotentForActiveSubscriber(t *testing.T) {
 	store := &fakeNewsletterStore{subscriber: mongomanager.NewsletterSubscriber{Status: mongomanager.NewsletterStatusActive}}
 	reply, err := newTestNewsletterConnection(store, &fakeNewsletterMailer{}).NewsletterConfirm(t.Context(), NewsletterConfirmRequest{VerificationToken: "already-used"})
@@ -178,6 +207,19 @@ func TestNewsletterUnsubscribeDeletesSubscriber(t *testing.T) {
 	}
 	if reply.NewsletterUnsubscribeReplyStatus != NewsletterUnsubscribeReplyStatusUnsubscribed || store.deleteCalls != 1 {
 		t.Fatalf("unsubscribe did not delete subscriber: reply=%+v deleteCalls=%d", reply, store.deleteCalls)
+	}
+}
+
+func TestNewsletterUnsubscribeDoesNotReportSuccessWhenDeleteFails(t *testing.T) {
+	store := &fakeNewsletterStore{
+		subscriber: mongomanager.NewsletterSubscriber{EMail: "person@example.com"},
+		deleteErr:  errors.New("database unavailable"),
+	}
+	if _, err := newTestNewsletterConnection(store, &fakeNewsletterMailer{}).NewsletterUnsubscribe(t.Context(), NewsletterUnsubscribeRequest{UnsubscribeToken: "valid-token"}); err == nil {
+		t.Fatal("NewsletterUnsubscribe() reported success despite delete failure")
+	}
+	if store.deleteCalls != 1 {
+		t.Fatalf("delete calls = %d, want 1", store.deleteCalls)
 	}
 }
 
@@ -227,9 +269,12 @@ func (store *fakeNewsletterStore) CreateNewsletterSubscriber(_ context.Context, 
 
 func (store *fakeNewsletterStore) UpdateNewsletterSubscriber(_ context.Context, subscriber mongomanager.NewsletterSubscriber) error {
 	store.updateCalls++
+	if store.updateErr != nil {
+		return store.updateErr
+	}
 	store.updated = subscriber
 	store.subscriber = subscriber
-	return store.updateErr
+	return nil
 }
 
 func (store *fakeNewsletterStore) GetNewsletterSubscriberByVerificationToken(context.Context, string) (mongomanager.NewsletterSubscriber, error) {
