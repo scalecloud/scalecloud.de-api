@@ -23,7 +23,6 @@ jobs:
         uses: golangci/golangci-lint-action@v9
         with:
           version: latest
-          working-directory: ./cmd/scalecloud.de-api
 
       - name: Test with coverage
         run: go test -v -coverprofile=coverage.out ./...

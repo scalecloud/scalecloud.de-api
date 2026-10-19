@@ -138,28 +138,32 @@ func (api *Api) handleSetupIntentSucceeded(c context.Context, event stripe.Event
 	}
 	cus := request.Customer
 	if cus == nil {
-		return errors.New("Customer not set")
+		return errors.New("customer not set")
 	}
 	if cus.ID == "" {
-		return errors.New("Customer ID not set")
+		return errors.New("customer ID not set")
 	}
 	api.log.Debug("Customer", zap.Any("Customer", cus.ID))
 
 	meta := request.Metadata
 	if meta == nil {
-		return errors.New("Metadata not set")
+		return errors.New("metadata not set")
 	}
 	metaKey := meta["setupIntentMeta"]
 	if metaKey == "" {
-		return errors.New("Metadata type not set")
+		return errors.New("metadata type not set")
 	}
 	if metaKey == string(stripemanager.CreateSubscription) {
 		api.log.Info("createSubscription")
 	} else if metaKey == string(stripemanager.ChangePayment) {
-		api.paymentHandler.ChangePaymentDefault(c, request)
-		api.paymentHandler.ChangeCustomerAddress(c, request)
+		if err := api.paymentHandler.ChangePaymentDefault(c, request); err != nil {
+			return err
+		}
+		if err := api.paymentHandler.ChangeCustomerAddress(c, request); err != nil {
+			return err
+		}
 	} else {
-		return errors.New("Unknown metadata type")
+		return errors.New("unknown metadata type")
 	}
 	return nil
 }
@@ -200,13 +204,16 @@ func (api *Api) handleAddingTrialUsed(c context.Context, event stripe.Event) err
 		return errors.New("Quantity is not 1. It should not be possible to start a subscription with a trial period. SubscriptionID: " + sub.ID)
 	}
 	if sub.Items.Data[0].Price == nil {
-		return errors.New("Price not set")
+		return errors.New("price not set")
 	} else if sub.Items.Data[0].Price.Product == nil {
-		return errors.New("Product not set")
+		return errors.New("product not set")
 	} else if sub.Items.Data[0].Price.Product.ID == "" {
 		return errors.New("Product.ID name not set")
 	}
 	prod, err := api.paymentHandler.StripeConnection.GetProduct(c, sub.Items.Data[0].Price.Product.ID)
+	if err != nil {
+		return err
+	}
 	metaDataProduct := prod.Metadata
 
 	productType, ok := metaDataProduct["productType"]

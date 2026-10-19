@@ -150,7 +150,7 @@ func (mongoConnection *MongoConnection) findOneDocument(ctx context.Context, dat
 	return singleResult, nil
 }
 
-func (mongoConnection *MongoConnection) findDocuments(ctx context.Context, databaseName, collectionName string, filter interface{}, results interface{}, opts options.Lister[options.FindOptions]) error {
+func (mongoConnection *MongoConnection) findDocuments(ctx context.Context, databaseName, collectionName string, filter interface{}, results interface{}, opts options.Lister[options.FindOptions]) (resultErr error) {
 	collection, err := mongoConnection.getCollection(ctx, databaseName, collectionName)
 	if err != nil {
 		return err
@@ -164,9 +164,13 @@ func (mongoConnection *MongoConnection) findDocuments(ctx context.Context, datab
 		mongoConnection.Log.Error("Error finding documents", zap.Error(err))
 		return errors.New("error finding documents")
 	}
-	defer cursor.Close(ctx)
+	defer func() {
+		if err := cursor.Close(ctx); resultErr == nil && err != nil {
+			resultErr = err
+		}
+	}()
 	// Decode the results
-	if err = cursor.All(ctx, results); err != nil {
+	if err := cursor.All(ctx, results); err != nil {
 		return err
 	}
 	return nil

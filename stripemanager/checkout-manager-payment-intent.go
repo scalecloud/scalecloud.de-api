@@ -57,21 +57,20 @@ func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Conte
 		return CheckoutCreateSubscriptionReply{}, err
 	}
 	paymentHandler.Log.Info("Subscription created.", zap.Any("subscriptionID", sub.ID), zap.Any("status", sub.Status))
-	if sub.Status == stripe.SubscriptionStatusActive || sub.Status == stripe.SubscriptionStatusTrialing {
+	switch sub.Status {
+	case stripe.SubscriptionStatusActive, stripe.SubscriptionStatusTrialing:
 		paymentHandler.Log.Info("Subscription is valid.")
 		if err := createSeat(c, sub, tokenDetails, paymentHandler); err != nil {
 			paymentHandler.Log.Error("Could not provision subscription owner", zap.Error(err))
-			canceledSubscription, cancelErr := subscription.Cancel(sub.ID, nil)
+			_, cancelErr := subscription.Cancel(sub.ID, nil)
 			if cancelErr != nil {
 				paymentHandler.Log.Error("Could not cancel subscription after owner provisioning failed", zap.Error(cancelErr))
-			} else {
-				sub = canceledSubscription
 			}
 			return CheckoutCreateSubscriptionReply{}, err
 		}
-	} else if sub.Status == stripe.SubscriptionStatusIncomplete || sub.Status == stripe.SubscriptionStatusIncompleteExpired {
+	case stripe.SubscriptionStatusIncomplete, stripe.SubscriptionStatusIncompleteExpired:
 		paymentHandler.Log.Warn("First payment did not work. Subscription is incomplete.", zap.Any("subscriptionID", sub.ID), zap.Any("status", sub.Status))
-	} else {
+	default:
 		paymentHandler.Log.Error("Subscription should not get this status. Canceling subscription.", zap.Any("subscriptionID", sub.ID), zap.Any("status", sub.Status))
 		sub, err = subscription.Cancel(sub.ID, nil)
 		if err != nil {

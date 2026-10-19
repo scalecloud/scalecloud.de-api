@@ -76,7 +76,7 @@ func (connection *OIDCConnection) CheckHealth(ctx context.Context) error {
 	return nil
 }
 
-func getJSON(ctx context.Context, endpoint string, target any) error {
+func getJSON(ctx context.Context, endpoint string, target any) (resultErr error) {
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return err
@@ -85,7 +85,11 @@ func getJSON(ctx context.Context, endpoint string, target any) error {
 	if err != nil {
 		return err
 	}
-	defer response.Body.Close()
+	defer func() {
+		if err := response.Body.Close(); resultErr == nil && err != nil {
+			resultErr = fmt.Errorf("close OIDC response body: %w", err)
+		}
+	}()
 	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
 		return fmt.Errorf("endpoint returned HTTP %d", response.StatusCode)
 	}

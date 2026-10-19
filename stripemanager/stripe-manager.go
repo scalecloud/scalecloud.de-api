@@ -54,11 +54,11 @@ func (stripeConnection *StripeConnection) CheckHealth(ctx context.Context) error
 	})
 	for _, err := range prices.All(ctx) {
 		if err != nil {
-			return fmt.Errorf("Stripe prices API health check failed: %w", err)
+			return fmt.Errorf("stripe prices API health check failed: %w", err)
 		}
 	}
 	if err := prices.Err(); err != nil {
-		return fmt.Errorf("Stripe prices API health check failed: %w", err)
+		return fmt.Errorf("stripe prices API health check failed: %w", err)
 	}
 	return nil
 }

@@ -154,7 +154,9 @@ func (paymentHandler *PaymentHandler) handleStripeOwnerTransfer(c context.Contex
 	if err != nil {
 		return err
 	}
-	paymentHandler.removeSourceCustomerOwner(c, ownerSeat)
+	if err := paymentHandler.removeSourceCustomerOwner(c, ownerSeat); err != nil {
+		return err
+	}
 	paymentHandler.sendConfirmationMail()
 
 	return nil

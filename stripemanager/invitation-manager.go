@@ -129,7 +129,7 @@ func (paymentHandler *PaymentHandler) ClaimSeatInvitation(ctx context.Context, t
 			return SeatInvitationClaimReply{}, err
 		}
 		if !user.IsActive {
-			return SeatInvitationClaimReply{}, errors.New("Authentik user is inactive")
+			return SeatInvitationClaimReply{}, errors.New("authentik user is inactive")
 		}
 		seat, err = paymentHandler.MongoConnection.BeginSeatClaim(ctx, tokenHash, email, tokenDetails.UID, user.PK, time.Now().UTC())
 		if err != nil {

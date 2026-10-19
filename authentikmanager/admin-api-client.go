@@ -20,7 +20,7 @@ type AdminAPIClient struct {
 	httpClient *http.Client
 }
 
-var ErrUserNotFound = errors.New("Authentik user not found")
+var ErrUserNotFound = errors.New("authentik user not found")
 
 type User struct {
 	PK       int64  `json:"pk"`
@@ -64,11 +64,11 @@ func NewAdminAPIClient(baseURL *url.URL, apiToken string, httpClient *http.Clien
 func (client *AdminAPIClient) CheckHealth(ctx context.Context) error {
 	var users listResponse[User]
 	if err := client.requestJSON(ctx, http.MethodGet, "core/users/?page_size=1&include_groups=false&include_roles=false", nil, &users); err != nil {
-		return fmt.Errorf("Authentik user API health check failed: %w", err)
+		return fmt.Errorf("authentik user API health check failed: %w", err)
 	}
 	var groups listResponse[Group]
 	if err := client.requestJSON(ctx, http.MethodGet, "core/groups/?page_size=1&include_users=false&include_children=false&include_parents=false", nil, &groups); err != nil {
-		return fmt.Errorf("Authentik group API health check failed: %w", err)
+		return fmt.Errorf("authentik group API health check failed: %w", err)
 	}
 	return nil
 }
@@ -79,7 +79,7 @@ func (client *AdminAPIClient) AddUserToSubscription(ctx context.Context, subscri
 		return err
 	}
 	if !user.IsActive {
-		return errors.New("Authentik user is inactive")
+		return errors.New("authentik user is inactive")
 	}
 	return client.AddUserPKToSubscription(ctx, subscriptionID, user.PK)
 }
@@ -187,7 +187,7 @@ func (client *AdminAPIClient) changeGroupMembership(ctx context.Context, groupPK
 	return client.requestJSON(ctx, http.MethodPost, path, map[string]int64{"pk": userPK}, nil)
 }
 
-func (client *AdminAPIClient) requestJSON(ctx context.Context, method, path string, requestBody, responseBody any) error {
+func (client *AdminAPIClient) requestJSON(ctx context.Context, method, path string, requestBody, responseBody any) (resultErr error) {
 	endpoint := *client.baseURL
 	relative, err := url.Parse(path)
 	if err != nil {
@@ -215,11 +215,15 @@ func (client *AdminAPIClient) requestJSON(ctx context.Context, method, path stri
 
 	response, err := client.httpClient.Do(request)
 	if err != nil {
-		return fmt.Errorf("Authentik API request failed: %w", err)
+		return fmt.Errorf("authentik API request failed: %w", err)
 	}
-	defer response.Body.Close()
+	defer func() {
+		if err := response.Body.Close(); resultErr == nil && err != nil {
+			resultErr = fmt.Errorf("close Authentik API response body: %w", err)
+		}
+	}()
 	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
-		return fmt.Errorf("Authentik API returned HTTP %d for %s", response.StatusCode, path)
+		return fmt.Errorf("authentik API returned HTTP %d for %s", response.StatusCode, path)
 	}
 	if responseBody == nil || response.StatusCode == http.StatusNoContent {
 		return nil
