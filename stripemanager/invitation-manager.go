@@ -56,7 +56,39 @@ type invitationClaimDependencies struct {
 	logger    *zap.Logger
 }
 
+type invitationCreateStore interface {
+	CreatePendingSeatWithinCapacity(context.Context, mongomanager.Seat, int64) error
+	DeletePendingSeatByInvitationTokenHash(context.Context, string) error
+}
+
+type invitationCreateStripe interface {
+	GetSubscriptionByID(context.Context, string) (*stripe.Subscription, error)
+	GetProduct(context.Context, string) (*stripe.Product, error)
+}
+
+type invitationCreateMailer interface {
+	SendEMail(emailmanager.EMail) error
+}
+
+type invitationCreateDependencies struct {
+	store    invitationCreateStore
+	stripe   invitationCreateStripe
+	mailer   invitationCreateMailer
+	claimURL string
+	logger   *zap.Logger
+}
+
 func (paymentHandler *PaymentHandler) CreateSeatInvitation(ctx context.Context, subscriptionID, email string, roles []mongomanager.Role, maxSeats int64) (AddSeatReply, error) {
+	return createSeatInvitation(ctx, invitationCreateDependencies{
+		store:    paymentHandler.MongoConnection,
+		stripe:   paymentHandler.StripeConnection,
+		mailer:   paymentHandler.EMailConnection,
+		claimURL: paymentHandler.InvitationClaimURL,
+		logger:   paymentHandler.Log,
+	}, subscriptionID, email, roles, maxSeats)
+}
+
+func createSeatInvitation(ctx context.Context, dependencies invitationCreateDependencies, subscriptionID, email string, roles []mongomanager.Role, maxSeats int64) (AddSeatReply, error) {
 	token, tokenHash, err := createSeatInvitationToken()
 	if err != nil {
 		return AddSeatReply{}, err
@@ -70,25 +102,25 @@ func (paymentHandler *PaymentHandler) CreateSeatInvitation(ctx context.Context, 
 		InvitationTokenHash: tokenHash,
 		InvitationExpiresAt: &expiresAt,
 	}
-	if err := paymentHandler.MongoConnection.CreatePendingSeatWithinCapacity(ctx, seat, maxSeats); err != nil {
+	if err := dependencies.store.CreatePendingSeatWithinCapacity(ctx, seat, maxSeats); err != nil {
 		return AddSeatReply{}, err
 	}
 
-	claimURL := paymentHandler.InvitationClaimURL + "?token=" + url.QueryEscape(token)
+	claimURL := dependencies.claimURL + "?token=" + url.QueryEscape(token)
 	productName := "your subscription"
-	if subscription, err := paymentHandler.StripeConnection.GetSubscriptionByID(ctx, subscriptionID); err == nil && len(subscription.Items.Data) > 0 && subscription.Items.Data[0].Price != nil && subscription.Items.Data[0].Price.Product != nil {
-		if product, err := paymentHandler.StripeConnection.GetProduct(ctx, subscription.Items.Data[0].Price.Product.ID); err == nil && product.Name != "" {
+	if subscription, err := dependencies.stripe.GetSubscriptionByID(ctx, subscriptionID); err == nil && len(subscription.Items.Data) > 0 && subscription.Items.Data[0].Price != nil && subscription.Items.Data[0].Price.Product != nil {
+		if product, err := dependencies.stripe.GetProduct(ctx, subscription.Items.Data[0].Price.Product.ID); err == nil && product.Name != "" {
 			productName = product.Name
 		}
 	}
 	body := fmt.Sprintf("<p>You have been invited to join %s on Scalecloud.</p><p><a href=\"%s\">Review and claim your seat</a></p><p>This invitation expires in seven days.</p>", html.EscapeString(productName), html.EscapeString(claimURL))
-	if err := paymentHandler.EMailConnection.SendEMail(emailmanager.EMail{
+	if err := dependencies.mailer.SendEMail(emailmanager.EMail{
 		To:      []string{email},
 		Subject: "You have been invited to Scalecloud",
 		Body:    body,
 	}); err != nil {
-		if cleanupErr := paymentHandler.MongoConnection.DeletePendingSeatByInvitationTokenHash(ctx, tokenHash); cleanupErr != nil {
-			paymentHandler.Log.Error("Could not remove pending seat after invitation email failed", zap.Error(cleanupErr))
+		if cleanupErr := dependencies.store.DeletePendingSeatByInvitationTokenHash(ctx, tokenHash); cleanupErr != nil {
+			dependencies.logger.Error("Could not remove pending seat after invitation email failed", zap.Error(cleanupErr))
 		}
 		return AddSeatReply{}, err
 	}

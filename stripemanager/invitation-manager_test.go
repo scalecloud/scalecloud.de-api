@@ -6,12 +6,15 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"html"
+	"net/url"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/scalecloud/scalecloud.de-api/authentikmanager"
 	"github.com/scalecloud/scalecloud.de-api/authmanager"
+	"github.com/scalecloud/scalecloud.de-api/emailmanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 	"github.com/stripe/stripe-go/v87"
 	"go.uber.org/zap"
@@ -180,6 +183,152 @@ func TestClaimSeatInvitationRollsBackWhenAuthentikAddFails(t *testing.T) {
 	if store.completeCalls != 0 || authentik.addCalls != 1 || authentik.removeCalls != 1 {
 		t.Fatalf("unexpected failure handling: complete=%d add=%d remove=%d", store.completeCalls, authentik.addCalls, authentik.removeCalls)
 	}
+}
+
+func TestCreateSeatInvitationReservesBeforeSendingAndBuildsEscapedLink(t *testing.T) {
+	dependencies, store, mailer := newInvitationCreateTestDependencies(nil, nil)
+	dependencies.stripe.(*fakeInvitationStripe).product.Name = "<Cloud & Storage>"
+
+	reply, err := createSeatInvitation(t.Context(), dependencies, "sub_123", " Person@Example.com ", []mongomanager.Role{mongomanager.RoleUser}, 3)
+	if err != nil {
+		t.Fatalf("create seat invitation: %v", err)
+	}
+	if !reply.Success || reply.SubscriptionID != "sub_123" {
+		t.Fatalf("unexpected reply: %+v", reply)
+	}
+	if store.createCalls != 1 || store.maxSeats != 3 || !store.createdBeforeEmail {
+		t.Fatalf("seat was not reserved before email: createCalls=%d maxSeats=%d createdBeforeEmail=%t", store.createCalls, store.maxSeats, store.createdBeforeEmail)
+	}
+	if store.seat.Status != mongomanager.SeatStatusPending || store.seat.EMail != "person@example.com" || store.seat.InvitationTokenHash == "" || store.seat.InvitationExpiresAt == nil {
+		t.Fatalf("unexpected pending seat: %+v", store.seat)
+	}
+	if remaining := time.Until(*store.seat.InvitationExpiresAt); remaining < seatInvitationLifetime-time.Minute || remaining > seatInvitationLifetime+time.Minute {
+		t.Fatalf("invitation lifetime is %s, want approximately %s", remaining, seatInvitationLifetime)
+	}
+	if mailer.calls != 1 || mailer.message.To[0] != " Person@Example.com " {
+		t.Fatalf("unexpected email delivery: calls=%d message=%+v", mailer.calls, mailer.message)
+	}
+	if !strings.Contains(mailer.message.Body, "&lt;Cloud &amp; Storage&gt;") || strings.Contains(mailer.message.Body, "<Cloud & Storage>") {
+		t.Fatalf("product name was not HTML-escaped: %s", mailer.message.Body)
+	}
+	claimURL := invitationClaimURLFromMessage(t, mailer.message.Body)
+	token := claimURL.Query().Get("token")
+	if len(token) != 43 || hashSeatInvitationToken(token) != store.seat.InvitationTokenHash {
+		t.Fatalf("claim token does not match stored token hash: token length %d", len(token))
+	}
+	if store.cleanupCalls != 0 {
+		t.Fatalf("successful email unexpectedly cleaned up reservation %d times", store.cleanupCalls)
+	}
+}
+
+func TestCreateSeatInvitationCleansPendingSeatWhenEmailFails(t *testing.T) {
+	sendErr := errors.New("smtp unavailable")
+	dependencies, store, mailer := newInvitationCreateTestDependencies(sendErr, nil)
+	_, err := createSeatInvitation(t.Context(), dependencies, "sub_123", "person@example.com", []mongomanager.Role{mongomanager.RoleUser}, 3)
+	if !errors.Is(err, sendErr) {
+		t.Fatalf("create seat invitation error = %v, want %v", err, sendErr)
+	}
+	if store.createCalls != 1 || mailer.calls != 1 || store.cleanupCalls != 1 {
+		t.Fatalf("expected reserve, send, and cleanup calls; got reserve=%d send=%d cleanup=%d", store.createCalls, mailer.calls, store.cleanupCalls)
+	}
+	claimURL := invitationClaimURLFromMessage(t, mailer.message.Body)
+	if got, want := store.cleanupTokenHash, store.seat.InvitationTokenHash; got != want {
+		t.Fatalf("cleanup token hash = %q, want reserved token hash %q", got, want)
+	}
+	if hashSeatInvitationToken(claimURL.Query().Get("token")) != store.cleanupTokenHash {
+		t.Fatal("cleanup did not target the invitation token included in the email")
+	}
+}
+
+func TestCreateSeatInvitationStopsWhenCapacityReservationFails(t *testing.T) {
+	reservationErr := mongomanager.ErrSeatCapacityReached
+	dependencies, store, mailer := newInvitationCreateTestDependencies(nil, reservationErr)
+	if _, err := createSeatInvitation(t.Context(), dependencies, "sub_123", "person@example.com", []mongomanager.Role{mongomanager.RoleUser}, 3); !errors.Is(err, reservationErr) {
+		t.Fatalf("create seat invitation error = %v, want %v", err, reservationErr)
+	}
+	if store.createCalls != 1 || mailer.calls != 0 || store.cleanupCalls != 0 {
+		t.Fatalf("unexpected calls after reservation failure: reserve=%d send=%d cleanup=%d", store.createCalls, mailer.calls, store.cleanupCalls)
+	}
+}
+
+func newInvitationCreateTestDependencies(sendErr, reserveErr error) (invitationCreateDependencies, *fakeInvitationCreateStore, *fakeInvitationCreateMailer) {
+	store := &fakeInvitationCreateStore{createErr: reserveErr}
+	mailer := &fakeInvitationCreateMailer{store: store, sendErr: sendErr}
+	stripeClient := &fakeInvitationStripe{
+		subscription: &stripe.Subscription{
+			ID: "sub_123",
+			Items: &stripe.SubscriptionItemList{Data: []*stripe.SubscriptionItem{{
+				Price: &stripe.Price{Product: &stripe.Product{ID: "prod_123"}},
+			}}},
+		},
+		product: &stripe.Product{ID: "prod_123", Name: "Cloud Storage"},
+	}
+	return invitationCreateDependencies{
+		store:    store,
+		stripe:   stripeClient,
+		mailer:   mailer,
+		claimURL: "https://www.example.com/claim-invite",
+		logger:   zap.NewNop(),
+	}, store, mailer
+}
+
+func invitationClaimURLFromMessage(t *testing.T, body string) *url.URL {
+	t.Helper()
+	const hrefPrefix = `href="`
+	start := strings.Index(body, hrefPrefix)
+	if start < 0 {
+		t.Fatalf("email body has no claim link: %s", body)
+	}
+	start += len(hrefPrefix)
+	end := strings.IndexByte(body[start:], '"')
+	if end < 0 {
+		t.Fatalf("claim link is not terminated: %s", body)
+	}
+	claimURL, err := url.Parse(html.UnescapeString(body[start : start+end]))
+	if err != nil {
+		t.Fatalf("parse claim URL: %v", err)
+	}
+	return claimURL
+}
+
+type fakeInvitationCreateStore struct {
+	seat               mongomanager.Seat
+	createErr          error
+	cleanupErr         error
+	createCalls        int
+	cleanupCalls       int
+	cleanupTokenHash   string
+	maxSeats           int64
+	createdBeforeEmail bool
+}
+
+func (store *fakeInvitationCreateStore) CreatePendingSeatWithinCapacity(_ context.Context, seat mongomanager.Seat, maxSeats int64) error {
+	store.createCalls++
+	store.maxSeats = maxSeats
+	if store.createErr == nil {
+		store.seat = seat
+	}
+	return store.createErr
+}
+
+func (store *fakeInvitationCreateStore) DeletePendingSeatByInvitationTokenHash(_ context.Context, tokenHash string) error {
+	store.cleanupCalls++
+	store.cleanupTokenHash = tokenHash
+	return store.cleanupErr
+}
+
+type fakeInvitationCreateMailer struct {
+	store   *fakeInvitationCreateStore
+	message emailmanager.EMail
+	sendErr error
+	calls   int
+}
+
+func (mailer *fakeInvitationCreateMailer) SendEMail(message emailmanager.EMail) error {
+	mailer.calls++
+	mailer.message = message
+	mailer.store.createdBeforeEmail = mailer.store.createCalls == 1 && mailer.store.createErr == nil
+	return mailer.sendErr
 }
 
 func newClaimTestDependencies() (invitationClaimDependencies, *fakeInvitationStore, *fakeInvitationAuthentik, string, authmanager.TokenDetails) {
