@@ -240,6 +240,36 @@ func TestCreateSeatInvitationCleansPendingSeatWhenEmailFails(t *testing.T) {
 	}
 }
 
+func TestCreateSeatInvitationPreservesEmailErrorWhenCleanupFails(t *testing.T) {
+	sendErr := errors.New("smtp unavailable")
+	cleanupErr := errors.New("database cleanup unavailable")
+	dependencies, store, _ := newInvitationCreateTestDependencies(sendErr, nil)
+	store.cleanupErr = cleanupErr
+
+	if _, err := createSeatInvitation(t.Context(), dependencies, "sub_123", "person@example.com", []mongomanager.Role{mongomanager.RoleUser}, 3); !errors.Is(err, sendErr) {
+		t.Fatalf("create seat invitation error = %v, want original email error %v", err, sendErr)
+	}
+	if store.cleanupCalls != 1 {
+		t.Fatalf("cleanup calls = %d, want 1", store.cleanupCalls)
+	}
+}
+
+func TestCreateSeatInvitationContinuesWhenStripeLookupFails(t *testing.T) {
+	dependencies, store, mailer := newInvitationCreateTestDependencies(nil, nil)
+	dependencies.stripe.(*fakeInvitationStripe).subscriptionErr = errors.New("Stripe unavailable")
+
+	reply, err := createSeatInvitation(t.Context(), dependencies, "sub_123", "person@example.com", []mongomanager.Role{mongomanager.RoleUser}, 3)
+	if err != nil {
+		t.Fatalf("create invitation should continue without Stripe product details: %v", err)
+	}
+	if !reply.Success || mailer.calls != 1 || store.createCalls != 1 {
+		t.Fatalf("unexpected fallback behavior: reply=%+v reservations=%d emails=%d", reply, store.createCalls, mailer.calls)
+	}
+	if !strings.Contains(mailer.message.Body, "your subscription") {
+		t.Fatalf("email did not use fallback product name: %s", mailer.message.Body)
+	}
+}
+
 func TestCreateSeatInvitationStopsWhenCapacityReservationFails(t *testing.T) {
 	reservationErr := mongomanager.ErrSeatCapacityReached
 	dependencies, store, mailer := newInvitationCreateTestDependencies(nil, reservationErr)
