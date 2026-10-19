@@ -40,6 +40,13 @@ docker run -d --restart unless-stopped \
   scalecloudde/scalecloud.de-api:latest
 ```
 
+## Health Checks
+
+- `GET /health/live`: process status.
+- `GET /health/ready`: dependency status; returns `503` if MongoDB, Stripe, or Authentik is unhealthy. SMTP is optional.
+
+Checks run at startup and every 60 seconds.
+
 ## SonarCloud Code Quality
 
 <table>

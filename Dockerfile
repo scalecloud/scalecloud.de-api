@@ -21,7 +21,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 ##
 ## Deploy
 ##
-FROM gcr.io/distroless/base-debian12:nonroot AS deploy
+FROM gcr.io/distroless/static-debian13:nonroot AS deploy
 
 WORKDIR /app
 

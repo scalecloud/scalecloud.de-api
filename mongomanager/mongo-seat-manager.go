@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (mongoConnection *MongoConnection) ensureSeatIndex() error {
+func (mongoConnection *MongoConnection) ensureSeatIndex(ctx context.Context) error {
 	indexModel := mongo.IndexModel{
 		Keys: bson.D{
 			{Key: "subscriptionID", Value: 1},
@@ -19,11 +19,11 @@ func (mongoConnection *MongoConnection) ensureSeatIndex() error {
 		},
 		Options: options.Index().SetUnique(true).SetName("UniqueSubscriptionEmail"),
 	}
-	collection, err := mongoConnection.getCollection(context.Background(), databaseSubscription, collectionSeats)
+	collection, err := mongoConnection.getCollection(ctx, databaseSubscription, collectionSeats)
 	if err != nil {
 		return err
 	}
-	name, err := collection.Indexes().CreateOne(context.Background(), indexModel)
+	name, err := collection.Indexes().CreateOne(ctx, indexModel)
 	if err != nil {
 		mongoConnection.Log.Error("Error creating index for seats", zap.String("error", err.Error()))
 		return err
@@ -33,16 +33,16 @@ func (mongoConnection *MongoConnection) ensureSeatIndex() error {
 	return nil
 }
 
-func (mongoConnection *MongoConnection) ensureSeatInvitationTokenIndex() error {
+func (mongoConnection *MongoConnection) ensureSeatInvitationTokenIndex(ctx context.Context) error {
 	indexModel := mongo.IndexModel{
 		Keys:    bson.D{{Key: "invitationTokenHash", Value: 1}},
 		Options: options.Index().SetUnique(true).SetSparse(true).SetName("UniqueSeatInvitationTokenHash"),
 	}
-	collection, err := mongoConnection.getCollection(context.Background(), databaseSubscription, collectionSeats)
+	collection, err := mongoConnection.getCollection(ctx, databaseSubscription, collectionSeats)
 	if err != nil {
 		return err
 	}
-	_, err = collection.Indexes().CreateOne(context.Background(), indexModel)
+	_, err = collection.Indexes().CreateOne(ctx, indexModel)
 	if err != nil {
 		mongoConnection.Log.Error("Error creating index for seat invitation tokens", zap.Error(err))
 		return err

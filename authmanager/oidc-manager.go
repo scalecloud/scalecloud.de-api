@@ -2,10 +2,15 @@ package authmanager
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/coreos/go-oidc/v3/oidc"
 )
@@ -17,10 +22,13 @@ type TokenDetails struct {
 }
 
 type OIDCConnection struct {
+	issuer   string
+	clientID string
+	mu       sync.RWMutex
 	verifier *oidc.IDTokenVerifier
 }
 
-func InitOIDCConnection(ctx context.Context) (*OIDCConnection, error) {
+func InitOIDCConnection(_ context.Context) (*OIDCConnection, error) {
 	issuer := strings.TrimRight(os.Getenv("OIDC_ISSUER"), "/")
 	clientID := os.Getenv("OIDC_CLIENT_ID")
 	if issuer == "" {
@@ -30,18 +38,71 @@ func InitOIDCConnection(ctx context.Context) (*OIDCConnection, error) {
 		return nil, errors.New("OIDC_CLIENT_ID is empty")
 	}
 
-	provider, err := oidc.NewProvider(ctx, issuer+"/")
-	if err != nil {
-		return nil, fmt.Errorf("initialize OIDC provider: %w", err)
-	}
-
 	return &OIDCConnection{
-		verifier: provider.Verifier(&oidc.Config{ClientID: clientID}),
+		issuer:   issuer,
+		clientID: clientID,
 	}, nil
 }
 
+func (connection *OIDCConnection) CheckHealth(ctx context.Context) error {
+	var discovery struct {
+		Issuer  string `json:"issuer"`
+		JWKSURI string `json:"jwks_uri"`
+	}
+	if err := getJSON(ctx, connection.issuer+"/.well-known/openid-configuration", &discovery); err != nil {
+		return fmt.Errorf("OIDC discovery health check failed: %w", err)
+	}
+	if discovery.Issuer != connection.issuer+"/" {
+		return errors.New("OIDC discovery returned an unexpected issuer")
+	}
+	jwksURL, err := url.Parse(discovery.JWKSURI)
+	if err != nil || (jwksURL.Scheme != "https" && jwksURL.Scheme != "http") || jwksURL.Host == "" || jwksURL.User != nil {
+		return errors.New("OIDC discovery returned an invalid JWKS URL")
+	}
+	var keySet struct {
+		Keys []json.RawMessage `json:"keys"`
+	}
+	if err := getJSON(ctx, discovery.JWKSURI, &keySet); err != nil {
+		return fmt.Errorf("OIDC JWKS health check failed: %w", err)
+	}
+	if len(keySet.Keys) == 0 {
+		return errors.New("OIDC JWKS contains no keys")
+	}
+
+	verifier := oidc.NewVerifier(discovery.Issuer, oidc.NewRemoteKeySet(context.Background(), discovery.JWKSURI), &oidc.Config{ClientID: connection.clientID})
+	connection.mu.Lock()
+	connection.verifier = verifier
+	connection.mu.Unlock()
+	return nil
+}
+
+func getJSON(ctx context.Context, endpoint string, target any) error {
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return err
+	}
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+	if response.StatusCode < http.StatusOK || response.StatusCode >= http.StatusMultipleChoices {
+		return fmt.Errorf("endpoint returned HTTP %d", response.StatusCode)
+	}
+	if err := json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(target); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (connection *OIDCConnection) VerifyToken(ctx context.Context, rawToken string) (TokenDetails, error) {
-	idToken, err := connection.verifier.Verify(ctx, rawToken)
+	connection.mu.RLock()
+	verifier := connection.verifier
+	connection.mu.RUnlock()
+	if verifier == nil {
+		return TokenDetails{}, errors.New("OIDC provider is not healthy")
+	}
+	idToken, err := verifier.Verify(ctx, rawToken)
 	if err != nil {
 		return TokenDetails{}, err
 	}

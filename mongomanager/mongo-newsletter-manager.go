@@ -10,18 +10,18 @@ import (
 	"go.uber.org/zap"
 )
 
-func (mongoConnection *MongoConnection) ensureNewsletterIndex() error {
+func (mongoConnection *MongoConnection) ensureNewsletterIndex(ctx context.Context) error {
 	indexModel := mongo.IndexModel{
 		Keys: bson.D{
 			{Key: "email", Value: 1},
 		},
 		Options: options.Index().SetUnique(true).SetName("UniqueNewsletterEmail"),
 	}
-	collection, err := mongoConnection.getCollection(context.Background(), databaseNewsletters, collectionSubscribers)
+	collection, err := mongoConnection.getCollection(ctx, databaseNewsletters, collectionSubscribers)
 	if err != nil {
 		return err
 	}
-	name, err := collection.Indexes().CreateOne(context.Background(), indexModel)
+	name, err := collection.Indexes().CreateOne(ctx, indexModel)
 	if err != nil {
 		mongoConnection.Log.Error("Error creating index for newsletter", zap.String("error", err.Error()))
 		return err

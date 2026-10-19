@@ -1,15 +1,17 @@
 package mongomanager
 
-func (mongoConnection *MongoConnection) EnsureIndexes() error {
-	err := mongoConnection.ensureSeatIndex()
+import "context"
+
+func (mongoConnection *MongoConnection) EnsureIndexes(ctx context.Context) error {
+	err := mongoConnection.ensureSeatIndex(ctx)
 	if err != nil {
 		return err
 	}
-	err = mongoConnection.ensureSeatInvitationTokenIndex()
+	err = mongoConnection.ensureSeatInvitationTokenIndex(ctx)
 	if err != nil {
 		return err
 	}
-	err = mongoConnection.ensureNewsletterIndex()
+	err = mongoConnection.ensureNewsletterIndex(ctx)
 	if err != nil {
 		return err
 	}

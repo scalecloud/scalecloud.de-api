@@ -74,9 +74,6 @@ func getClient(ctx context.Context) (*mongo.Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to mongo: %w", err)
 	}
-	if err := client.Ping(ctx, nil); err != nil {
-		return nil, fmt.Errorf("failed to ping mongo after connect: %w", err)
-	}
 	return client, nil
 }
 

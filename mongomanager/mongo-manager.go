@@ -3,6 +3,7 @@ package mongomanager
 import (
 	"context"
 	"errors"
+	"sync"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -10,8 +11,10 @@ import (
 )
 
 type MongoConnection struct {
-	Client *mongo.Client
-	Log    *zap.Logger
+	Client       *mongo.Client
+	Log          *zap.Logger
+	indexesMu    sync.Mutex
+	indexesReady bool
 }
 
 func InitMongoConnection(ctx context.Context, log *zap.Logger) (*MongoConnection, error) {
@@ -55,9 +58,25 @@ func (mongoConnection *MongoConnection) CheckMongoConnectability(ctx context.Con
 	return nil
 }
 
+func (mongoConnection *MongoConnection) CheckHealth(ctx context.Context) error {
+	if err := mongoConnection.CheckDatabaseAndCollectionExists(ctx); err != nil {
+		return err
+	}
+
+	mongoConnection.indexesMu.Lock()
+	defer mongoConnection.indexesMu.Unlock()
+	if !mongoConnection.indexesReady {
+		if err := mongoConnection.EnsureIndexes(ctx); err != nil {
+			return err
+		}
+		mongoConnection.indexesReady = true
+	}
+	return nil
+}
+
 func (mongoConnection *MongoConnection) CheckDatabaseAndCollectionExists(ctx context.Context) error {
 	for dbName, collections := range databases {
-		err := mongoConnection.ensureCollectionsExist(dbName, collections)
+		err := mongoConnection.ensureCollectionsExist(ctx, dbName, collections)
 		if err != nil {
 			return err
 		}
@@ -65,9 +84,9 @@ func (mongoConnection *MongoConnection) CheckDatabaseAndCollectionExists(ctx con
 	return nil
 }
 
-func (mongoConnection *MongoConnection) ensureCollectionsExist(dbName string, collectionNames []string) error {
+func (mongoConnection *MongoConnection) ensureCollectionsExist(ctx context.Context, dbName string, collectionNames []string) error {
 	database := mongoConnection.Client.Database(dbName)
-	existingCollections, err := database.ListCollectionNames(context.Background(), bson.M{})
+	existingCollections, err := database.ListCollectionNames(ctx, bson.M{})
 	if err != nil {
 		return errors.New("Failed to get collection names: " + err.Error())
 	}

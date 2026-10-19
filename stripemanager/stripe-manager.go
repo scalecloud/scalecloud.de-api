@@ -2,12 +2,14 @@ package stripemanager
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/scalecloud/scalecloud.de-api/authentikmanager"
 	"github.com/scalecloud/scalecloud.de-api/emailmanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 	"github.com/scalecloud/scalecloud.de-api/newslettermanager"
 	"github.com/scalecloud/scalecloud.de-api/stripemanager/secret"
+	"github.com/stripe/stripe-go/v87"
 	"go.uber.org/zap"
 )
 
@@ -43,4 +45,20 @@ func InitStripeConnection(ctx context.Context, log *zap.Logger) (*StripeConnecti
 		Log:            log.Named("stripeconnection"),
 	}
 	return stripeConnection, nil
+}
+
+func (stripeConnection *StripeConnection) CheckHealth(ctx context.Context) error {
+	client := stripe.NewClient(stripeConnection.Key)
+	prices := client.V1Prices.List(ctx, &stripe.PriceListParams{
+		ListParams: stripe.ListParams{Limit: stripe.Int64(1), Single: true},
+	})
+	for _, err := range prices.All(ctx) {
+		if err != nil {
+			return fmt.Errorf("Stripe prices API health check failed: %w", err)
+		}
+	}
+	if err := prices.Err(); err != nil {
+		return fmt.Errorf("Stripe prices API health check failed: %w", err)
+	}
+	return nil
 }

@@ -1,6 +1,7 @@
 package emailmanager
 
 import (
+	"context"
 	"errors"
 	"os"
 	"strconv"
@@ -20,9 +21,10 @@ type smtpCredentials struct {
 }
 
 type EMailConnection struct {
-	Client *mail.Client
-	From   string
-	Log    *zap.Logger
+	Client       *mail.Client
+	healthClient *mail.Client
+	From         string
+	Log          *zap.Logger
 }
 
 type EMail struct {
@@ -38,24 +40,40 @@ func InitEMailConnection(log *zap.Logger) (*EMailConnection, error) {
 		return nil, err
 	}
 
-	client, err := mail.NewClient(
-		smtpConnection.Host,
-		mail.WithPort(smtpConnection.Port),
-		mail.WithSMTPAuth(mail.SMTPAuthAutoDiscover),
-		mail.WithUsername(smtpConnection.Username),
-		mail.WithPassword(smtpConnection.Password),
-	)
+	client, err := newSMTPClient(smtpConnection)
+	if err != nil {
+		return nil, err
+	}
+	healthClient, err := newSMTPClient(smtpConnection)
 	if err != nil {
 		return nil, err
 	}
 
 	eMailHandler := &EMailConnection{
-		Client: client,
-		From:   smtpConnection.From,
-		Log:    log.Named("emailhandler"),
+		Client:       client,
+		healthClient: healthClient,
+		From:         smtpConnection.From,
+		Log:          log.Named("emailhandler"),
 	}
 
 	return eMailHandler, nil
+}
+
+func newSMTPClient(credentials *smtpCredentials) (*mail.Client, error) {
+	return mail.NewClient(
+		credentials.Host,
+		mail.WithPort(credentials.Port),
+		mail.WithSMTPAuth(mail.SMTPAuthAutoDiscover),
+		mail.WithUsername(credentials.Username),
+		mail.WithPassword(credentials.Password),
+	)
+}
+
+func (eMailConnection *EMailConnection) CheckHealth(ctx context.Context) error {
+	if err := eMailConnection.healthClient.DialWithContext(ctx); err != nil {
+		return err
+	}
+	return eMailConnection.healthClient.Close()
 }
 
 func readSMTPCredentials(log *zap.Logger) (*smtpCredentials, error) {

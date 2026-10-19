@@ -61,6 +61,18 @@ func NewAdminAPIClient(baseURL *url.URL, apiToken string, httpClient *http.Clien
 	return &AdminAPIClient{baseURL: &base, apiToken: apiToken, httpClient: httpClient}
 }
 
+func (client *AdminAPIClient) CheckHealth(ctx context.Context) error {
+	var users listResponse[User]
+	if err := client.requestJSON(ctx, http.MethodGet, "core/users/?page_size=1&include_groups=false&include_roles=false", nil, &users); err != nil {
+		return fmt.Errorf("Authentik user API health check failed: %w", err)
+	}
+	var groups listResponse[Group]
+	if err := client.requestJSON(ctx, http.MethodGet, "core/groups/?page_size=1&include_users=false&include_children=false&include_parents=false", nil, &groups); err != nil {
+		return fmt.Errorf("Authentik group API health check failed: %w", err)
+	}
+	return nil
+}
+
 func (client *AdminAPIClient) AddUserToSubscription(ctx context.Context, subscriptionID, email string) error {
 	user, err := client.FindUserByEmail(ctx, email)
 	if err != nil {

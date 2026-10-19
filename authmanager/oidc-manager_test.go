@@ -57,6 +57,9 @@ func TestVerifyTokenChecksSignatureAndAudience(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if err := connection.CheckHealth(context.Background()); err != nil {
+		t.Fatalf("OIDC health check failed: %v", err)
+	}
 
 	validToken := signTestToken(t, privateKey, issuer, "test-client")
 	details, err := connection.VerifyToken(context.Background(), validToken)

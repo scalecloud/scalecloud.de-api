@@ -18,6 +18,7 @@ import (
 	"github.com/scalecloud/scalecloud.de-api/authentikmanager"
 	"github.com/scalecloud/scalecloud.de-api/authmanager"
 	"github.com/scalecloud/scalecloud.de-api/emailmanager"
+	"github.com/scalecloud/scalecloud.de-api/healthmanager"
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 	"github.com/scalecloud/scalecloud.de-api/newslettermanager"
 	"github.com/scalecloud/scalecloud.de-api/stripemanager"
@@ -33,6 +34,8 @@ type Api struct {
 	authConnection *authmanager.OIDCConnection
 	validate       *validator.Validate
 	log            *zap.Logger
+	healthMonitor  *healthmanager.Monitor
+	cancelHealth   context.CancelFunc
 }
 
 type WebhookHandler struct {
@@ -78,21 +81,6 @@ func InitAPI(log *zap.Logger, config appconfig.Config) (*Api, error) {
 		return &Api{}, err
 	}
 
-	err = mongoConnection.CheckMongoConnectability(context.Background())
-	if err != nil {
-		return &Api{}, err
-	}
-
-	err = mongoConnection.CheckDatabaseAndCollectionExists(context.Background())
-	if err != nil {
-		return &Api{}, err
-	}
-
-	err = mongoConnection.EnsureIndexes()
-	if err != nil {
-		return &Api{}, err
-	}
-
 	newsletterConnection, err := newslettermanager.InitNewsletterConnection(context.Background(), log, mongoConnection, emailConnection)
 	if err != nil {
 		return &Api{}, err
@@ -104,6 +92,20 @@ func InitAPI(log *zap.Logger, config appconfig.Config) (*Api, error) {
 	}
 
 	validate := validator.New(validator.WithRequiredStructEnabled())
+	healthMonitor := healthmanager.NewMonitor([]healthmanager.Check{
+		{Name: "mongodb", Required: true, Run: mongoConnection.CheckHealth},
+		{Name: "stripe", Required: true, Run: stripeConnection.CheckHealth},
+		{Name: "authentik", Required: true, Run: func(ctx context.Context) error {
+			if err := authConnection.CheckHealth(ctx); err != nil {
+				return err
+			}
+			return authentikConnection.CheckHealth(ctx)
+		}},
+		{Name: "smtp", Required: false, Run: emailConnection.CheckHealth},
+	}, 60*time.Second, 5*time.Second, log.Named("health"))
+	healthContext, cancelHealth := context.WithCancel(context.Background())
+	healthMonitor.CheckNow(healthContext)
+	healthMonitor.Start(healthContext)
 
 	api := &Api{
 		config:         config,
@@ -122,13 +124,18 @@ func InitAPI(log *zap.Logger, config appconfig.Config) (*Api, error) {
 			StripeConnection: stripeConnection,
 			Log:              log.Named("webhookhandler"),
 		},
-		validate: validate,
-		log:      log.Named("apimanager"),
+		validate:      validate,
+		log:           log.Named("apimanager"),
+		healthMonitor: healthMonitor,
+		cancelHealth:  cancelHealth,
 	}
 	return api, nil
 }
 
 func (api *Api) CloseMongoClient() {
+	if api.cancelHealth != nil {
+		api.cancelHealth()
+	}
 	err := api.paymentHandler.MongoConnection.Client.Disconnect(context.Background())
 	if err != nil {
 		api.log.Fatal("Error closing MongoDB", zap.Error(err))
@@ -159,6 +166,8 @@ func (api *Api) initRoutes() {
 	store := persistence.NewInMemoryStore(time.Minute * 5)
 
 	api.log.Info("Setting up routes...")
+	api.router.GET("/health/live", api.healthLive)
+	api.router.GET("/health/ready", api.healthReady)
 
 	api.router.POST("/invitation/preview", api.previewSeatInvitation)
 	api.router.POST("/invitation/claim", api.authRequired, api.claimSeatInvitation)
@@ -213,6 +222,19 @@ func (api *Api) initRoutes() {
 		newsletters.POST("/confirm", api.newsletterConfirm)
 		newsletters.POST("/unsubscribe", api.newsletterUnsubscribe)
 	}
+}
+
+func (api *Api) healthLive(c *gin.Context) {
+	c.Status(http.StatusOK)
+}
+
+func (api *Api) healthReady(c *gin.Context) {
+	snapshot := api.healthMonitor.Snapshot()
+	statusCode := http.StatusOK
+	if snapshot.Status != "ready" {
+		statusCode = http.StatusServiceUnavailable
+	}
+	c.JSON(statusCode, snapshot)
 }
 
 func (api *Api) initCertificate() {
