@@ -29,7 +29,7 @@ type User struct {
 }
 
 type Group struct {
-	PK   int64  `json:"pk"`
+	PK   string `json:"pk"`
 	Name string `json:"name"`
 }
 
@@ -179,11 +179,11 @@ func (client *AdminAPIClient) findSubscriptionGroup(ctx context.Context, subscri
 	return nil, nil
 }
 
-func (client *AdminAPIClient) changeGroupMembership(ctx context.Context, groupPK, userPK int64, action string) error {
+func (client *AdminAPIClient) changeGroupMembership(ctx context.Context, groupPK string, userPK int64, action string) error {
 	if action != "add_user" && action != "remove_user" {
 		return errors.New("invalid group membership action")
 	}
-	path := fmt.Sprintf("core/groups/%d/%s/", groupPK, action)
+	path := fmt.Sprintf("core/groups/%s/%s/", groupPK, action)
 	return client.requestJSON(ctx, http.MethodPost, path, map[string]int64{"pk": userPK}, nil)
 }
 
