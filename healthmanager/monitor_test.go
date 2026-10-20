@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"go.uber.org/zap/zaptest/observer"
 )
 
 func TestSnapshotReadinessUsesRequiredChecksOnly(t *testing.T) {
@@ -39,5 +41,21 @@ func TestSnapshotIsNotReadyBeforeChecksRun(t *testing.T) {
 	}, time.Second, time.Second, zap.NewNop())
 	if got := monitor.Snapshot().Status; got != "not_ready" {
 		t.Fatalf("expected unknown required check to be not_ready, got %q", got)
+	}
+}
+
+func TestHealthFailuresUseSeverityBasedOnRequirement(t *testing.T) {
+	core, logs := observer.New(zapcore.WarnLevel)
+	monitor := NewMonitor([]Check{
+		{Name: "mongo", Required: true, Run: func(context.Context) error { return errors.New("unavailable") }},
+		{Name: "smtp", Required: false, Run: func(context.Context) error { return errors.New("unavailable") }},
+	}, time.Second, time.Second, zap.New(core))
+
+	monitor.CheckNow(context.Background())
+	if count := logs.FilterLevelExact(zapcore.ErrorLevel).FilterMessage("Service health changed").Len(); count != 1 {
+		t.Fatalf("error-level health logs = %d, want 1", count)
+	}
+	if count := logs.FilterLevelExact(zapcore.WarnLevel).FilterMessage("Service health changed").Len(); count != 1 {
+		t.Fatalf("warning-level health logs = %d, want 1", count)
 	}
 }

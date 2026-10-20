@@ -113,7 +113,11 @@ func (monitor *Monitor) record(check Check, err error) {
 
 	if !exists || previous.Status != status.Status {
 		if err != nil {
-			monitor.logger.Warn("Service health changed", zap.String("service", check.Name), zap.String("status", status.Status), zap.Error(err))
+			if check.Required {
+				monitor.logger.Error("Service health changed", zap.String("service", check.Name), zap.String("status", status.Status), zap.Error(err))
+			} else {
+				monitor.logger.Warn("Service health changed", zap.String("service", check.Name), zap.String("status", status.Status), zap.Error(err))
+			}
 		} else {
 			monitor.logger.Info("Service health changed", zap.String("service", check.Name), zap.String("status", status.Status))
 		}
