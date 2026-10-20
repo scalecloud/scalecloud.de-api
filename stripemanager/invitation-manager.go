@@ -7,8 +7,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
-	"fmt"
-	"html"
 	"net/url"
 	"strconv"
 	"strings"
@@ -113,12 +111,18 @@ func createSeatInvitation(ctx context.Context, dependencies invitationCreateDepe
 			productName = product.Name
 		}
 	}
-	body := fmt.Sprintf("<p>You have been invited to join %s on Scalecloud.</p><p><a href=\"%s\">Review and claim your seat</a></p><p>This invitation expires in seven days.</p>", html.EscapeString(productName), html.EscapeString(claimURL))
-	if err := dependencies.mailer.SendEMail(emailmanager.EMail{
-		To:      []string{email},
-		Subject: "You have been invited to Scalecloud",
-		Body:    body,
-	}); err != nil {
+	body, err := emailmanager.RenderTemplate(emailmanager.TemplateSeatInvitation, struct {
+		ProductName string
+		ClaimURL    string
+	}{ProductName: productName, ClaimURL: claimURL})
+	if err == nil {
+		err = dependencies.mailer.SendEMail(emailmanager.EMail{
+			To:      []string{email},
+			Subject: "You have been invited to Scalecloud",
+			Body:    body,
+		})
+	}
+	if err != nil {
 		if cleanupErr := dependencies.store.DeletePendingSeatByInvitationTokenHash(ctx, tokenHash); cleanupErr != nil {
 			dependencies.logger.Error("Could not remove pending seat after invitation email failed", zap.Error(cleanupErr))
 		}

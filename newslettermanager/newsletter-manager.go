@@ -259,23 +259,20 @@ func (newsletterHandler NewsletterConnection) sendConfirmationMail(email, verifi
 	confirmationLink := "https://www.scalecloud.de/newsletter/confirm/" + verificationToken
 
 	subject := "Please confirm your newsletter subscription"
-	body := `
-        <html>
-        <body>
-            <p>Thank you for subscribing to our newsletter!</p>
-            <p>Please confirm your E-Mail address by clicking the link below:</p>
-            <p><a href="` + confirmationLink + `">Confirm Subscription</a></p>
-            <p>If you did not request this, you can safely ignore this E-Mail.</p>
-        </body>
-        </html>
-    `
+	body, err := emailmanager.RenderTemplate(emailmanager.TemplateNewsletterConfirmation, struct {
+		ConfirmationLink string
+	}{ConfirmationLink: confirmationLink})
+	if err != nil {
+		newsletterHandler.log.Error("Failed to render confirmation E-Mail", zap.Error(err))
+		return err
+	}
 	emailMessage := emailmanager.EMail{
 		To:      []string{email},
 		Subject: subject,
 		Body:    body,
 	}
 
-	err := newsletterHandler.eMailConnection.SendEMail(emailMessage)
+	err = newsletterHandler.eMailConnection.SendEMail(emailMessage)
 	if err != nil {
 		newsletterHandler.log.Error("Failed to send confirmation E-Mail", zap.Error(err))
 		return err

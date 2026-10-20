@@ -145,6 +145,47 @@ func TestSendEmailDeliversMessage(t *testing.T) {
 	}
 }
 
+func TestRenderTemplateEscapesData(t *testing.T) {
+	tests := []struct {
+		name         string
+		templateName string
+		data         any
+		want         []string
+	}{
+		{
+			name:         "newsletter confirmation",
+			templateName: TemplateNewsletterConfirmation,
+			data: struct{ ConfirmationLink string }{
+				ConfirmationLink: "https://example.com/confirm?token=a&next=b",
+			},
+			want: []string{"Thank you for subscribing", `href="https://example.com/confirm?token=a&amp;next=b"`},
+		},
+		{
+			name:         "seat invitation",
+			templateName: TemplateSeatInvitation,
+			data: struct {
+				ProductName string
+				ClaimURL    string
+			}{ProductName: "<Pro & Co>", ClaimURL: "https://example.com/claim?token=a&next=b"},
+			want: []string{"&lt;Pro &amp; Co&gt;", `href="https://example.com/claim?token=a&amp;next=b"`},
+		},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.name, func(t *testing.T) {
+			body, err := RenderTemplate(testCase.templateName, testCase.data)
+			if err != nil {
+				t.Fatalf("RenderTemplate() error = %v", err)
+			}
+			for _, expected := range testCase.want {
+				if !strings.Contains(body, expected) {
+					t.Errorf("rendered body %q does not contain %q", body, expected)
+				}
+			}
+		})
+	}
+}
+
 type testSMTPServer struct {
 	listener        net.Listener
 	tlsConfig       *tls.Config
