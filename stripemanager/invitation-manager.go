@@ -69,20 +69,22 @@ type invitationCreateMailer interface {
 }
 
 type invitationCreateDependencies struct {
-	store    invitationCreateStore
-	stripe   invitationCreateStripe
-	mailer   invitationCreateMailer
-	claimURL string
-	logger   *zap.Logger
+	store        invitationCreateStore
+	stripe       invitationCreateStripe
+	mailer       invitationCreateMailer
+	claimURL     string
+	inviterEmail string
+	logger       *zap.Logger
 }
 
-func (paymentHandler *PaymentHandler) CreateSeatInvitation(ctx context.Context, subscriptionID, email string, roles []mongomanager.Role, maxSeats int64) (AddSeatReply, error) {
+func (paymentHandler *PaymentHandler) CreateSeatInvitation(ctx context.Context, subscriptionID, email, inviterEmail string, roles []mongomanager.Role, maxSeats int64) (AddSeatReply, error) {
 	return createSeatInvitation(ctx, invitationCreateDependencies{
-		store:    paymentHandler.MongoConnection,
-		stripe:   paymentHandler.StripeConnection,
-		mailer:   paymentHandler.EMailConnection,
-		claimURL: paymentHandler.InvitationClaimURL,
-		logger:   paymentHandler.Log,
+		store:        paymentHandler.MongoConnection,
+		stripe:       paymentHandler.StripeConnection,
+		mailer:       paymentHandler.EMailConnection,
+		claimURL:     paymentHandler.InvitationClaimURL,
+		inviterEmail: inviterEmail,
+		logger:       paymentHandler.Log,
 	}, subscriptionID, email, roles, maxSeats)
 }
 
@@ -106,15 +108,29 @@ func createSeatInvitation(ctx context.Context, dependencies invitationCreateDepe
 
 	claimURL := dependencies.claimURL + "?token=" + url.QueryEscape(token)
 	productName := "your subscription"
+	productType := ""
+	storageQuota := ""
 	if subscription, err := dependencies.stripe.GetSubscriptionByID(ctx, subscriptionID); err == nil && len(subscription.Items.Data) > 0 && subscription.Items.Data[0].Price != nil && subscription.Items.Data[0].Price.Product != nil {
-		if product, err := dependencies.stripe.GetProduct(ctx, subscription.Items.Data[0].Price.Product.ID); err == nil && product.Name != "" {
-			productName = product.Name
+		if product, err := dependencies.stripe.GetProduct(ctx, subscription.Items.Data[0].Price.Product.ID); err == nil {
+			if product.Name != "" {
+				productName = product.Name
+			}
+			productType = product.Metadata["productType"]
+			storageAmount, amountErr := strconv.ParseInt(product.Metadata["storageAmount"], 10, 64)
+			storageUnit := product.Metadata["storageUnit"]
+			if amountErr == nil && storageAmount > 0 && storageUnit != "" {
+				storageQuota = strconv.FormatInt(storageAmount, 10) + " " + storageUnit
+			}
 		}
 	}
-	body, err := emailmanager.RenderTemplate(emailmanager.TemplateSeatInvitation, struct {
-		ProductName string
-		ClaimURL    string
-	}{ProductName: productName, ClaimURL: claimURL})
+	body, err := emailmanager.RenderTemplate(emailmanager.TemplateSeatInvitation, emailmanager.SeatInvitationTemplateData{
+		ProductName:  productName,
+		ProductType:  productType,
+		InviterEmail: dependencies.inviterEmail,
+		StorageQuota: storageQuota,
+		ClaimURL:     claimURL,
+		InviteeEmail: seat.EMail,
+	})
 	if err == nil {
 		err = dependencies.mailer.SendEMail(emailmanager.EMail{
 			To:      []string{email},

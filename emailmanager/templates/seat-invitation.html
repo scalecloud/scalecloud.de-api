@@ -7,7 +7,7 @@
 <meta name="color-scheme" content="dark">
 <meta name="supported-color-schemes" content="dark">
 <meta name="format-detection" content="telephone=no, date=no, address=no, email=no">
-<title>You're invited to {{.ProductName}}</title>
+<title>Your Scalecloud seat invitation</title>
 <style>
 body, table, td, a { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
 body { margin:0; padding:0; width:100% !important; background-color:#05070D; -webkit-text-size-adjust:100%; }
@@ -24,7 +24,7 @@ a { text-decoration:none; }
 </style>
 </head>
 <body style="margin:0;padding:0;background-color:#05070D;">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;">{{if .InviterName}}{{.InviterName}} invited you{{else}}You've been invited{{end}} to join {{.ProductName}} on scalecloud.de. Accept to claim your seat.&#8203;&#847; &#8203;&#847; &#8203;&#847; &#8203;&#847; &#8203;&#847; &#8203;&#847;</div>
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;">{{if .InviterName}}{{.InviterName}}{{else if .InviterEmail}}{{.InviterEmail}}{{else}}Someone{{end}} invited you to join {{.ProductName}} on scalecloud.de. Accept to claim your seat.&#8203;&#847; &#8203;&#847; &#8203;&#847; &#8203;&#847; &#8203;&#847; &#8203;&#847;</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#05070D" style="background-color:#05070D;background-image:linear-gradient(180deg,#05070D 0%,#0A1020 100%);">
 <tr>
 <td align="center" style="padding:44px 16px;">
@@ -73,7 +73,7 @@ a { text-decoration:none; }
 
 <!-- Body -->
 <tr>
-<td align="center" style="font-size:15px;line-height:24px;color:#C8D4E6;padding-bottom:28px;">A seat is reserved for you. Accept the invitation to get your own scalecloud.de account with private cloud storage, included in the subscription.</td>
+<td align="center" style="font-size:15px;line-height:24px;color:#C8D4E6;padding-bottom:28px;">A seat is reserved for you. Accept the invitation to get your own scalecloud.de account and private cloud storage through the subscription.</td>
 </tr>
 
 <!-- Details card -->
@@ -87,17 +87,17 @@ a { text-decoration:none; }
 <td class="detail-label" width="110" valign="top" style="width:110px;padding:6px 12px 6px 0;font-size:12px;font-weight:700;letter-spacing:1px;color:#7E8EA6;">SUBSCRIPTION</td>
 <td class="detail-value" valign="top" style="padding:6px 0;font-size:14px;line-height:21px;font-weight:600;color:#F5FAFF;">{{.ProductName}}</td>
 </tr>
-{{if .InviterName}}<tr>
+{{if or .InviterName .InviterEmail}}<tr>
 <td class="detail-label" width="110" valign="top" style="width:110px;padding:6px 12px 6px 0;font-size:12px;font-weight:700;letter-spacing:1px;color:#7E8EA6;">INVITED BY</td>
-<td class="detail-value" valign="top" style="padding:6px 0;font-size:14px;line-height:21px;font-weight:600;color:#F5FAFF;">{{.InviterName}}{{if .InviterEmail}} <span style="font-weight:400;color:#A9B8CC;">({{.InviterEmail}})</span>{{end}}</td>
+<td class="detail-value" valign="top" style="padding:6px 0;font-size:14px;line-height:21px;font-weight:600;color:#F5FAFF;">{{if .InviterName}}{{.InviterName}}{{if .InviterEmail}} <span style="font-weight:400;color:#A9B8CC;">({{.InviterEmail}})</span>{{end}}{{else}}{{.InviterEmail}}{{end}}</td>
+</tr>{{end}}
+{{if .ProductType}}<tr>
+<td class="detail-label" width="110" valign="top" style="width:110px;padding:6px 12px 6px 0;font-size:12px;font-weight:700;letter-spacing:1px;color:#7E8EA6;">SERVICE</td>
+<td class="detail-value" valign="top" style="padding:6px 0;font-size:14px;line-height:21px;font-weight:600;color:#F5FAFF;">{{.ProductType}}</td>
 </tr>{{end}}
 {{if .StorageQuota}}<tr>
 <td class="detail-label" width="110" valign="top" style="width:110px;padding:6px 12px 6px 0;font-size:12px;font-weight:700;letter-spacing:1px;color:#7E8EA6;">STORAGE</td>
 <td class="detail-value" valign="top" style="padding:6px 0;font-size:14px;line-height:21px;font-weight:600;color:#F5FAFF;">{{.StorageQuota}} <span style="font-weight:400;color:#A9B8CC;">of your own</span></td>
-</tr>{{end}}
-{{if .ExpiresAt}}<tr>
-<td class="detail-label" width="110" valign="top" style="width:110px;padding:6px 12px 6px 0;font-size:12px;font-weight:700;letter-spacing:1px;color:#7E8EA6;">VALID UNTIL</td>
-<td class="detail-value" valign="top" style="padding:6px 0;font-size:14px;line-height:21px;font-weight:600;color:#F5FAFF;">{{.ExpiresAt}}</td>
 </tr>{{end}}
 </table>
 </td>
@@ -119,12 +119,8 @@ a { text-decoration:none; }
 </td>
 </tr>
 
-<!-- Fallback link -->
 <tr>
-<td align="center" style="font-size:12px;line-height:19px;color:#7E8EA6;padding-bottom:26px;">
-Button not working? Copy this link into your browser:<br>
-<a href="{{.ClaimURL}}" target="_blank" style="color:#67E8F9;word-break:break-all;">{{.ClaimURL}}</a>
-</td>
+<td align="center" style="font-size:13px;line-height:21px;color:#A9B8CC;padding-bottom:26px;">This invitation link expires seven days after it was sent.</td>
 </tr>
 
 <!-- Divider -->
@@ -156,7 +152,7 @@ Button not working? Copy this link into your browser:<br>
 </tr>
 
 <tr>
-<td align="center" style="font-size:13px;line-height:21px;color:#A9B8CC;">Weren't expecting this? You can safely ignore this E-Mail &ndash; no seat is used unless you accept.{{if .InviteeEmail}}<br>This invitation was sent to {{.InviteeEmail}}.{{end}}</td>
+<td align="center" style="font-size:13px;line-height:21px;color:#A9B8CC;">Weren't expecting this? You can safely ignore this E-Mail.</td>
 </tr>
 
 </table>
@@ -169,7 +165,7 @@ Button not working? Copy this link into your browser:<br>
 <!-- Footer -->
 <tr>
 <td align="center" style="padding-top:32px;">
-<p style="margin:0 0 8px 0;font-size:13px;line-height:20px;color:#A9B8CC;">{{if .SupportEmail}}Questions? Contact <a href="mailto:{{.SupportEmail}}" style="color:#67E8F9;">{{.SupportEmail}}</a>.{{else}}One account, used to sign in across every scalecloud.de service.{{end}}</p>
+<p style="margin:0 0 8px 0;font-size:13px;line-height:20px;color:#A9B8CC;">{{if .SupportEmail}}Questions? Contact <a href="mailto:{{.SupportEmail}}" style="color:#67E8F9;">{{.SupportEmail}}</a>.{{else}}Questions about this invitation? Visit <a href="https://www.scalecloud.de/" style="color:#67E8F9;">scalecloud.de</a>.{{end}}</p>
 <p style="margin:0;font-size:13px;line-height:20px;color:#A9B8CC;">This is an automated message from scalecloud.de. Please don't reply to this address.</p>
 </td>
 </tr>

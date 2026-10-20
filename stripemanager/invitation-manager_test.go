@@ -211,6 +211,11 @@ func TestCreateSeatInvitationReservesBeforeSendingAndBuildsEscapedLink(t *testin
 	if !strings.Contains(mailer.message.Body, "&lt;Cloud &amp; Storage&gt;") || strings.Contains(mailer.message.Body, "<Cloud & Storage>") {
 		t.Fatalf("product name was not HTML-escaped: %s", mailer.message.Body)
 	}
+	for _, expected := range []string{"100 GB", "This invitation link expires seven days after it was sent.", "person@example.com", "admin@example.com", "Nextcloud"} {
+		if !strings.Contains(mailer.message.Body, expected) {
+			t.Errorf("invitation email body does not contain %q", expected)
+		}
+	}
 	claimURL := invitationClaimURLFromMessage(t, mailer.message.Body)
 	token := claimURL.Query().Get("token")
 	if len(token) != 43 || hashSeatInvitationToken(token) != store.seat.InvitationTokenHash {
@@ -413,14 +418,23 @@ func newInvitationCreateTestDependencies(sendErr, reserveErr error) (invitationC
 				Price: &stripe.Price{Product: &stripe.Product{ID: "prod_123"}},
 			}}},
 		},
-		product: &stripe.Product{ID: "prod_123", Name: "Cloud Storage"},
+		product: &stripe.Product{
+			ID:   "prod_123",
+			Name: "Cloud Storage",
+			Metadata: map[string]string{
+				"productType":   "Nextcloud",
+				"storageAmount": "100",
+				"storageUnit":   "GB",
+			},
+		},
 	}
 	return invitationCreateDependencies{
-		store:    store,
-		stripe:   stripeClient,
-		mailer:   mailer,
-		claimURL: "https://www.example.com/claim-invite",
-		logger:   zap.NewNop(),
+		store:        store,
+		stripe:       stripeClient,
+		mailer:       mailer,
+		claimURL:     "https://www.example.com/claim-invite",
+		inviterEmail: "admin@example.com",
+		logger:       zap.NewNop(),
 	}, store, mailer
 }
 

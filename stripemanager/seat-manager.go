@@ -143,7 +143,7 @@ func (paymentHandler *PaymentHandler) GetSubscriptionAddSeat(c context.Context, 
 	if !seatAvailable(seats, quantity) {
 		return AddSeatReply{}, errors.New("already used all seats")
 	}
-	return paymentHandler.CreateSeatInvitation(c, request.SubscriptionID, request.EMail, request.Roles, quantity)
+	return paymentHandler.CreateSeatInvitation(c, request.SubscriptionID, request.EMail, tokenDetails.EMail, request.Roles, quantity)
 }
 
 func containsEmail(seats []mongomanager.Seat, email string) bool {

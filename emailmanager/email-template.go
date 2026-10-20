@@ -12,6 +12,23 @@ const (
 	TemplateSeatInvitation         = "seat-invitation.html"
 )
 
+type NewsletterConfirmationTemplateData struct {
+	Email            string
+	ConfirmationLink string
+}
+
+type SeatInvitationTemplateData struct {
+	ProductName  string
+	ProductType  string
+	InviterName  string
+	InviterEmail string
+	StorageQuota string
+	ClaimURL     string
+	InviteeEmail string
+	SupportEmail string
+}
+
+//go:embed templates/*.html
 var templateFiles embed.FS
 
 var emailTemplates = template.Must(template.ParseFS(templateFiles, "templates/*.html"))

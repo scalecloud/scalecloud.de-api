@@ -155,19 +155,22 @@ func TestRenderTemplateEscapesData(t *testing.T) {
 		{
 			name:         "newsletter confirmation",
 			templateName: TemplateNewsletterConfirmation,
-			data: struct{ ConfirmationLink string }{
+			data: NewsletterConfirmationTemplateData{
+				Email:            "reader@example.com",
 				ConfirmationLink: "https://example.com/confirm?token=a&next=b",
 			},
-			want: []string{"Thank you for subscribing", `href="https://example.com/confirm?token=a&amp;next=b"`},
+			want: []string{"reader@example.com", "This confirmation link does not expire.", `href="https://example.com/confirm?token=a&amp;next=b"`},
 		},
 		{
 			name:         "seat invitation",
 			templateName: TemplateSeatInvitation,
-			data: struct {
-				ProductName string
-				ClaimURL    string
-			}{ProductName: "<Pro & Co>", ClaimURL: "https://example.com/claim?token=a&next=b"},
-			want: []string{"&lt;Pro &amp; Co&gt;", `href="https://example.com/claim?token=a&amp;next=b"`},
+			data: SeatInvitationTemplateData{
+				ProductName:  "<Pro & Co>",
+				StorageQuota: "100 GB",
+				ClaimURL:     "https://example.com/claim?token=a&next=b",
+				InviteeEmail: "reader@example.com",
+			},
+			want: []string{"&lt;Pro &amp; Co&gt;", "100 GB", "This invitation link expires seven days after it was sent.", "reader@example.com", `href="https://example.com/claim?token=a&amp;next=b"`},
 		},
 	}
 
