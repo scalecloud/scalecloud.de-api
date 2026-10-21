@@ -129,7 +129,6 @@ func createSeatInvitation(ctx context.Context, dependencies invitationCreateDepe
 		InviterEmail: dependencies.inviterEmail,
 		StorageQuota: storageQuota,
 		ClaimURL:     claimURL,
-		InviteeEmail: seat.EMail,
 	})
 	if err == nil {
 		err = dependencies.mailer.SendEMail(emailmanager.EMail{

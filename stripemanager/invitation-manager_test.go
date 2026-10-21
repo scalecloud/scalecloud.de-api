@@ -211,10 +211,13 @@ func TestCreateSeatInvitationReservesBeforeSendingAndBuildsEscapedLink(t *testin
 	if !strings.Contains(mailer.message.Body, "&lt;Cloud &amp; Storage&gt;") || strings.Contains(mailer.message.Body, "<Cloud & Storage>") {
 		t.Fatalf("product name was not HTML-escaped: %s", mailer.message.Body)
 	}
-	for _, expected := range []string{"100 GB", "This invitation link expires seven days after it was sent.", "person@example.com", "admin@example.com", "Nextcloud"} {
+	for _, expected := range []string{"100 GB", "This invitation link expires seven days after it was sent.", "admin@example.com", "Nextcloud"} {
 		if !strings.Contains(mailer.message.Body, expected) {
 			t.Errorf("invitation email body does not contain %q", expected)
 		}
+	}
+	if strings.Contains(mailer.message.Body, "person@example.com") {
+		t.Error("invitation email body should not disclose the invitee's email address")
 	}
 	claimURL := invitationClaimURLFromMessage(t, mailer.message.Body)
 	token := claimURL.Query().Get("token")

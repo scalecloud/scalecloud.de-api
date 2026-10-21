@@ -151,6 +151,7 @@ func TestRenderTemplateEscapesData(t *testing.T) {
 		templateName string
 		data         any
 		want         []string
+		dontWant     []string
 	}{
 		{
 			name:         "newsletter confirmation",
@@ -168,9 +169,9 @@ func TestRenderTemplateEscapesData(t *testing.T) {
 				ProductName:  "<Pro & Co>",
 				StorageQuota: "100 GB",
 				ClaimURL:     "https://example.com/claim?token=a&next=b",
-				InviteeEmail: "reader@example.com",
 			},
-			want: []string{"&lt;Pro &amp; Co&gt;", "100 GB", "This invitation link expires seven days after it was sent.", "reader@example.com", `href="https://example.com/claim?token=a&amp;next=b"`},
+			want:     []string{"&lt;Pro &amp; Co&gt;", "100 GB", "This invitation link expires seven days after it was sent.", `href="https://example.com/claim?token=a&amp;next=b"`},
+			dontWant: []string{"reader@example.com"},
 		},
 	}
 
@@ -183,6 +184,11 @@ func TestRenderTemplateEscapesData(t *testing.T) {
 			for _, expected := range testCase.want {
 				if !strings.Contains(body, expected) {
 					t.Errorf("rendered body %q does not contain %q", body, expected)
+				}
+			}
+			for _, unexpected := range testCase.dontWant {
+				if strings.Contains(body, unexpected) {
+					t.Errorf("rendered body unexpectedly contains %q", unexpected)
 				}
 			}
 		})

@@ -24,7 +24,6 @@ type SeatInvitationTemplateData struct {
 	InviterEmail string
 	StorageQuota string
 	ClaimURL     string
-	InviteeEmail string
 	SupportEmail string
 }
 
