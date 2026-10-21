@@ -40,6 +40,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Error initializing production logger", zap.Error(err))
 	}
+	sentry.CurrentHub().BindClient(sentryClient)
 	log = modifyToSentryLogger(log, sentryClient)
 	defer sentry.Flush(2 * time.Second)
 
