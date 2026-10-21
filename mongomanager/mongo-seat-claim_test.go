@@ -29,7 +29,7 @@ func TestSeatClaimStateTransitions(t *testing.T) {
 	t.Cleanup(func() {
 		cleanupContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		if err := connection.DeletePendingSeatByInvitationTokenHash(cleanupContext, tokenHash); err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+		if err := connection.DeletePendingSeatByInvitationTokenHash(cleanupContext, tokenHash); err != nil {
 			t.Errorf("delete remaining pending seat: %v", err)
 		}
 		if _, err := connection.Client.Database(databaseSubscription).Collection(collectionSeats).DeleteOne(cleanupContext, bson.M{"subscriptionID": subscriptionID}); err != nil {
