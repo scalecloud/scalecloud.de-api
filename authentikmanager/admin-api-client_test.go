@@ -9,6 +9,27 @@ import (
 	"testing"
 )
 
+func TestFindUserByEmailReturnsEmptyUserWhenNoMatch(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		writeJSON(t, w, map[string]any{"results": []User{}})
+	}))
+	defer server.Close()
+
+	baseURL, err := url.Parse(server.URL + "/api/v3/")
+	if err != nil {
+		t.Fatal(err)
+	}
+	client := NewAdminAPIClient(baseURL, "test-api-token", server.Client())
+
+	user, err := client.FindUserByEmail(context.Background(), "missing@example.com")
+	if err != nil {
+		t.Fatalf("FindUserByEmail() error = %v, want nil", err)
+	}
+	if user != (User{}) {
+		t.Fatalf("FindUserByEmail() = %+v, want empty user", user)
+	}
+}
+
 func TestAddUserToSubscriptionCreatesGroupAndAddsUser(t *testing.T) {
 	fixture := &subscriptionTestFixture{groupPK: "a4c24298-111b-49a9-a72a-625f8eca49bf"}
 	server := httptest.NewServer(fixture.handler(t))

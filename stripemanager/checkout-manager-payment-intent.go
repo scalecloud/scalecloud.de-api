@@ -106,6 +106,9 @@ func createSeat(c context.Context, sub *stripe.Subscription, tokenDetails authma
 	if err != nil {
 		return err
 	}
+	if user.PK == 0 {
+		return errors.New("authentik user not found")
+	}
 	if !user.IsActive {
 		return errors.New("owner Authentik account is inactive")
 	}

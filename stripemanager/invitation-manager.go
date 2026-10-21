@@ -214,6 +214,9 @@ func claimSeatInvitation(ctx context.Context, token string, tokenDetails authman
 		if err != nil {
 			return SeatInvitationClaimReply{}, err
 		}
+		if user.PK == 0 {
+			return SeatInvitationClaimReply{}, ErrInvitationUnavailable
+		}
 		if !user.IsActive {
 			return SeatInvitationClaimReply{}, errors.New("authentik user is inactive")
 		}
@@ -268,22 +271,22 @@ func (paymentHandler *PaymentHandler) RemoveSeatFromSubscriptionGroup(ctx contex
 		return nil
 	}
 	userPK, err := paymentHandler.getAuthentikUserPK(ctx, seat)
-	if errors.Is(err, authentikmanager.ErrUserNotFound) {
-		return nil
-	}
 	if err != nil {
 		return err
+	}
+	if userPK == 0 {
+		return nil
 	}
 	return paymentHandler.AuthentikConnection.RemoveUserFromSubscription(ctx, seat.SubscriptionID, userPK)
 }
 
 func (paymentHandler *PaymentHandler) AddSeatToSubscriptionGroup(ctx context.Context, seat mongomanager.Seat) error {
 	userPK, err := paymentHandler.getAuthentikUserPK(ctx, seat)
-	if errors.Is(err, authentikmanager.ErrUserNotFound) {
-		return nil
-	}
 	if err != nil {
 		return err
+	}
+	if userPK == 0 {
+		return nil
 	}
 	return paymentHandler.AuthentikConnection.AddUserPKToSubscription(ctx, seat.SubscriptionID, userPK)
 }

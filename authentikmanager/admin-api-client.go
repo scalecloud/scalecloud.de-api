@@ -20,8 +20,6 @@ type AdminAPIClient struct {
 	httpClient *http.Client
 }
 
-var ErrUserNotFound = errors.New("authentik user not found")
-
 type User struct {
 	PK       int64  `json:"pk"`
 	Email    string `json:"email"`
@@ -78,6 +76,9 @@ func (client *AdminAPIClient) AddUserToSubscription(ctx context.Context, subscri
 	if err != nil {
 		return err
 	}
+	if user.PK == 0 {
+		return errors.New("authentik user not found")
+	}
 	if !user.IsActive {
 		return errors.New("authentik user is inactive")
 	}
@@ -131,7 +132,7 @@ func (client *AdminAPIClient) findUserByEmail(ctx context.Context, email string)
 		match = user
 	}
 	if match == nil {
-		return User{}, ErrUserNotFound
+		return User{}, nil
 	}
 	return *match, nil
 }
