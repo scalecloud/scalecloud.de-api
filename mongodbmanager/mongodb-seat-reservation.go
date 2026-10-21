@@ -1,4 +1,4 @@
-package mongomanager
+package mongodbmanager
 
 import (
 	"context"
@@ -18,13 +18,13 @@ const (
 	seatReservationLockWait  = 5 * time.Second
 )
 
-func (mongoConnection *MongoConnection) CreatePendingSeatWithinCapacity(ctx context.Context, seat Seat, maxSeats int64) error {
+func (mongoDBConnection *MongoDBConnection) CreatePendingSeatWithinCapacity(ctx context.Context, seat Seat, maxSeats int64) error {
 	if maxSeats < 1 {
 		return ErrSeatCapacityReached
 	}
 	lockContext, cancel := context.WithTimeout(ctx, seatReservationLockWait)
 	defer cancel()
-	collection, err := mongoConnection.getCollection(lockContext, databaseSubscription, collectionSeatLocks)
+	collection, err := mongoDBConnection.getCollection(lockContext, databaseSubscription, collectionSeatLocks)
 	if err != nil {
 		return err
 	}
@@ -74,12 +74,12 @@ func (mongoConnection *MongoConnection) CreatePendingSeatWithinCapacity(ctx cont
 		)
 	}()
 
-	usedSeats, err := mongoConnection.CountSeats(ctx, seat.SubscriptionID)
+	usedSeats, err := mongoDBConnection.CountSeats(ctx, seat.SubscriptionID)
 	if err != nil {
 		return err
 	}
 	if usedSeats >= maxSeats {
 		return ErrSeatCapacityReached
 	}
-	return mongoConnection.CreatePendingSeat(ctx, seat)
+	return mongoDBConnection.CreatePendingSeat(ctx, seat)
 }

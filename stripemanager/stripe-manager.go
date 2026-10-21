@@ -6,7 +6,7 @@ import (
 
 	"github.com/scalecloud/scalecloud.de-api/authentikmanager"
 	"github.com/scalecloud/scalecloud.de-api/emailmanager"
-	"github.com/scalecloud/scalecloud.de-api/mongomanager"
+	"github.com/scalecloud/scalecloud.de-api/mongodbmanager"
 	"github.com/scalecloud/scalecloud.de-api/newslettermanager"
 	"github.com/scalecloud/scalecloud.de-api/stripemanager/secret"
 	"github.com/stripe/stripe-go/v87"
@@ -23,7 +23,7 @@ type PaymentHandler struct {
 	AuthentikConnection  *authentikmanager.AdminAPIClient
 	InvitationClaimURL   string
 	StripeConnection     *StripeConnection
-	MongoConnection      *mongomanager.MongoConnection
+	MongoDBConnection    *mongodbmanager.MongoDBConnection
 	EMailConnection      *emailmanager.EMailConnection
 	NewsletterConnection *newslettermanager.NewsletterConnection
 	Log                  *zap.Logger

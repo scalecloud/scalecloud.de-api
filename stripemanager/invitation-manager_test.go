@@ -15,7 +15,7 @@ import (
 	"github.com/scalecloud/scalecloud.de-api/authentikmanager"
 	"github.com/scalecloud/scalecloud.de-api/authmanager"
 	"github.com/scalecloud/scalecloud.de-api/emailmanager"
-	"github.com/scalecloud/scalecloud.de-api/mongomanager"
+	"github.com/scalecloud/scalecloud.de-api/mongodbmanager"
 	"github.com/stripe/stripe-go/v87"
 	"go.uber.org/zap"
 )
@@ -106,7 +106,7 @@ func TestPreviewSeatInvitationRejectsMalformedTokensBeforeDatabaseAccess(t *test
 
 func TestRemovePendingSeatFromSubscriptionGroupDoesNothing(t *testing.T) {
 	handler := &PaymentHandler{}
-	seat := mongomanager.Seat{Status: mongomanager.SeatStatusPending}
+	seat := mongodbmanager.Seat{Status: mongodbmanager.SeatStatusPending}
 	if err := handler.RemoveSeatFromSubscriptionGroup(t.Context(), seat); err != nil {
 		t.Fatalf("RemoveSeatFromSubscriptionGroup() error = %v, want nil", err)
 	}
@@ -114,7 +114,7 @@ func TestRemovePendingSeatFromSubscriptionGroupDoesNothing(t *testing.T) {
 
 func TestGetAuthentikUserPKUsesPersistedID(t *testing.T) {
 	handler := &PaymentHandler{}
-	seat := mongomanager.Seat{AuthentikUserPK: 123}
+	seat := mongodbmanager.Seat{AuthentikUserPK: 123}
 
 	userPK, err := handler.getAuthentikUserPK(t.Context(), seat)
 	if err != nil {
@@ -146,7 +146,7 @@ func TestClaimSeatInvitationCompletesPendingSeat(t *testing.T) {
 func TestClaimSeatInvitationRollsBackAuthentikMembershipAfterDatabaseFailure(t *testing.T) {
 	dependencies, store, authentik, token, details := newClaimTestDependencies()
 	store.completeErr = errors.New("database unavailable")
-	store.lookupSeat = mongomanager.Seat{Status: mongomanager.SeatStatusClaiming}
+	store.lookupSeat = mongodbmanager.Seat{Status: mongodbmanager.SeatStatusClaiming}
 
 	if _, err := claimSeatInvitation(t.Context(), token, details, dependencies); !errors.Is(err, store.completeErr) {
 		t.Fatalf("claim error = %v, want %v", err, store.completeErr)
@@ -159,8 +159,8 @@ func TestClaimSeatInvitationRollsBackAuthentikMembershipAfterDatabaseFailure(t *
 func TestClaimSeatInvitationRecoversWhenDatabaseActivationAlreadySucceeded(t *testing.T) {
 	dependencies, store, authentik, token, details := newClaimTestDependencies()
 	store.completeErr = errors.New("database response lost")
-	store.lookupSeat = mongomanager.Seat{
-		Status:          mongomanager.SeatStatusActive,
+	store.lookupSeat = mongodbmanager.Seat{
+		Status:          mongodbmanager.SeatStatusActive,
 		AuthentikUserPK: 42,
 	}
 
@@ -189,7 +189,7 @@ func TestCreateSeatInvitationReservesBeforeSendingAndBuildsEscapedLink(t *testin
 	dependencies, store, mailer := newInvitationCreateTestDependencies(nil, nil)
 	dependencies.stripe.(*fakeInvitationStripe).product.Name = "<Cloud & Storage>"
 
-	reply, err := createSeatInvitation(t.Context(), dependencies, "sub_123", " Person@Example.com ", []mongomanager.Role{mongomanager.RoleUser}, 3)
+	reply, err := createSeatInvitation(t.Context(), dependencies, "sub_123", " Person@Example.com ", []mongodbmanager.Role{mongodbmanager.RoleUser}, 3)
 	if err != nil {
 		t.Fatalf("create seat invitation: %v", err)
 	}
@@ -199,7 +199,7 @@ func TestCreateSeatInvitationReservesBeforeSendingAndBuildsEscapedLink(t *testin
 	if store.createCalls != 1 || store.maxSeats != 3 || !store.createdBeforeEmail {
 		t.Fatalf("seat was not reserved before email: createCalls=%d maxSeats=%d createdBeforeEmail=%t", store.createCalls, store.maxSeats, store.createdBeforeEmail)
 	}
-	if store.seat.Status != mongomanager.SeatStatusPending || store.seat.EMail != "person@example.com" || store.seat.InvitationTokenHash == "" || store.seat.InvitationExpiresAt == nil {
+	if store.seat.Status != mongodbmanager.SeatStatusPending || store.seat.EMail != "person@example.com" || store.seat.InvitationTokenHash == "" || store.seat.InvitationExpiresAt == nil {
 		t.Fatalf("unexpected pending seat: %+v", store.seat)
 	}
 	if remaining := time.Until(*store.seat.InvitationExpiresAt); remaining < seatInvitationLifetime-time.Minute || remaining > seatInvitationLifetime+time.Minute {
@@ -229,7 +229,7 @@ func TestCreateSeatInvitationReservesBeforeSendingAndBuildsEscapedLink(t *testin
 func TestCreateSeatInvitationCleansPendingSeatWhenEmailFails(t *testing.T) {
 	sendErr := errors.New("smtp unavailable")
 	dependencies, store, mailer := newInvitationCreateTestDependencies(sendErr, nil)
-	_, err := createSeatInvitation(t.Context(), dependencies, "sub_123", "person@example.com", []mongomanager.Role{mongomanager.RoleUser}, 3)
+	_, err := createSeatInvitation(t.Context(), dependencies, "sub_123", "person@example.com", []mongodbmanager.Role{mongodbmanager.RoleUser}, 3)
 	if !errors.Is(err, sendErr) {
 		t.Fatalf("create seat invitation error = %v, want %v", err, sendErr)
 	}
@@ -251,7 +251,7 @@ func TestCreateSeatInvitationPreservesEmailErrorWhenCleanupFails(t *testing.T) {
 	dependencies, store, _ := newInvitationCreateTestDependencies(sendErr, nil)
 	store.cleanupErr = cleanupErr
 
-	if _, err := createSeatInvitation(t.Context(), dependencies, "sub_123", "person@example.com", []mongomanager.Role{mongomanager.RoleUser}, 3); !errors.Is(err, sendErr) {
+	if _, err := createSeatInvitation(t.Context(), dependencies, "sub_123", "person@example.com", []mongodbmanager.Role{mongodbmanager.RoleUser}, 3); !errors.Is(err, sendErr) {
 		t.Fatalf("create seat invitation error = %v, want original email error %v", err, sendErr)
 	}
 	if store.cleanupCalls != 1 {
@@ -263,7 +263,7 @@ func TestCreateSeatInvitationContinuesWhenStripeLookupFails(t *testing.T) {
 	dependencies, store, mailer := newInvitationCreateTestDependencies(nil, nil)
 	dependencies.stripe.(*fakeInvitationStripe).subscriptionErr = errors.New("Stripe unavailable")
 
-	reply, err := createSeatInvitation(t.Context(), dependencies, "sub_123", "person@example.com", []mongomanager.Role{mongomanager.RoleUser}, 3)
+	reply, err := createSeatInvitation(t.Context(), dependencies, "sub_123", "person@example.com", []mongodbmanager.Role{mongodbmanager.RoleUser}, 3)
 	if err != nil {
 		t.Fatalf("create invitation should continue without Stripe product details: %v", err)
 	}
@@ -276,9 +276,9 @@ func TestCreateSeatInvitationContinuesWhenStripeLookupFails(t *testing.T) {
 }
 
 func TestCreateSeatInvitationStopsWhenCapacityReservationFails(t *testing.T) {
-	reservationErr := mongomanager.ErrSeatCapacityReached
+	reservationErr := mongodbmanager.ErrSeatCapacityReached
 	dependencies, store, mailer := newInvitationCreateTestDependencies(nil, reservationErr)
-	if _, err := createSeatInvitation(t.Context(), dependencies, "sub_123", "person@example.com", []mongomanager.Role{mongomanager.RoleUser}, 3); !errors.Is(err, reservationErr) {
+	if _, err := createSeatInvitation(t.Context(), dependencies, "sub_123", "person@example.com", []mongodbmanager.Role{mongodbmanager.RoleUser}, 3); !errors.Is(err, reservationErr) {
 		t.Fatalf("create seat invitation error = %v, want %v", err, reservationErr)
 	}
 	if store.createCalls != 1 || mailer.calls != 0 || store.cleanupCalls != 0 {
@@ -458,7 +458,7 @@ func invitationClaimURLFromMessage(t *testing.T, body string) *url.URL {
 }
 
 type fakeInvitationCreateStore struct {
-	seat               mongomanager.Seat
+	seat               mongodbmanager.Seat
 	createErr          error
 	cleanupErr         error
 	createCalls        int
@@ -468,7 +468,7 @@ type fakeInvitationCreateStore struct {
 	createdBeforeEmail bool
 }
 
-func (store *fakeInvitationCreateStore) CreatePendingSeatWithinCapacity(_ context.Context, seat mongomanager.Seat, maxSeats int64) error {
+func (store *fakeInvitationCreateStore) CreatePendingSeatWithinCapacity(_ context.Context, seat mongodbmanager.Seat, maxSeats int64) error {
 	store.createCalls++
 	store.maxSeats = maxSeats
 	if store.createErr == nil {
@@ -501,21 +501,21 @@ func newClaimTestDependencies() (invitationClaimDependencies, *fakeInvitationSto
 	token := strings.Repeat("a", 64)
 	expiresAt := time.Now().UTC().Add(time.Hour)
 	store := &fakeInvitationStore{
-		seat: mongomanager.Seat{
+		seat: mongodbmanager.Seat{
 			SubscriptionID:      "sub_123",
 			EMail:               "user@example.com",
-			Roles:               []mongomanager.Role{mongomanager.RoleUser},
-			Status:              mongomanager.SeatStatusPending,
+			Roles:               []mongodbmanager.Role{mongodbmanager.RoleUser},
+			Status:              mongodbmanager.SeatStatusPending,
 			InvitationTokenHash: hashSeatInvitationToken(token),
 			InvitationExpiresAt: &expiresAt,
 		},
-		claimingSeat: mongomanager.Seat{
+		claimingSeat: mongodbmanager.Seat{
 			SubscriptionID:  "sub_123",
 			EMail:           "user@example.com",
 			UID:             "user-123",
 			AuthentikUserPK: 42,
-			Roles:           []mongomanager.Role{mongomanager.RoleUser},
-			Status:          mongomanager.SeatStatusClaiming,
+			Roles:           []mongodbmanager.Role{mongodbmanager.RoleUser},
+			Status:          mongodbmanager.SeatStatusClaiming,
 		},
 	}
 	authentik := &fakeInvitationAuthentik{user: authentikmanager.User{PK: 42, Email: "user@example.com", IsActive: true}}
@@ -546,9 +546,9 @@ func newClaimTestDependencies() (invitationClaimDependencies, *fakeInvitationSto
 }
 
 type fakeInvitationStore struct {
-	seat            mongomanager.Seat
-	claimingSeat    mongomanager.Seat
-	lookupSeat      mongomanager.Seat
+	seat            mongodbmanager.Seat
+	claimingSeat    mongodbmanager.Seat
+	lookupSeat      mongodbmanager.Seat
 	getByTokenErr   error
 	beginErr        error
 	completeErr     error
@@ -557,7 +557,7 @@ type fakeInvitationStore struct {
 	completeCalls   int
 }
 
-func (store *fakeInvitationStore) GetSeatByInvitationTokenHash(context.Context, string) (mongomanager.Seat, error) {
+func (store *fakeInvitationStore) GetSeatByInvitationTokenHash(context.Context, string) (mongodbmanager.Seat, error) {
 	store.getByTokenCalls++
 	if store.getByTokenCalls == 1 {
 		return store.seat, store.getByTokenErr
@@ -565,7 +565,7 @@ func (store *fakeInvitationStore) GetSeatByInvitationTokenHash(context.Context, 
 	return store.claimingSeat, store.getByTokenErr
 }
 
-func (store *fakeInvitationStore) BeginSeatClaim(context.Context, string, string, string, int64, time.Time) (mongomanager.Seat, error) {
+func (store *fakeInvitationStore) BeginSeatClaim(context.Context, string, string, string, int64, time.Time) (mongodbmanager.Seat, error) {
 	store.beginCalls++
 	return store.claimingSeat, store.beginErr
 }
@@ -575,7 +575,7 @@ func (store *fakeInvitationStore) CompleteSeatClaim(context.Context, string, str
 	return store.completeErr
 }
 
-func (store *fakeInvitationStore) GetSeat(context.Context, string, string) (mongomanager.Seat, error) {
+func (store *fakeInvitationStore) GetSeat(context.Context, string, string) (mongodbmanager.Seat, error) {
 	return store.lookupSeat, nil
 }
 

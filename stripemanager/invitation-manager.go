@@ -15,7 +15,7 @@ import (
 	"github.com/scalecloud/scalecloud.de-api/authentikmanager"
 	"github.com/scalecloud/scalecloud.de-api/authmanager"
 	"github.com/scalecloud/scalecloud.de-api/emailmanager"
-	"github.com/scalecloud/scalecloud.de-api/mongomanager"
+	"github.com/scalecloud/scalecloud.de-api/mongodbmanager"
 	"github.com/stripe/stripe-go/v87"
 	"go.uber.org/zap"
 )
@@ -30,10 +30,10 @@ var (
 const seatInvitationLifetime = 7 * 24 * time.Hour
 
 type invitationClaimStore interface {
-	GetSeatByInvitationTokenHash(context.Context, string) (mongomanager.Seat, error)
-	BeginSeatClaim(context.Context, string, string, string, int64, time.Time) (mongomanager.Seat, error)
+	GetSeatByInvitationTokenHash(context.Context, string) (mongodbmanager.Seat, error)
+	BeginSeatClaim(context.Context, string, string, string, int64, time.Time) (mongodbmanager.Seat, error)
 	CompleteSeatClaim(context.Context, string, string) error
-	GetSeat(context.Context, string, string) (mongomanager.Seat, error)
+	GetSeat(context.Context, string, string) (mongodbmanager.Seat, error)
 }
 
 type invitationClaimAuthentik interface {
@@ -55,7 +55,7 @@ type invitationClaimDependencies struct {
 }
 
 type invitationCreateStore interface {
-	CreatePendingSeatWithinCapacity(context.Context, mongomanager.Seat, int64) error
+	CreatePendingSeatWithinCapacity(context.Context, mongodbmanager.Seat, int64) error
 	DeletePendingSeatByInvitationTokenHash(context.Context, string) error
 }
 
@@ -77,9 +77,9 @@ type invitationCreateDependencies struct {
 	logger       *zap.Logger
 }
 
-func (paymentHandler *PaymentHandler) CreateSeatInvitation(ctx context.Context, subscriptionID, email, inviterEmail string, roles []mongomanager.Role, maxSeats int64) (AddSeatReply, error) {
+func (paymentHandler *PaymentHandler) CreateSeatInvitation(ctx context.Context, subscriptionID, email, inviterEmail string, roles []mongodbmanager.Role, maxSeats int64) (AddSeatReply, error) {
 	return createSeatInvitation(ctx, invitationCreateDependencies{
-		store:        paymentHandler.MongoConnection,
+		store:        paymentHandler.MongoDBConnection,
 		stripe:       paymentHandler.StripeConnection,
 		mailer:       paymentHandler.EMailConnection,
 		claimURL:     paymentHandler.InvitationClaimURL,
@@ -88,17 +88,17 @@ func (paymentHandler *PaymentHandler) CreateSeatInvitation(ctx context.Context, 
 	}, subscriptionID, email, roles, maxSeats)
 }
 
-func createSeatInvitation(ctx context.Context, dependencies invitationCreateDependencies, subscriptionID, email string, roles []mongomanager.Role, maxSeats int64) (AddSeatReply, error) {
+func createSeatInvitation(ctx context.Context, dependencies invitationCreateDependencies, subscriptionID, email string, roles []mongodbmanager.Role, maxSeats int64) (AddSeatReply, error) {
 	token, tokenHash, err := createSeatInvitationToken()
 	if err != nil {
 		return AddSeatReply{}, err
 	}
 	expiresAt := time.Now().UTC().Add(seatInvitationLifetime)
-	seat := mongomanager.Seat{
+	seat := mongodbmanager.Seat{
 		SubscriptionID:      subscriptionID,
 		EMail:               normalizeInvitationEmail(email),
 		Roles:               roles,
-		Status:              mongomanager.SeatStatusPending,
+		Status:              mongodbmanager.SeatStatusPending,
 		InvitationTokenHash: tokenHash,
 		InvitationExpiresAt: &expiresAt,
 	}
@@ -152,7 +152,7 @@ func (paymentHandler *PaymentHandler) PreviewSeatInvitation(ctx context.Context,
 	if len(token) < 40 || len(token) > 128 {
 		return SeatInvitationPreviewReply{}, ErrInvitationUnavailable
 	}
-	seat, err := paymentHandler.MongoConnection.GetPendingSeatByInvitationTokenHash(ctx, hashSeatInvitationToken(token), time.Now().UTC())
+	seat, err := paymentHandler.MongoDBConnection.GetPendingSeatByInvitationTokenHash(ctx, hashSeatInvitationToken(token), time.Now().UTC())
 	if err != nil {
 		return SeatInvitationPreviewReply{}, ErrInvitationUnavailable
 	}
@@ -175,7 +175,7 @@ func (paymentHandler *PaymentHandler) PreviewSeatInvitation(ctx context.Context,
 
 func (paymentHandler *PaymentHandler) ClaimSeatInvitation(ctx context.Context, token string, tokenDetails authmanager.TokenDetails) (SeatInvitationClaimReply, error) {
 	return claimSeatInvitation(ctx, token, tokenDetails, invitationClaimDependencies{
-		store:     paymentHandler.MongoConnection,
+		store:     paymentHandler.MongoDBConnection,
 		authentik: paymentHandler.AuthentikConnection,
 		stripe:    paymentHandler.StripeConnection,
 		logger:    paymentHandler.Log,
@@ -206,7 +206,7 @@ func claimSeatInvitation(ctx context.Context, token string, tokenDetails authman
 		return SeatInvitationClaimReply{}, err
 	}
 	switch seat.Status {
-	case mongomanager.SeatStatusPending:
+	case mongodbmanager.SeatStatusPending:
 		if seat.InvitationExpiresAt == nil || !seat.InvitationExpiresAt.After(time.Now().UTC()) {
 			return SeatInvitationClaimReply{}, ErrInvitationUnavailable
 		}
@@ -223,12 +223,12 @@ func claimSeatInvitation(ctx context.Context, token string, tokenDetails authman
 		seat, err = dependencies.store.BeginSeatClaim(ctx, tokenHash, email, tokenDetails.UID, user.PK, time.Now().UTC())
 		if err != nil {
 			claimingSeat, lookupErr := dependencies.store.GetSeatByInvitationTokenHash(ctx, tokenHash)
-			if lookupErr != nil || claimingSeat.Status != mongomanager.SeatStatusClaiming || claimingSeat.UID != tokenDetails.UID {
+			if lookupErr != nil || claimingSeat.Status != mongodbmanager.SeatStatusClaiming || claimingSeat.UID != tokenDetails.UID {
 				return SeatInvitationClaimReply{}, ErrInvitationUnavailable
 			}
 			seat = claimingSeat
 		}
-	case mongomanager.SeatStatusClaiming:
+	case mongodbmanager.SeatStatusClaiming:
 		if seat.UID != tokenDetails.UID || seat.AuthentikUserPK == 0 {
 			return SeatInvitationClaimReply{}, ErrInvitationUnavailable
 		}
@@ -244,7 +244,7 @@ func claimSeatInvitation(ctx context.Context, token string, tokenDetails authman
 	}
 	if err := dependencies.store.CompleteSeatClaim(ctx, tokenHash, seat.UID); err != nil {
 		claimedSeat, lookupErr := dependencies.store.GetSeat(ctx, seat.SubscriptionID, seat.UID)
-		if lookupErr == nil && claimedSeat.Status == mongomanager.SeatStatusActive && claimedSeat.AuthentikUserPK == seat.AuthentikUserPK {
+		if lookupErr == nil && claimedSeat.Status == mongodbmanager.SeatStatusActive && claimedSeat.AuthentikUserPK == seat.AuthentikUserPK {
 			seat = claimedSeat
 		} else {
 			if rollbackErr := dependencies.authentik.RemoveUserFromSubscription(ctx, seat.SubscriptionID, seat.AuthentikUserPK); rollbackErr != nil {
@@ -253,7 +253,7 @@ func claimSeatInvitation(ctx context.Context, token string, tokenDetails authman
 			return SeatInvitationClaimReply{}, err
 		}
 	} else {
-		seat.Status = mongomanager.SeatStatusActive
+		seat.Status = mongodbmanager.SeatStatusActive
 	}
 
 	return SeatInvitationClaimReply{
@@ -266,8 +266,8 @@ func claimSeatInvitation(ctx context.Context, token string, tokenDetails authman
 	}, nil
 }
 
-func (paymentHandler *PaymentHandler) RemoveSeatFromSubscriptionGroup(ctx context.Context, seat mongomanager.Seat) error {
-	if seat.Status == mongomanager.SeatStatusPending {
+func (paymentHandler *PaymentHandler) RemoveSeatFromSubscriptionGroup(ctx context.Context, seat mongodbmanager.Seat) error {
+	if seat.Status == mongodbmanager.SeatStatusPending {
 		return nil
 	}
 	userPK, err := paymentHandler.getAuthentikUserPK(ctx, seat)
@@ -280,7 +280,7 @@ func (paymentHandler *PaymentHandler) RemoveSeatFromSubscriptionGroup(ctx contex
 	return paymentHandler.AuthentikConnection.RemoveUserFromSubscription(ctx, seat.SubscriptionID, userPK)
 }
 
-func (paymentHandler *PaymentHandler) AddSeatToSubscriptionGroup(ctx context.Context, seat mongomanager.Seat) error {
+func (paymentHandler *PaymentHandler) AddSeatToSubscriptionGroup(ctx context.Context, seat mongodbmanager.Seat) error {
 	userPK, err := paymentHandler.getAuthentikUserPK(ctx, seat)
 	if err != nil {
 		return err
@@ -291,7 +291,7 @@ func (paymentHandler *PaymentHandler) AddSeatToSubscriptionGroup(ctx context.Con
 	return paymentHandler.AuthentikConnection.AddUserPKToSubscription(ctx, seat.SubscriptionID, userPK)
 }
 
-func (paymentHandler *PaymentHandler) getAuthentikUserPK(ctx context.Context, seat mongomanager.Seat) (int64, error) {
+func (paymentHandler *PaymentHandler) getAuthentikUserPK(ctx context.Context, seat mongodbmanager.Seat) (int64, error) {
 	if seat.AuthentikUserPK != 0 {
 		return seat.AuthentikUserPK, nil
 	}

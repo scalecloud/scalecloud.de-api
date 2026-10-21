@@ -1,4 +1,4 @@
-package mongomanager
+package mongodbmanager
 
 import (
 	"context"
@@ -8,14 +8,14 @@ import (
 	"github.com/scalecloud/scalecloud.de-api/authmanager"
 )
 
-func (mongoConnection *MongoConnection) HasPermission(ctx context.Context, tokenDetails authmanager.TokenDetails, subscriptionID string, requiredRoles []Role) error {
-	seat, err := mongoConnection.GetSeat(ctx, subscriptionID, tokenDetails.UID)
+func (mongoDBConnection *MongoDBConnection) HasPermission(ctx context.Context, tokenDetails authmanager.TokenDetails, subscriptionID string, requiredRoles []Role) error {
+	seat, err := mongoDBConnection.GetSeat(ctx, subscriptionID, tokenDetails.UID)
 	if err != nil {
-		mongoConnection.Log.Warn("user with UID " + tokenDetails.UID + " tried to access subscriptionID " + subscriptionID + " error: " + err.Error())
+		mongoDBConnection.Log.Warn("user with UID " + tokenDetails.UID + " tried to access subscriptionID " + subscriptionID + " error: " + err.Error())
 		return errors.New(http.StatusText(http.StatusForbidden))
 	}
 	if !ContainsRole(seat, requiredRoles) {
-		mongoConnection.Log.Warn("user with UID " + tokenDetails.UID + " is missing role " + " on subscriptionID " + subscriptionID)
+		mongoDBConnection.Log.Warn("user with UID " + tokenDetails.UID + " is missing role " + " on subscriptionID " + subscriptionID)
 		return errors.New(http.StatusText(http.StatusForbidden))
 	}
 

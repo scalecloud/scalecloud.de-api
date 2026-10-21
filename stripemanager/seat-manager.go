@@ -8,12 +8,12 @@ import (
 	"strings"
 
 	"github.com/scalecloud/scalecloud.de-api/authmanager"
-	"github.com/scalecloud/scalecloud.de-api/mongomanager"
+	"github.com/scalecloud/scalecloud.de-api/mongodbmanager"
 	"go.uber.org/zap"
 )
 
 func (paymentHandler *PaymentHandler) GetMyPermission(c context.Context, tokenDetails authmanager.TokenDetails, request PermissionRequest) (PermissionReply, error) {
-	mySeat, err := paymentHandler.MongoConnection.GetSeat(c, request.SubscriptionID, tokenDetails.UID)
+	mySeat, err := paymentHandler.MongoDBConnection.GetSeat(c, request.SubscriptionID, tokenDetails.UID)
 	if err != nil {
 		return PermissionReply{}, err
 	}
@@ -28,18 +28,18 @@ func (paymentHandler *PaymentHandler) GetMyPermission(c context.Context, tokenDe
 }
 
 func (paymentHandler *PaymentHandler) GetSubscriptionListSeats(c context.Context, tokenDetails authmanager.TokenDetails, request ListSeatRequest) (ListSeatReply, error) {
-	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SubscriptionID, []mongomanager.Role{mongomanager.RoleAdministrator})
+	err := paymentHandler.MongoDBConnection.HasPermission(c, tokenDetails, request.SubscriptionID, []mongodbmanager.Role{mongodbmanager.RoleAdministrator})
 	if err != nil {
 		return ListSeatReply{}, err
 	}
-	totalResults, err := paymentHandler.MongoConnection.CountSeats(c, request.SubscriptionID)
+	totalResults, err := paymentHandler.MongoDBConnection.CountSeats(c, request.SubscriptionID)
 	if err != nil {
 		return ListSeatReply{}, err
 	}
 	if totalResults == 0 {
 		return ListSeatReply{}, errors.New("no seats found")
 	}
-	pagedSeats, err := paymentHandler.MongoConnection.GetSeats(c, request.SubscriptionID, request.PageIndex, request.PageSize)
+	pagedSeats, err := paymentHandler.MongoDBConnection.GetSeats(c, request.SubscriptionID, request.PageIndex, request.PageSize)
 	if err != nil {
 		return ListSeatReply{}, err
 	}
@@ -62,18 +62,18 @@ func (paymentHandler *PaymentHandler) GetSubscriptionListSeats(c context.Context
 }
 
 func (paymentHandler *PaymentHandler) GetSubscriptionSeatDetail(c context.Context, tokenDetails authmanager.TokenDetails, request SeatDetailRequest) (SeatDetailReply, error) {
-	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SubscriptionID, []mongomanager.Role{mongomanager.RoleAdministrator})
+	err := paymentHandler.MongoDBConnection.HasPermission(c, tokenDetails, request.SubscriptionID, []mongodbmanager.Role{mongodbmanager.RoleAdministrator})
 	if err != nil {
 		return SeatDetailReply{}, err
 	}
-	selectedSeat, err := paymentHandler.MongoConnection.GetSeat(c, request.SubscriptionID, request.UID)
+	selectedSeat, err := paymentHandler.MongoDBConnection.GetSeat(c, request.SubscriptionID, request.UID)
 	if err != nil {
 		return SeatDetailReply{}, err
 	}
 	if selectedSeat.SubscriptionID == "" {
 		return SeatDetailReply{}, errors.New("seat not found")
 	}
-	mySeat, err := paymentHandler.MongoConnection.GetSeat(c, request.SubscriptionID, tokenDetails.UID)
+	mySeat, err := paymentHandler.MongoDBConnection.GetSeat(c, request.SubscriptionID, tokenDetails.UID)
 	if err != nil {
 		return SeatDetailReply{}, err
 	}
@@ -85,7 +85,7 @@ func (paymentHandler *PaymentHandler) GetSubscriptionSeatDetail(c context.Contex
 }
 
 func (paymentHandler *PaymentHandler) GetSubscriptionUpdateSeat(c context.Context, tokenDetails authmanager.TokenDetails, request UpdateSeatDetailRequest) (UpdateSeatDetailReply, error) {
-	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SeatUpdated.SubscriptionID, []mongomanager.Role{mongomanager.RoleAdministrator})
+	err := paymentHandler.MongoDBConnection.HasPermission(c, tokenDetails, request.SeatUpdated.SubscriptionID, []mongodbmanager.Role{mongodbmanager.RoleAdministrator})
 	if err != nil {
 		return UpdateSeatDetailReply{}, err
 	}
@@ -93,11 +93,11 @@ func (paymentHandler *PaymentHandler) GetSubscriptionUpdateSeat(c context.Contex
 	if err != nil {
 		return UpdateSeatDetailReply{}, err
 	}
-	err = paymentHandler.MongoConnection.UpdateSeat(c, request.SeatUpdated)
+	err = paymentHandler.MongoDBConnection.UpdateSeat(c, request.SeatUpdated)
 	if err != nil {
 		return UpdateSeatDetailReply{}, err
 	}
-	updatedSeat, err := paymentHandler.MongoConnection.GetSeat(c, request.SeatUpdated.SubscriptionID, request.SeatUpdated.UID)
+	updatedSeat, err := paymentHandler.MongoDBConnection.GetSeat(c, request.SeatUpdated.SubscriptionID, request.SeatUpdated.UID)
 	if err != nil {
 		return UpdateSeatDetailReply{}, err
 	}
@@ -111,7 +111,7 @@ func (paymentHandler *PaymentHandler) GetSubscriptionUpdateSeat(c context.Contex
 }
 
 func (paymentHandler *PaymentHandler) GetSubscriptionAddSeat(c context.Context, tokenDetails authmanager.TokenDetails, request AddSeatRequest) (AddSeatReply, error) {
-	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SubscriptionID, []mongomanager.Role{mongomanager.RoleAdministrator})
+	err := paymentHandler.MongoDBConnection.HasPermission(c, tokenDetails, request.SubscriptionID, []mongodbmanager.Role{mongodbmanager.RoleAdministrator})
 	if err != nil {
 		return AddSeatReply{}, err
 	}
@@ -125,12 +125,12 @@ func (paymentHandler *PaymentHandler) GetSubscriptionAddSeat(c context.Context, 
 	}
 	for _, role := range request.Roles {
 		switch role {
-		case mongomanager.RoleAdministrator, mongomanager.RoleUser, mongomanager.RoleBilling:
+		case mongodbmanager.RoleAdministrator, mongodbmanager.RoleUser, mongodbmanager.RoleBilling:
 		default:
 			return AddSeatReply{}, errors.New("invalid role for invited seat")
 		}
 	}
-	seats, err := paymentHandler.MongoConnection.GetAllSeats(c, request.SubscriptionID)
+	seats, err := paymentHandler.MongoDBConnection.GetAllSeats(c, request.SubscriptionID)
 	if err != nil {
 		return AddSeatReply{}, err
 	}
@@ -152,7 +152,7 @@ func (paymentHandler *PaymentHandler) GetSubscriptionAddSeat(c context.Context, 
 	return paymentHandler.CreateSeatInvitation(c, request.SubscriptionID, request.EMail, tokenDetails.EMail, request.Roles, quantity)
 }
 
-func containsEmail(seats []mongomanager.Seat, email string) bool {
+func containsEmail(seats []mongodbmanager.Seat, email string) bool {
 	if len(seats) == 0 {
 		return false
 	}
@@ -164,18 +164,18 @@ func containsEmail(seats []mongomanager.Seat, email string) bool {
 	return false
 }
 
-func seatAvailable(seats []mongomanager.Seat, quantity int64) bool {
+func seatAvailable(seats []mongodbmanager.Seat, quantity int64) bool {
 	return int64(len(seats)) < quantity
 }
 
 func (paymentHandler *PaymentHandler) GetSubscriptionRemoveSeat(c context.Context, tokenDetails authmanager.TokenDetails, request DeleteSeatRequest) (DeleteSeatReply, error) {
-	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SeatToDelete.SubscriptionID, []mongomanager.Role{mongomanager.RoleAdministrator})
+	err := paymentHandler.MongoDBConnection.HasPermission(c, tokenDetails, request.SeatToDelete.SubscriptionID, []mongodbmanager.Role{mongodbmanager.RoleAdministrator})
 	if err != nil {
 		return DeleteSeatReply{}, err
 	}
-	seatToRemove, err := paymentHandler.MongoConnection.GetSeat(c, request.SeatToDelete.SubscriptionID, request.SeatToDelete.UID)
+	seatToRemove, err := paymentHandler.MongoDBConnection.GetSeat(c, request.SeatToDelete.SubscriptionID, request.SeatToDelete.UID)
 	if request.SeatToDelete.UID == "" && request.SeatToDelete.EMail != "" {
-		seatToRemove, err = paymentHandler.MongoConnection.GetSeatByEmail(c, request.SeatToDelete.SubscriptionID, strings.ToLower(strings.TrimSpace(request.SeatToDelete.EMail)))
+		seatToRemove, err = paymentHandler.MongoDBConnection.GetSeatByEmail(c, request.SeatToDelete.SubscriptionID, strings.ToLower(strings.TrimSpace(request.SeatToDelete.EMail)))
 	}
 	if err != nil {
 		return DeleteSeatReply{}, err
@@ -183,15 +183,15 @@ func (paymentHandler *PaymentHandler) GetSubscriptionRemoveSeat(c context.Contex
 	if seatToRemove.SubscriptionID == "" {
 		return DeleteSeatReply{}, errors.New("seat not found")
 	}
-	if mongomanager.ContainsRole(seatToRemove, []mongomanager.Role{mongomanager.RoleOwner}) {
+	if mongodbmanager.ContainsRole(seatToRemove, []mongodbmanager.Role{mongodbmanager.RoleOwner}) {
 		return DeleteSeatReply{}, errors.New("cannot remove owner")
 	}
-	if seatToRemove.Status == mongomanager.SeatStatusPending {
-		err = paymentHandler.MongoConnection.DeletePendingSeat(c, seatToRemove.SubscriptionID, seatToRemove.EMail)
+	if seatToRemove.Status == mongodbmanager.SeatStatusPending {
+		err = paymentHandler.MongoDBConnection.DeletePendingSeat(c, seatToRemove.SubscriptionID, seatToRemove.EMail)
 	} else {
 		err = paymentHandler.RemoveSeatFromSubscriptionGroup(c, seatToRemove)
 		if err == nil {
-			err = paymentHandler.MongoConnection.DeleteSeat(c, seatToRemove)
+			err = paymentHandler.MongoDBConnection.DeleteSeat(c, seatToRemove)
 			if err != nil {
 				if restoreErr := paymentHandler.AddSeatToSubscriptionGroup(c, seatToRemove); restoreErr != nil {
 					paymentHandler.Log.Error("Could not restore Authentik membership after seat delete failed", zap.Error(restoreErr))

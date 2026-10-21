@@ -1,4 +1,4 @@
-package mongomanager
+package mongodbmanager
 
 const (
 	databaseSubscription = "subscription"

@@ -1,4 +1,4 @@
-package mongomanager
+package mongodbmanager
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 )
 
 func TestCheckHealthValidatesCollectionsAndEnsuresIndexes(t *testing.T) {
-	connection, ctx := newTestMongoConnection(t)
+	connection, ctx := newTestMongoDBConnection(t)
 	for databaseName, collectionNames := range databases {
 		database := connection.Client.Database(databaseName)
 		for _, collectionName := range collectionNames {

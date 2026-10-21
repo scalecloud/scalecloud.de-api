@@ -19,7 +19,7 @@ import (
 	"github.com/scalecloud/scalecloud.de-api/authmanager"
 	"github.com/scalecloud/scalecloud.de-api/emailmanager"
 	"github.com/scalecloud/scalecloud.de-api/healthmanager"
-	"github.com/scalecloud/scalecloud.de-api/mongomanager"
+	"github.com/scalecloud/scalecloud.de-api/mongodbmanager"
 	"github.com/scalecloud/scalecloud.de-api/newslettermanager"
 	"github.com/scalecloud/scalecloud.de-api/stripemanager"
 	"github.com/scalecloud/scalecloud.de-api/stripemanager/secret"
@@ -56,7 +56,7 @@ func InitAPI(log *zap.Logger, config appconfig.Config) (*Api, error) {
 	}
 	invitationClaimURL := config.FrontendURL + "/claim-invite"
 
-	err = mongomanager.CheckMongoConfig(log)
+	err = mongodbmanager.CheckMongoDBConfig(log)
 	if err != nil {
 		return &Api{}, err
 	}
@@ -76,12 +76,12 @@ func InitAPI(log *zap.Logger, config appconfig.Config) (*Api, error) {
 		return &Api{}, err
 	}
 
-	mongoConnection, err := mongomanager.InitMongoConnection(context.Background(), log)
+	mongoDBConnection, err := mongodbmanager.InitMongoDBConnection(context.Background(), log)
 	if err != nil {
 		return &Api{}, err
 	}
 
-	newsletterConnection, err := newslettermanager.InitNewsletterConnection(context.Background(), log, mongoConnection, emailConnection)
+	newsletterConnection, err := newslettermanager.InitNewsletterConnection(context.Background(), log, mongoDBConnection, emailConnection)
 	if err != nil {
 		return &Api{}, err
 	}
@@ -93,7 +93,7 @@ func InitAPI(log *zap.Logger, config appconfig.Config) (*Api, error) {
 
 	validate := validator.New(validator.WithRequiredStructEnabled())
 	healthMonitor := healthmanager.NewMonitor([]healthmanager.Check{
-		{Name: "mongodb", Required: true, Run: mongoConnection.CheckHealth},
+		{Name: "mongodb", Required: true, Run: mongoDBConnection.CheckHealth},
 		{Name: "stripe", Required: true, Run: stripeConnection.CheckHealth},
 		{Name: "authentik", Required: true, Run: func(ctx context.Context) error {
 			if err := authConnection.CheckHealth(ctx); err != nil {
@@ -114,7 +114,7 @@ func InitAPI(log *zap.Logger, config appconfig.Config) (*Api, error) {
 		paymentHandler: &stripemanager.PaymentHandler{
 			AuthentikConnection:  authentikConnection,
 			InvitationClaimURL:   invitationClaimURL,
-			MongoConnection:      mongoConnection,
+			MongoDBConnection:    mongoDBConnection,
 			StripeConnection:     stripeConnection,
 			EMailConnection:      emailConnection,
 			NewsletterConnection: newsletterConnection,
@@ -136,7 +136,7 @@ func (api *Api) CloseMongoClient() {
 	if api.cancelHealth != nil {
 		api.cancelHealth()
 	}
-	err := api.paymentHandler.MongoConnection.Client.Disconnect(context.Background())
+	err := api.paymentHandler.MongoDBConnection.Client.Disconnect(context.Background())
 	if err != nil {
 		api.log.Fatal("Error closing MongoDB", zap.Error(err))
 	}

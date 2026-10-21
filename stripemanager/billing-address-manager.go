@@ -5,13 +5,13 @@ import (
 	"errors"
 
 	"github.com/scalecloud/scalecloud.de-api/authmanager"
-	"github.com/scalecloud/scalecloud.de-api/mongomanager"
+	"github.com/scalecloud/scalecloud.de-api/mongodbmanager"
 	"github.com/stripe/stripe-go/v87"
 	"github.com/stripe/stripe-go/v87/customer"
 )
 
 func (paymentHandler *PaymentHandler) GetBillingAddress(c context.Context, tokenDetails authmanager.TokenDetails, request BillingAddressRequest) (BillingAddressReply, error) {
-	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SubscriptionID, []mongomanager.Role{mongomanager.RoleBilling})
+	err := paymentHandler.MongoDBConnection.HasPermission(c, tokenDetails, request.SubscriptionID, []mongodbmanager.Role{mongodbmanager.RoleBilling})
 	if err != nil {
 		return BillingAddressReply{}, err
 	}
@@ -53,7 +53,7 @@ func (paymentHandler *PaymentHandler) GetBillingAddress(c context.Context, token
 }
 
 func (paymentHandler *PaymentHandler) UpdateBillingAddress(c context.Context, tokenDetails authmanager.TokenDetails, request UpdateBillingAddressRequest) (UpdateBillingAddressReply, error) {
-	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SubscriptionID, []mongomanager.Role{mongomanager.RoleBilling})
+	err := paymentHandler.MongoDBConnection.HasPermission(c, tokenDetails, request.SubscriptionID, []mongodbmanager.Role{mongodbmanager.RoleBilling})
 	if err != nil {
 		return UpdateBillingAddressReply{}, err
 	}

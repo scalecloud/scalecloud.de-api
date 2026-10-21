@@ -1,4 +1,4 @@
-package mongomanager
+package mongodbmanager
 
 import (
 	"context"
@@ -12,8 +12,8 @@ import (
 	"go.uber.org/zap"
 )
 
-func (mongoConnection *MongoConnection) ensureStripeUserUIDIndex(ctx context.Context) error {
-	collection, err := mongoConnection.getCollection(ctx, databaseStripe, collectionUsers)
+func (mongoDBConnection *MongoDBConnection) ensureStripeUserUIDIndex(ctx context.Context) error {
+	collection, err := mongoDBConnection.getCollection(ctx, databaseStripe, collectionUsers)
 	if err != nil {
 		return err
 	}
@@ -22,40 +22,40 @@ func (mongoConnection *MongoConnection) ensureStripeUserUIDIndex(ctx context.Con
 		Options: options.Index().SetUnique(true).SetName("UniqueStripeUserUID"),
 	})
 	if err != nil {
-		mongoConnection.Log.Error("Error creating unique Stripe user UID index", zap.Error(err))
+		mongoDBConnection.Log.Error("Error creating unique Stripe user UID index", zap.Error(err))
 		return err
 	}
-	mongoConnection.stripeUserUIDIndexReady.Store(true)
+	mongoDBConnection.stripeUserUIDIndexReady.Store(true)
 	return nil
 }
 
-func (mongoConnection *MongoConnection) CreateUser(ctx context.Context, user User) error {
-	return mongoConnection.createDocument(ctx, databaseStripe, collectionUsers, user)
+func (mongoDBConnection *MongoDBConnection) CreateUser(ctx context.Context, user User) error {
+	return mongoDBConnection.createDocument(ctx, databaseStripe, collectionUsers, user)
 }
 
-func (mongoConnection *MongoConnection) EnsureUser(ctx context.Context, uid string) error {
+func (mongoDBConnection *MongoDBConnection) EnsureUser(ctx context.Context, uid string) error {
 	if uid == "" {
 		return errors.New("user.UID is empty")
 	}
-	if !mongoConnection.stripeUserUIDIndexReady.Load() {
-		if err := mongoConnection.ensureStripeUserUIDIndex(ctx); err != nil {
+	if !mongoDBConnection.stripeUserUIDIndexReady.Load() {
+		if err := mongoDBConnection.ensureStripeUserUIDIndex(ctx); err != nil {
 			return fmt.Errorf("ensure unique Stripe user UID index: %w", err)
 		}
 	}
-	if err := mongoConnection.CreateUser(ctx, User{UID: uid}); err != nil && !mongo.IsDuplicateKeyError(err) {
+	if err := mongoDBConnection.CreateUser(ctx, User{UID: uid}); err != nil && !mongo.IsDuplicateKeyError(err) {
 		return fmt.Errorf("create Stripe user placeholder: %w", err)
 	}
 	return nil
 }
 
-func (mongoConnection *MongoConnection) ClaimUserProvisioning(ctx context.Context, uid, token string, now, leaseExpiresAt time.Time) (bool, error) {
+func (mongoDBConnection *MongoDBConnection) ClaimUserProvisioning(ctx context.Context, uid, token string, now, leaseExpiresAt time.Time) (bool, error) {
 	if uid == "" || token == "" {
 		return false, errors.New("user UID and provisioning token are required")
 	}
 	if !leaseExpiresAt.After(now) {
 		return false, errors.New("provisioning lease expiration must be in the future")
 	}
-	collection, err := mongoConnection.getCollection(ctx, databaseStripe, collectionUsers)
+	collection, err := mongoDBConnection.getCollection(ctx, databaseStripe, collectionUsers)
 	if err != nil {
 		return false, err
 	}
@@ -83,11 +83,11 @@ func (mongoConnection *MongoConnection) ClaimUserProvisioning(ctx context.Contex
 	return result.MatchedCount == 1, nil
 }
 
-func (mongoConnection *MongoConnection) SetUserCustomerID(ctx context.Context, uid, token, customerID string) error {
+func (mongoDBConnection *MongoDBConnection) SetUserCustomerID(ctx context.Context, uid, token, customerID string) error {
 	if uid == "" || token == "" || customerID == "" {
 		return errors.New("user UID, provisioning token, and customer ID are required")
 	}
-	collection, err := mongoConnection.getCollection(ctx, databaseStripe, collectionUsers)
+	collection, err := mongoDBConnection.getCollection(ctx, databaseStripe, collectionUsers)
 	if err != nil {
 		return err
 	}
@@ -113,8 +113,8 @@ func (mongoConnection *MongoConnection) SetUserCustomerID(ctx context.Context, u
 	return nil
 }
 
-func (mongoConnection *MongoConnection) ReleaseUserProvisioning(ctx context.Context, uid, token string) error {
-	collection, err := mongoConnection.getCollection(ctx, databaseStripe, collectionUsers)
+func (mongoDBConnection *MongoDBConnection) ReleaseUserProvisioning(ctx context.Context, uid, token string) error {
+	collection, err := mongoDBConnection.getCollection(ctx, databaseStripe, collectionUsers)
 	if err != nil {
 		return err
 	}
@@ -127,28 +127,28 @@ func (mongoConnection *MongoConnection) ReleaseUserProvisioning(ctx context.Cont
 	return nil
 }
 
-func (mongoConnection *MongoConnection) UpdateUser(ctx context.Context, user User) error {
+func (mongoDBConnection *MongoDBConnection) UpdateUser(ctx context.Context, user User) error {
 	if user.UID == "" {
 		return errors.New("user.UID is empty")
 	}
 	filter := bson.M{"uid": user.UID}
 	update := bson.M{"$set": user}
-	return mongoConnection.updateDocument(ctx, databaseStripe, collectionUsers, filter, update)
+	return mongoDBConnection.updateDocument(ctx, databaseStripe, collectionUsers, filter, update)
 }
 
-func (mongoConnection *MongoConnection) DeleteUser(ctx context.Context, customerID string) error {
+func (mongoDBConnection *MongoDBConnection) DeleteUser(ctx context.Context, customerID string) error {
 	filter := bson.M{"customerID": customerID}
-	return mongoConnection.deleteDocument(ctx, databaseStripe, collectionUsers, filter)
+	return mongoDBConnection.deleteDocument(ctx, databaseStripe, collectionUsers, filter)
 }
 
-func (mongoConnection *MongoConnection) GetUser(ctx context.Context, userFilter User) (User, error) {
+func (mongoDBConnection *MongoDBConnection) GetUser(ctx context.Context, userFilter User) (User, error) {
 	if userFilter.UID == "" {
 		return User{}, errors.New("user.UID is empty")
 	}
 	filter := bson.M{"uid": userFilter.UID}
-	singleResult, err := mongoConnection.findOneDocument(ctx, databaseStripe, collectionUsers, filter)
+	singleResult, err := mongoDBConnection.findOneDocument(ctx, databaseStripe, collectionUsers, filter)
 	if err != nil {
-		mongoConnection.Log.Error("Error finding user", zap.Error(err))
+		mongoDBConnection.Log.Error("Error finding user", zap.Error(err))
 		return User{}, fmt.Errorf("error finding user: %w", err)
 	}
 	if singleResult == nil {

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/scalecloud/scalecloud.de-api/mongomanager"
+	"github.com/scalecloud/scalecloud.de-api/mongodbmanager"
 	"github.com/stripe/stripe-go/v87"
 	"go.mongodb.org/mongo-driver/v2/mongo"
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
@@ -61,7 +61,7 @@ func TestGetOrCreateStripeCustomerDoesNotProvisionWhenLeaseClaimFails(t *testing
 
 func TestGetOrCreateStripeCustomerReusesExistingMapping(t *testing.T) {
 	store := newFakeCustomerMappingStore(0)
-	store.users["authentik-user-id"] = mongomanager.User{UID: "authentik-user-id", CustomerID: "cus_existing"}
+	store.users["authentik-user-id"] = mongodbmanager.User{UID: "authentik-user-id", CustomerID: "cus_existing"}
 	stripeCreator := newFakeStripeCustomerCreator()
 
 	customerID, err := getOrCreateStripeCustomer(t.Context(), store, stripeCreator, "person@example.com", "authentik-user-id")
@@ -168,7 +168,7 @@ func TestGetOrCreateStripeCustomerConcurrentRequestsWithMongo(t *testing.T) {
 			t.Errorf("disconnect test MongoDB client: %v", err)
 		}
 	})
-	connection := &mongomanager.MongoConnection{Client: client, Log: zap.NewNop()}
+	connection := &mongodbmanager.MongoDBConnection{Client: client, Log: zap.NewNop()}
 	if err := connection.EnsureIndexes(ctx); err != nil {
 		t.Fatalf("ensure MongoDB indexes: %v", err)
 	}
@@ -227,7 +227,7 @@ func TestGetOrCreateStripeCustomerConcurrentRequestsWithMongo(t *testing.T) {
 	if count != 1 {
 		t.Fatalf("MongoDB contains %d mappings for one UID, want 1", count)
 	}
-	stored, err := connection.GetUser(ctx, mongomanager.User{UID: uid})
+	stored, err := connection.GetUser(ctx, mongodbmanager.User{UID: uid})
 	if err != nil {
 		t.Fatalf("read stored customer mapping: %v", err)
 	}
@@ -247,7 +247,7 @@ func TestStripeCustomerIdempotencyKeyIsStablePerSubject(t *testing.T) {
 
 type fakeCustomerMappingStore struct {
 	mu               sync.Mutex
-	users            map[string]mongomanager.User
+	users            map[string]mongodbmanager.User
 	lookupErr        error
 	ensureErr        error
 	claimErr         error
@@ -260,13 +260,13 @@ type fakeCustomerMappingStore struct {
 
 func newFakeCustomerMappingStore(initialLookups int) *fakeCustomerMappingStore {
 	return &fakeCustomerMappingStore{
-		users:            make(map[string]mongomanager.User),
+		users:            make(map[string]mongodbmanager.User),
 		initialLookups:   initialLookups,
 		initialLookupsOK: make(chan struct{}),
 	}
 }
 
-func (store *fakeCustomerMappingStore) GetUser(_ context.Context, filter mongomanager.User) (mongomanager.User, error) {
+func (store *fakeCustomerMappingStore) GetUser(_ context.Context, filter mongodbmanager.User) (mongodbmanager.User, error) {
 	store.mu.Lock()
 	store.lookupCalls++
 	lookupNumber := store.lookupCalls
@@ -281,11 +281,11 @@ func (store *fakeCustomerMappingStore) GetUser(_ context.Context, filter mongoma
 	}
 	defer store.mu.Unlock()
 	if store.lookupErr != nil {
-		return mongomanager.User{}, store.lookupErr
+		return mongodbmanager.User{}, store.lookupErr
 	}
 	user, exists := store.users[filter.UID]
 	if !exists {
-		return mongomanager.User{}, nil
+		return mongodbmanager.User{}, nil
 	}
 	return user, nil
 }
@@ -298,7 +298,7 @@ func (store *fakeCustomerMappingStore) EnsureUser(_ context.Context, uid string)
 		return store.ensureErr
 	}
 	if _, exists := store.users[uid]; !exists {
-		store.users[uid] = mongomanager.User{UID: uid}
+		store.users[uid] = mongodbmanager.User{UID: uid}
 	}
 	return nil
 }

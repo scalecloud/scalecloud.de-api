@@ -1,6 +1,6 @@
 package stripemanager
 
-import "github.com/scalecloud/scalecloud.de-api/mongomanager"
+import "github.com/scalecloud/scalecloud.de-api/mongodbmanager"
 
 type ListSeatRequest struct {
 	SubscriptionID string `json:"subscriptionID" validate:"required"`
@@ -11,7 +11,7 @@ type ListSeatRequest struct {
 type ListSeatReply struct {
 	SubscriptionID string              `json:"subscriptionID" validate:"required"`
 	MaxSeats       int64               `json:"maxSeats" validate:"required"`
-	Seats          []mongomanager.Seat `json:"seats" validate:"required"`
+	Seats          []mongodbmanager.Seat `json:"seats" validate:"required"`
 	PageIndex      int                 `json:"pageIndex" validate:"gte=0"`
 	TotalResults   int64               `json:"totalResults" validate:"gte=1"`
 }
@@ -19,7 +19,7 @@ type ListSeatReply struct {
 type AddSeatRequest struct {
 	SubscriptionID string              `json:"subscriptionID" validate:"required"`
 	EMail          string              `json:"email" validate:"required"`
-	Roles          []mongomanager.Role `json:"roles" validate:"required"`
+	Roles          []mongodbmanager.Role `json:"roles" validate:"required"`
 }
 
 type AddSeatReply struct {
@@ -33,7 +33,7 @@ type SeatInvitationPreviewReply struct {
 	StorageAmount int64               `json:"storageAmount"`
 	StorageUnit   string              `json:"storageUnit"`
 	EMail         string              `json:"email"`
-	Roles         []mongomanager.Role `json:"roles"`
+	Roles         []mongodbmanager.Role `json:"roles"`
 	ExpiresAt     int64               `json:"expiresAt"`
 }
 
@@ -42,16 +42,16 @@ type SeatInvitationClaimReply struct {
 	ProductName    string              `json:"productName"`
 	StorageAmount  int64               `json:"storageAmount"`
 	StorageUnit    string              `json:"storageUnit"`
-	Roles          []mongomanager.Role `json:"roles"`
+	Roles          []mongodbmanager.Role `json:"roles"`
 	Success        bool                `json:"success"`
 }
 
 type DeleteSeatRequest struct {
-	SeatToDelete mongomanager.Seat `json:"seatToDelete" validate:"required"`
+	SeatToDelete mongodbmanager.Seat `json:"seatToDelete" validate:"required"`
 }
 
 type DeleteSeatReply struct {
-	DeletedSeat mongomanager.Seat `json:"deletedSeat" validate:"required"`
+	DeletedSeat mongodbmanager.Seat `json:"deletedSeat" validate:"required"`
 	Success     bool              `json:"success" validate:"required"`
 }
 
@@ -61,16 +61,16 @@ type SeatDetailRequest struct {
 }
 
 type SeatDetailReply struct {
-	SelectedSeat mongomanager.Seat `json:"selectedSeat" validate:"required"`
-	MySeat       mongomanager.Seat `json:"mySeat" validate:"required"`
+	SelectedSeat mongodbmanager.Seat `json:"selectedSeat" validate:"required"`
+	MySeat       mongodbmanager.Seat `json:"mySeat" validate:"required"`
 }
 
 type UpdateSeatDetailRequest struct {
-	SeatUpdated mongomanager.Seat `json:"seatUpdated" validate:"required"`
+	SeatUpdated mongodbmanager.Seat `json:"seatUpdated" validate:"required"`
 }
 
 type UpdateSeatDetailReply struct {
-	Seat mongomanager.Seat `json:"seat" validate:"required"`
+	Seat mongodbmanager.Seat `json:"seat" validate:"required"`
 }
 
 type PermissionRequest struct {
@@ -78,5 +78,5 @@ type PermissionRequest struct {
 }
 
 type PermissionReply struct {
-	MySeat mongomanager.Seat `json:"mySeat" validate:"required"`
+	MySeat mongodbmanager.Seat `json:"mySeat" validate:"required"`
 }

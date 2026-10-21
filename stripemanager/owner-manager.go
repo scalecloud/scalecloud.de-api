@@ -7,18 +7,18 @@ import (
 	"time"
 
 	"github.com/scalecloud/scalecloud.de-api/authmanager"
-	"github.com/scalecloud/scalecloud.de-api/mongomanager"
+	"github.com/scalecloud/scalecloud.de-api/mongodbmanager"
 	"github.com/stripe/stripe-go/v87"
 	"github.com/stripe/stripe-go/v87/customer"
 	"github.com/stripe/stripe-go/v87/subscription"
 	"go.uber.org/zap"
 )
 
-func (paymentHandler *PaymentHandler) handleOwnerTransfer(c context.Context, tokenDetails authmanager.TokenDetails, seatUpdateRequest mongomanager.Seat) error {
+func (paymentHandler *PaymentHandler) handleOwnerTransfer(c context.Context, tokenDetails authmanager.TokenDetails, seatUpdateRequest mongodbmanager.Seat) error {
 	if !isSeatUpdateOwnerTransfer(seatUpdateRequest) {
 		return nil
 	}
-	ownerSeat, err := paymentHandler.MongoConnection.GetOwnerSeat(c, seatUpdateRequest.SubscriptionID)
+	ownerSeat, err := paymentHandler.MongoDBConnection.GetOwnerSeat(c, seatUpdateRequest.SubscriptionID)
 	if err != nil {
 		return err
 	}
@@ -51,25 +51,25 @@ func (paymentHandler *PaymentHandler) handleOwnerTransfer(c context.Context, tok
 	return nil
 }
 
-func isSeatUpdateOwnerTransfer(seatUpdateRequest mongomanager.Seat) bool {
-	return mongomanager.ContainsRole(seatUpdateRequest, []mongomanager.Role{mongomanager.RoleOwner})
+func isSeatUpdateOwnerTransfer(seatUpdateRequest mongodbmanager.Seat) bool {
+	return mongodbmanager.ContainsRole(seatUpdateRequest, []mongodbmanager.Role{mongodbmanager.RoleOwner})
 }
 
-func hasOwnerTriggeredOwnerTransfer(tokenDetails authmanager.TokenDetails, ownerSeat mongomanager.Seat) error {
+func hasOwnerTriggeredOwnerTransfer(tokenDetails authmanager.TokenDetails, ownerSeat mongodbmanager.Seat) error {
 	if tokenDetails.UID != ownerSeat.UID {
 		return errors.New("only owner can transfer owner role")
 	}
 	return nil
 }
 
-func isOwnerSeatUpdate(ownerSeat mongomanager.Seat, seatUpdateRequest mongomanager.Seat) bool {
-	return mongomanager.ContainsRole(seatUpdateRequest, []mongomanager.Role{mongomanager.RoleOwner}) &&
+func isOwnerSeatUpdate(ownerSeat mongodbmanager.Seat, seatUpdateRequest mongodbmanager.Seat) bool {
+	return mongodbmanager.ContainsRole(seatUpdateRequest, []mongodbmanager.Role{mongodbmanager.RoleOwner}) &&
 		ownerSeat.UID == seatUpdateRequest.UID
 
 }
 
-func (paymentHandler *PaymentHandler) isSeatDestinationVerified(c context.Context, seatUpdateRequest mongomanager.Seat) error {
-	seatCustomerDestination, err := paymentHandler.MongoConnection.GetSeat(c, seatUpdateRequest.SubscriptionID, seatUpdateRequest.UID)
+func (paymentHandler *PaymentHandler) isSeatDestinationVerified(c context.Context, seatUpdateRequest mongodbmanager.Seat) error {
+	seatCustomerDestination, err := paymentHandler.MongoDBConnection.GetSeat(c, seatUpdateRequest.SubscriptionID, seatUpdateRequest.UID)
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func (paymentHandler *PaymentHandler) isSeatDestinationVerified(c context.Contex
 	return nil
 }
 
-func (paymentHandler *PaymentHandler) isSeatDestinationStripeCustomer(c context.Context, seatUpdateRequest mongomanager.Seat) error {
+func (paymentHandler *PaymentHandler) isSeatDestinationStripeCustomer(c context.Context, seatUpdateRequest mongodbmanager.Seat) error {
 	exists, err := paymentHandler.existsCustomerByUID(c, seatUpdateRequest.UID)
 	if err != nil {
 		paymentHandler.Log.Error("Error checking if customer exists by UID", zap.Error(err))
@@ -91,7 +91,7 @@ func (paymentHandler *PaymentHandler) isSeatDestinationStripeCustomer(c context.
 	return nil
 }
 
-func (paymentHandler *PaymentHandler) hasCustomerOnlyOneActiveSubscription(c context.Context, ownerSeat mongomanager.Seat) error {
+func (paymentHandler *PaymentHandler) hasCustomerOnlyOneActiveSubscription(c context.Context, ownerSeat mongodbmanager.Seat) error {
 	ownerCustomerID, err := paymentHandler.GetCustomerIDByUID(c, ownerSeat.UID)
 	if err != nil {
 		paymentHandler.Log.Error("Error retrieving customerID by UID", zap.Error(err))
@@ -147,7 +147,7 @@ func (paymentHandler *PaymentHandler) handleSubscriptionStatusError(status strip
 	return errors.New("ownership cannot be transferred, please contact support")
 }
 
-func (paymentHandler *PaymentHandler) handleStripeOwnerTransfer(c context.Context, tokenDetails authmanager.TokenDetails, seatUpdateRequest, ownerSeat mongomanager.Seat) error {
+func (paymentHandler *PaymentHandler) handleStripeOwnerTransfer(c context.Context, tokenDetails authmanager.TokenDetails, seatUpdateRequest, ownerSeat mongodbmanager.Seat) error {
 	paymentHandler.Log.Info("Owner transfer initiated", zap.Any("seatUpdateRequest", seatUpdateRequest))
 	customerSourceID, err := paymentHandler.GetCustomerIDByUID(c, tokenDetails.UID)
 	if err != nil {
@@ -165,7 +165,7 @@ func (paymentHandler *PaymentHandler) handleStripeOwnerTransfer(c context.Contex
 	return nil
 }
 
-func (paymentHandler *PaymentHandler) updateCustomerEMailToNewOwner(ownerSeat, seatUpdateRequest mongomanager.Seat, customerSourceID string) error {
+func (paymentHandler *PaymentHandler) updateCustomerEMailToNewOwner(ownerSeat, seatUpdateRequest mongodbmanager.Seat, customerSourceID string) error {
 	timestamp := time.Now().Format("2006-01-02_15-04-05")
 	params := &stripe.CustomerParams{
 		Email: stripe.String(seatUpdateRequest.EMail),
@@ -182,21 +182,21 @@ func (paymentHandler *PaymentHandler) updateCustomerEMailToNewOwner(ownerSeat, s
 	return nil
 }
 
-func (paymentHandler *PaymentHandler) removeSourceCustomerOwner(c context.Context, sourceSeat mongomanager.Seat) error {
-	var filteredRoles []mongomanager.Role
+func (paymentHandler *PaymentHandler) removeSourceCustomerOwner(c context.Context, sourceSeat mongodbmanager.Seat) error {
+	var filteredRoles []mongodbmanager.Role
 	for _, role := range sourceSeat.Roles {
-		if role != mongomanager.RoleOwner {
+		if role != mongodbmanager.RoleOwner {
 			filteredRoles = append(filteredRoles, role)
 		}
 	}
-	sourceSeatUpdate := mongomanager.Seat{
+	sourceSeatUpdate := mongodbmanager.Seat{
 		SubscriptionID: sourceSeat.SubscriptionID,
 		UID:            sourceSeat.UID,
 		EMail:          sourceSeat.EMail,
 		EMailVerified:  sourceSeat.EMailVerified,
 		Roles:          filteredRoles,
 	}
-	return paymentHandler.MongoConnection.UpdateSeat(c, sourceSeatUpdate)
+	return paymentHandler.MongoDBConnection.UpdateSeat(c, sourceSeatUpdate)
 }
 
 func (paymentHandler *PaymentHandler) sendConfirmationMail() {

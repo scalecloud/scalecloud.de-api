@@ -1,4 +1,4 @@
-package mongomanager
+package mongodbmanager
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 )
 
 func TestGetUserReturnsEmptyUserForMissingMapping(t *testing.T) {
-	connection, ctx := newTestMongoConnection(t)
+	connection, ctx := newTestMongoDBConnection(t)
 	uid := fmt.Sprintf("missing-customer-test-%d", time.Now().UnixNano())
 	user, err := connection.GetUser(ctx, User{UID: uid})
 	if err != nil {
@@ -24,7 +24,7 @@ func TestGetUserReturnsEmptyUserForMissingMapping(t *testing.T) {
 }
 
 func TestCreateUserRejectsDuplicateUID(t *testing.T) {
-	connection, ctx := newTestMongoConnection(t)
+	connection, ctx := newTestMongoDBConnection(t)
 	if err := connection.EnsureIndexes(ctx); err != nil {
 		t.Fatalf("ensure user unique index: %v", err)
 	}
@@ -54,7 +54,7 @@ func TestCreateUserRejectsDuplicateUID(t *testing.T) {
 }
 
 func TestCreateUserConcurrentDuplicateUIDHasOneWinner(t *testing.T) {
-	connection, ctx := newTestMongoConnection(t)
+	connection, ctx := newTestMongoDBConnection(t)
 	if err := connection.EnsureIndexes(ctx); err != nil {
 		t.Fatalf("ensure user unique index: %v", err)
 	}
@@ -109,7 +109,7 @@ func TestCreateUserConcurrentDuplicateUIDHasOneWinner(t *testing.T) {
 }
 
 func TestConcurrentUserProvisioningUsesOneMongoLease(t *testing.T) {
-	connection, ctx := newTestMongoConnection(t)
+	connection, ctx := newTestMongoDBConnection(t)
 	uid := fmt.Sprintf("provisioning-lease-test-%d", time.Now().UnixNano())
 	users := connection.Client.Database(databaseStripe).Collection(collectionUsers)
 	t.Cleanup(func() {

@@ -1,4 +1,4 @@
-package mongomanager
+package mongodbmanager
 
 import (
 	"context"
@@ -16,7 +16,7 @@ import (
 )
 
 func TestCreatePendingSeatWithinCapacityRejectsNonPositiveCapacity(t *testing.T) {
-	connection := &MongoConnection{}
+	connection := &MongoDBConnection{}
 	for _, maxSeats := range []int64{0, -1} {
 		if err := connection.CreatePendingSeatWithinCapacity(context.Background(), Seat{}, maxSeats); !errors.Is(err, ErrSeatCapacityReached) {
 			t.Fatalf("capacity %d: error = %v, want %v", maxSeats, err, ErrSeatCapacityReached)
@@ -25,7 +25,7 @@ func TestCreatePendingSeatWithinCapacityRejectsNonPositiveCapacity(t *testing.T)
 }
 
 func TestCreatePendingSeatWithinCapacitySerializesConcurrentReservations(t *testing.T) {
-	connection, ctx := newTestMongoConnection(t)
+	connection, ctx := newTestMongoDBConnection(t)
 	client := connection.Client
 	subscriptionID := fmt.Sprintf("capacity-test-%d", time.Now().UnixNano())
 	seats := client.Database(databaseSubscription).Collection(collectionSeats)
@@ -88,7 +88,7 @@ func TestCreatePendingSeatWithinCapacitySerializesConcurrentReservations(t *test
 	}
 }
 
-func newTestMongoConnection(t *testing.T) (*MongoConnection, context.Context) {
+func newTestMongoDBConnection(t *testing.T) (*MongoDBConnection, context.Context) {
 	t.Helper()
 	uri := os.Getenv("MONGODB_TEST_URI")
 	if uri == "" {
@@ -110,5 +110,5 @@ func newTestMongoConnection(t *testing.T) (*MongoConnection, context.Context) {
 	if err := client.Ping(ctx, nil); err != nil {
 		t.Fatalf("ping test MongoDB: %v", err)
 	}
-	return &MongoConnection{Client: client, Log: zap.NewNop()}, ctx
+	return &MongoDBConnection{Client: client, Log: zap.NewNop()}, ctx
 }

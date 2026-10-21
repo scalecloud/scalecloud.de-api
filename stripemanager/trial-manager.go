@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/scalecloud/scalecloud.de-api/mongomanager"
+	"github.com/scalecloud/scalecloud.de-api/mongodbmanager"
 	"github.com/stripe/stripe-go/v87"
 	"go.uber.org/zap"
 )
@@ -64,18 +64,18 @@ func (paymentHandler *PaymentHandler) hadTrialBefore(ctx context.Context, paymen
 	if paymentMethod.SEPADebit != nil {
 		sepaDebitFingerprint = paymentMethod.SEPADebit.Fingerprint
 	}
-	filter := mongomanager.TrialFilter{
+	filter := mongodbmanager.TrialFilter{
 		ProductType:            productType,
 		CustomerID:             customer.ID,
 		PaymentCardFingerprint: cardFingerprint,
 		PaymentPayPalEMail:     paypalPayerEmail,
 		PaymentSEPAFingerprint: sepaDebitFingerprint,
 	}
-	trialSearch, err := paymentHandler.MongoConnection.GetTrial(ctx, filter)
+	trialSearch, err := paymentHandler.MongoDBConnection.GetTrial(ctx, filter)
 	if err != nil {
 		return err
 	}
-	if trialSearch == (mongomanager.Trial{}) {
+	if trialSearch == (mongodbmanager.Trial{}) {
 		paymentHandler.Log.Info("Customer did not use trial before.", zap.String("CustomerID", customer.ID), zap.String("ProductType", productType))
 		return nil
 	} else if trialSearch.CustomerID != "" {

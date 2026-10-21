@@ -9,17 +9,17 @@ import (
 	"time"
 
 	"github.com/scalecloud/scalecloud.de-api/emailmanager"
-	"github.com/scalecloud/scalecloud.de-api/mongomanager"
+	"github.com/scalecloud/scalecloud.de-api/mongodbmanager"
 	"go.uber.org/zap"
 )
 
 type newsletterStore interface {
-	GetNewsletterSubscriber(context.Context, string) (mongomanager.NewsletterSubscriber, error)
-	CreateNewsletterSubscriber(context.Context, mongomanager.NewsletterSubscriber) error
-	UpdateNewsletterSubscriber(context.Context, mongomanager.NewsletterSubscriber) error
-	GetNewsletterSubscriberByVerificationToken(context.Context, string) (mongomanager.NewsletterSubscriber, error)
-	GetNewsletterSubscriberByUnsubscribeToken(context.Context, string) (mongomanager.NewsletterSubscriber, error)
-	DeleteNewsletterSubscriber(context.Context, mongomanager.NewsletterSubscriber) error
+	GetNewsletterSubscriber(context.Context, string) (mongodbmanager.NewsletterSubscriber, error)
+	CreateNewsletterSubscriber(context.Context, mongodbmanager.NewsletterSubscriber) error
+	UpdateNewsletterSubscriber(context.Context, mongodbmanager.NewsletterSubscriber) error
+	GetNewsletterSubscriberByVerificationToken(context.Context, string) (mongodbmanager.NewsletterSubscriber, error)
+	GetNewsletterSubscriberByUnsubscribeToken(context.Context, string) (mongodbmanager.NewsletterSubscriber, error)
+	DeleteNewsletterSubscriber(context.Context, mongodbmanager.NewsletterSubscriber) error
 }
 
 type newsletterMailer interface {
@@ -32,7 +32,7 @@ type NewsletterConnection struct {
 	log             *zap.Logger
 }
 
-func InitNewsletterConnection(ctx context.Context, log *zap.Logger, mongoHandler *mongomanager.MongoConnection, eMailConnection *emailmanager.EMailConnection) (*NewsletterConnection, error) {
+func InitNewsletterConnection(ctx context.Context, log *zap.Logger, mongoHandler *mongodbmanager.MongoDBConnection, eMailConnection *emailmanager.EMailConnection) (*NewsletterConnection, error) {
 	log.Info("Init Newsletter Connection")
 	stripeConnection := &NewsletterConnection{
 		mongoHandler:    mongoHandler,
@@ -62,16 +62,16 @@ func (newsletterHandler NewsletterConnection) NewsletterSubscribe(c context.Cont
 		)
 		return NewsletterSubscribeReply{}, errors.New("Error while checking if E-Mail is already subscribed to newsletter: " + request.EMail)
 	}
-	if newsletterSubscriber == (mongomanager.NewsletterSubscriber{}) {
+	if newsletterSubscriber == (mongodbmanager.NewsletterSubscriber{}) {
 		return newsletterHandler.newsletterSubscribeWithEntryNotFound(c, request)
 	} else {
 		return newsletterHandler.newsletterSubscribeWithEntryFound(c, request, newsletterSubscriber)
 	}
 }
 
-func (newsletterHandler NewsletterConnection) newsletterSubscribeWithEntryFound(c context.Context, request NewsletterSubscribeRequest, newsletterSubscriber mongomanager.NewsletterSubscriber) (NewsletterSubscribeReply, error) {
+func (newsletterHandler NewsletterConnection) newsletterSubscribeWithEntryFound(c context.Context, request NewsletterSubscribeRequest, newsletterSubscriber mongodbmanager.NewsletterSubscriber) (NewsletterSubscribeReply, error) {
 	newsletterHandler.log.Warn("E-Mail is already subscribed to newsletter and tried to subscribe again: " + request.EMail)
-	if newsletterSubscriber.Status == mongomanager.NewsletterStatusActive {
+	if newsletterSubscriber.Status == mongodbmanager.NewsletterStatusActive {
 		newsletterHandler.log.Info("E-Mail is already subscribed to newsletter: " + request.EMail)
 		reply := NewsletterSubscribeReply{
 			NewsletterSubscribeReplyStatus: NewsletterSubscribeReplyStatusSuccess,
@@ -79,10 +79,10 @@ func (newsletterHandler NewsletterConnection) newsletterSubscribeWithEntryFound(
 		}
 		return reply, nil
 	}
-	if newsletterSubscriber.Status == mongomanager.NewsletterStatusBounced {
+	if newsletterSubscriber.Status == mongodbmanager.NewsletterStatusBounced {
 		newsletterHandler.log.Warn("Newsletter subscriber tried to subscribe again after E-Mail bounced: " + request.EMail)
 	}
-	if newsletterSubscriber.Status == mongomanager.NewsletterStatusPending {
+	if newsletterSubscriber.Status == mongodbmanager.NewsletterStatusPending {
 		newsletterHandler.log.Warn("Newsletter subscriber tried to subscribe again after E-Mail was already pending: " + request.EMail)
 	}
 	err := CanSendVerificationEmail(&newsletterSubscriber.VerificationTokenSentAt)
@@ -136,9 +136,9 @@ func (newsletterHandler NewsletterConnection) newsletterSubscribeWithEntryNotFou
 		return NewsletterSubscribeReply{}, err
 	}
 	timestamp := time.Now()
-	newsletterSubscriber := mongomanager.NewsletterSubscriber{
+	newsletterSubscriber := mongodbmanager.NewsletterSubscriber{
 		EMail:                   request.EMail,
-		Status:                  mongomanager.NewsletterStatusPending,
+		Status:                  mongodbmanager.NewsletterStatusPending,
 		SubscribedAt:            timestamp,
 		VerificationToken:       verificationToken,
 		VerificationTokenSentAt: timestamp,
@@ -180,11 +180,11 @@ func (newsletterHandler NewsletterConnection) NewsletterConfirm(c context.Contex
 		)
 		return NewsletterConfirmReply{}, errors.New("error while searching for newsletter subscriber")
 	}
-	if newsletterSubscriber == (mongomanager.NewsletterSubscriber{}) {
+	if newsletterSubscriber == (mongodbmanager.NewsletterSubscriber{}) {
 		newsletterHandler.log.Warn("Verification token not found in newsletter database: " + request.VerificationToken)
 		return NewsletterConfirmReply{}, errors.New("no matching entry was found in the newsletter database. Please register again for the newsletter")
 	}
-	if newsletterSubscriber.Status == mongomanager.NewsletterStatusActive {
+	if newsletterSubscriber.Status == mongodbmanager.NewsletterStatusActive {
 		newsletterHandler.log.Warn("Newsletter subscriber is already confirmed: " + request.VerificationToken)
 		confirmed := true
 		reply := NewsletterConfirmReply{
@@ -194,7 +194,7 @@ func (newsletterHandler NewsletterConnection) NewsletterConfirm(c context.Contex
 	}
 
 	timestamp := time.Now()
-	newsletterSubscriber.Status = mongomanager.NewsletterStatusActive
+	newsletterSubscriber.Status = mongodbmanager.NewsletterStatusActive
 	newsletterSubscriber.ConfirmedAt = timestamp
 	newsletterSubscriber.LastUpdated = timestamp
 
@@ -222,7 +222,7 @@ func (newsletterHandler NewsletterConnection) NewsletterUnsubscribe(c context.Co
 		)
 		return NewsletterUnsubscribeReply{}, errors.New("error while searching for newsletter subscriber")
 	}
-	if (newsletterSubscriber == mongomanager.NewsletterSubscriber{}) {
+	if (newsletterSubscriber == mongodbmanager.NewsletterSubscriber{}) {
 		newsletterHandler.log.Warn("Tried to unsubscribe but no matching entry was found in the newsletter database: " + request.UnsubscribeToken)
 		reply := NewsletterUnsubscribeReply{
 			NewsletterUnsubscribeReplyStatus: NewsletterUnsubscribeReplyStatusNotFound,

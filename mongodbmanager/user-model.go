@@ -1,4 +1,4 @@
-package mongomanager
+package mongodbmanager
 
 import "time"
 

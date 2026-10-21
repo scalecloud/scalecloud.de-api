@@ -1,4 +1,4 @@
-package mongomanager
+package mongodbmanager
 
 import (
 	"context"
@@ -77,8 +77,8 @@ func getClient(ctx context.Context) (*mongo.Client, error) {
 	return client, nil
 }
 
-func (mongoConnection *MongoConnection) getCollection(context context.Context, databaseName, collectionName string) (*mongo.Collection, error) {
-	client := mongoConnection.Client
+func (mongoDBConnection *MongoDBConnection) getCollection(context context.Context, databaseName, collectionName string) (*mongo.Collection, error) {
+	client := mongoDBConnection.Client
 	collection := client.Database(databaseName).Collection(collectionName)
 	if collection == nil {
 		return nil, errors.New("collection is nil")
@@ -86,21 +86,21 @@ func (mongoConnection *MongoConnection) getCollection(context context.Context, d
 	return collection, nil
 }
 
-func (mongoConnection *MongoConnection) createDocument(ctx context.Context, databaseName, collectionName string, document interface{}) error {
-	collection, err := mongoConnection.getCollection(ctx, databaseName, collectionName)
+func (mongoDBConnection *MongoDBConnection) createDocument(ctx context.Context, databaseName, collectionName string, document interface{}) error {
+	collection, err := mongoDBConnection.getCollection(ctx, databaseName, collectionName)
 	if err != nil {
 		return err
 	}
 	_, err = collection.InsertOne(ctx, document)
 	if err != nil {
-		mongoConnection.Log.Error("Error inserting document", zap.Error(err))
+		mongoDBConnection.Log.Error("Error inserting document", zap.Error(err))
 		return fmt.Errorf("error inserting document: %w", err)
 	}
 	return nil
 }
 
-func (mongoConnection *MongoConnection) updateDocument(ctx context.Context, databaseName, collectionName string, filter, update interface{}) error {
-	collection, err := mongoConnection.getCollection(ctx, databaseName, collectionName)
+func (mongoDBConnection *MongoDBConnection) updateDocument(ctx context.Context, databaseName, collectionName string, filter, update interface{}) error {
+	collection, err := mongoDBConnection.getCollection(ctx, databaseName, collectionName)
 	if err != nil {
 		return err
 	}
@@ -112,14 +112,14 @@ func (mongoConnection *MongoConnection) updateDocument(ctx context.Context, data
 	}
 	_, err = collection.UpdateOne(ctx, filter, update)
 	if err != nil {
-		mongoConnection.Log.Error("Error updating document", zap.Error(err))
+		mongoDBConnection.Log.Error("Error updating document", zap.Error(err))
 		return errors.New("error updating document")
 	}
 	return nil
 }
 
-func (mongoConnection *MongoConnection) deleteDocument(ctx context.Context, databaseName, collectionName string, filter interface{}) error {
-	collection, err := mongoConnection.getCollection(ctx, databaseName, collectionName)
+func (mongoDBConnection *MongoDBConnection) deleteDocument(ctx context.Context, databaseName, collectionName string, filter interface{}) error {
+	collection, err := mongoDBConnection.getCollection(ctx, databaseName, collectionName)
 	if err != nil {
 		return err
 	}
@@ -128,14 +128,14 @@ func (mongoConnection *MongoConnection) deleteDocument(ctx context.Context, data
 	}
 	_, err = collection.DeleteOne(ctx, filter)
 	if err != nil {
-		mongoConnection.Log.Error("Error deleting document", zap.Error(err))
+		mongoDBConnection.Log.Error("Error deleting document", zap.Error(err))
 		return errors.New("error deleting document")
 	}
 	return nil
 }
 
-func (mongoConnection *MongoConnection) findOneDocument(ctx context.Context, databaseName, collectionName string, filter interface{}) (*mongo.SingleResult, error) {
-	collection, err := mongoConnection.getCollection(ctx, databaseName, collectionName)
+func (mongoDBConnection *MongoDBConnection) findOneDocument(ctx context.Context, databaseName, collectionName string, filter interface{}) (*mongo.SingleResult, error) {
+	collection, err := mongoDBConnection.getCollection(ctx, databaseName, collectionName)
 	if err != nil {
 		return nil, err
 	}
@@ -148,14 +148,14 @@ func (mongoConnection *MongoConnection) findOneDocument(ctx context.Context, dat
 		if errors.Is(resultErr, mongo.ErrNoDocuments) {
 			return nil, nil
 		}
-		mongoConnection.Log.Error("Error finding document", zap.Error(resultErr))
+		mongoDBConnection.Log.Error("Error finding document", zap.Error(resultErr))
 		return nil, resultErr
 	}
 	return singleResult, nil
 }
 
-func (mongoConnection *MongoConnection) findDocuments(ctx context.Context, databaseName, collectionName string, filter interface{}, results interface{}, opts options.Lister[options.FindOptions]) (resultErr error) {
-	collection, err := mongoConnection.getCollection(ctx, databaseName, collectionName)
+func (mongoDBConnection *MongoDBConnection) findDocuments(ctx context.Context, databaseName, collectionName string, filter interface{}, results interface{}, opts options.Lister[options.FindOptions]) (resultErr error) {
+	collection, err := mongoDBConnection.getCollection(ctx, databaseName, collectionName)
 	if err != nil {
 		return err
 	}
@@ -165,7 +165,7 @@ func (mongoConnection *MongoConnection) findDocuments(ctx context.Context, datab
 	// Call Find with sorting and pagination
 	cursor, err := collection.Find(ctx, filter, opts)
 	if err != nil {
-		mongoConnection.Log.Error("Error finding documents", zap.Error(err))
+		mongoDBConnection.Log.Error("Error finding documents", zap.Error(err))
 		return errors.New("error finding documents")
 	}
 	defer func() {
@@ -180,8 +180,8 @@ func (mongoConnection *MongoConnection) findDocuments(ctx context.Context, datab
 	return nil
 }
 
-func (mongoConnection *MongoConnection) countDocuments(ctx context.Context, databaseName, collectionName string, filter interface{}) (int64, error) {
-	collection, err := mongoConnection.getCollection(ctx, databaseName, collectionName)
+func (mongoDBConnection *MongoDBConnection) countDocuments(ctx context.Context, databaseName, collectionName string, filter interface{}) (int64, error) {
+	collection, err := mongoDBConnection.getCollection(ctx, databaseName, collectionName)
 	if err != nil {
 		return 0, err
 	}
@@ -190,7 +190,7 @@ func (mongoConnection *MongoConnection) countDocuments(ctx context.Context, data
 	}
 	count, err := collection.CountDocuments(ctx, filter)
 	if err != nil {
-		mongoConnection.Log.Error("Error counting documents", zap.Error(err))
+		mongoDBConnection.Log.Error("Error counting documents", zap.Error(err))
 		return 0, errors.New("error counting documents")
 	}
 	return count, nil

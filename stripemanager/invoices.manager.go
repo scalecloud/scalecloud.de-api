@@ -5,13 +5,13 @@ import (
 	"errors"
 
 	"github.com/scalecloud/scalecloud.de-api/authmanager"
-	"github.com/scalecloud/scalecloud.de-api/mongomanager"
+	"github.com/scalecloud/scalecloud.de-api/mongodbmanager"
 	"github.com/stripe/stripe-go/v87"
 	"github.com/stripe/stripe-go/v87/invoice"
 )
 
 func (paymentHandler *PaymentHandler) GetSubscriptionInvoices(c context.Context, tokenDetails authmanager.TokenDetails, request ListInvoicesRequest) (ListInvoicesReply, error) {
-	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, request.SubscriptionID, []mongomanager.Role{mongomanager.RoleBilling})
+	err := paymentHandler.MongoDBConnection.HasPermission(c, tokenDetails, request.SubscriptionID, []mongodbmanager.Role{mongodbmanager.RoleBilling})
 	if err != nil {
 		return ListInvoicesReply{}, err
 	}

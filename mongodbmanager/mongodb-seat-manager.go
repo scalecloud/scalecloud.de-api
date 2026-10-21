@@ -1,4 +1,4 @@
-package mongomanager
+package mongodbmanager
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (mongoConnection *MongoConnection) ensureSeatIndex(ctx context.Context) error {
+func (mongoDBConnection *MongoDBConnection) ensureSeatIndex(ctx context.Context) error {
 	indexModel := mongo.IndexModel{
 		Keys: bson.D{
 			{Key: "subscriptionID", Value: 1},
@@ -19,38 +19,38 @@ func (mongoConnection *MongoConnection) ensureSeatIndex(ctx context.Context) err
 		},
 		Options: options.Index().SetUnique(true).SetName("UniqueSubscriptionEmail"),
 	}
-	collection, err := mongoConnection.getCollection(ctx, databaseSubscription, collectionSeats)
+	collection, err := mongoDBConnection.getCollection(ctx, databaseSubscription, collectionSeats)
 	if err != nil {
 		return err
 	}
 	name, err := collection.Indexes().CreateOne(ctx, indexModel)
 	if err != nil {
-		mongoConnection.Log.Error("Error creating index for seats", zap.String("error", err.Error()))
+		mongoDBConnection.Log.Error("Error creating index for seats", zap.String("error", err.Error()))
 		return err
 	}
 
-	mongoConnection.Log.Info("Required index for collection " + collection.Name() + " is present. Index: " + name)
+	mongoDBConnection.Log.Info("Required index for collection " + collection.Name() + " is present. Index: " + name)
 	return nil
 }
 
-func (mongoConnection *MongoConnection) ensureSeatInvitationTokenIndex(ctx context.Context) error {
+func (mongoDBConnection *MongoDBConnection) ensureSeatInvitationTokenIndex(ctx context.Context) error {
 	indexModel := mongo.IndexModel{
 		Keys:    bson.D{{Key: "invitationTokenHash", Value: 1}},
 		Options: options.Index().SetUnique(true).SetSparse(true).SetName("UniqueSeatInvitationTokenHash"),
 	}
-	collection, err := mongoConnection.getCollection(ctx, databaseSubscription, collectionSeats)
+	collection, err := mongoDBConnection.getCollection(ctx, databaseSubscription, collectionSeats)
 	if err != nil {
 		return err
 	}
 	_, err = collection.Indexes().CreateOne(ctx, indexModel)
 	if err != nil {
-		mongoConnection.Log.Error("Error creating index for seat invitation tokens", zap.Error(err))
+		mongoDBConnection.Log.Error("Error creating index for seat invitation tokens", zap.Error(err))
 		return err
 	}
 	return nil
 }
 
-func (mongoConnection *MongoConnection) CreateSeat(ctx context.Context, seat Seat) error {
+func (mongoDBConnection *MongoDBConnection) CreateSeat(ctx context.Context, seat Seat) error {
 	if seat.Status == "" {
 		seat.Status = SeatStatusActive
 	}
@@ -58,28 +58,28 @@ func (mongoConnection *MongoConnection) CreateSeat(ctx context.Context, seat Sea
 	if err != nil {
 		return err
 	}
-	return mongoConnection.createDocument(ctx, databaseSubscription, collectionSeats, seat)
+	return mongoDBConnection.createDocument(ctx, databaseSubscription, collectionSeats, seat)
 }
 
-func (mongoConnection *MongoConnection) CreatePendingSeat(ctx context.Context, seat Seat) error {
+func (mongoDBConnection *MongoDBConnection) CreatePendingSeat(ctx context.Context, seat Seat) error {
 	if seat.SubscriptionID == "" || seat.EMail == "" || len(seat.Roles) == 0 || seat.InvitationTokenHash == "" || seat.InvitationExpiresAt == nil {
 		return errors.New("pending seat is incomplete")
 	}
 	seat.Status = SeatStatusPending
 	seat.UID = ""
 	seat.EMailVerified = nil
-	return mongoConnection.createDocument(ctx, databaseSubscription, collectionSeats, seat)
+	return mongoDBConnection.createDocument(ctx, databaseSubscription, collectionSeats, seat)
 }
 
-func (mongoConnection *MongoConnection) CountSeats(ctx context.Context, subscriptionID string) (int64, error) {
-	return mongoConnection.countDocuments(ctx, databaseSubscription, collectionSeats, bson.M{"subscriptionID": subscriptionID})
+func (mongoDBConnection *MongoDBConnection) CountSeats(ctx context.Context, subscriptionID string) (int64, error) {
+	return mongoDBConnection.countDocuments(ctx, databaseSubscription, collectionSeats, bson.M{"subscriptionID": subscriptionID})
 }
 
-func (mongoConnection *MongoConnection) GetAllSeats(ctx context.Context, subscriptionID string) ([]Seat, error) {
-	return mongoConnection.GetSeats(ctx, subscriptionID, 0, 0)
+func (mongoDBConnection *MongoDBConnection) GetAllSeats(ctx context.Context, subscriptionID string) ([]Seat, error) {
+	return mongoDBConnection.GetSeats(ctx, subscriptionID, 0, 0)
 }
 
-func (mongoConnection *MongoConnection) GetSeats(ctx context.Context, subscriptionID string, pageIndex int, pageSize int) ([]Seat, error) {
+func (mongoDBConnection *MongoDBConnection) GetSeats(ctx context.Context, subscriptionID string, pageIndex int, pageSize int) ([]Seat, error) {
 	if subscriptionID == "" {
 		return []Seat{}, errors.New("subscription ID is empty")
 	}
@@ -91,7 +91,7 @@ func (mongoConnection *MongoConnection) GetSeats(ctx context.Context, subscripti
 	opts.SetLimit(int64(pageSize))
 	opts.SetSkip(int64(pageIndex * pageSize))
 	opts.SetSort(bson.D{{Key: "email", Value: 1}})
-	err := mongoConnection.findDocuments(ctx, databaseSubscription, collectionSeats, filter, &seats, opts)
+	err := mongoDBConnection.findDocuments(ctx, databaseSubscription, collectionSeats, filter, &seats, opts)
 	if err != nil {
 		return []Seat{}, err
 	}
@@ -103,7 +103,7 @@ func (mongoConnection *MongoConnection) GetSeats(ctx context.Context, subscripti
 	return seats, nil
 }
 
-func (mongoConnection *MongoConnection) GetSeat(ctx context.Context, subscriptionID, uid string) (Seat, error) {
+func (mongoDBConnection *MongoDBConnection) GetSeat(ctx context.Context, subscriptionID, uid string) (Seat, error) {
 	if subscriptionID == "" {
 		return Seat{}, errors.New("subscription ID is empty")
 	}
@@ -114,9 +114,9 @@ func (mongoConnection *MongoConnection) GetSeat(ctx context.Context, subscriptio
 		"subscriptionID": subscriptionID,
 		"uid":            uid,
 	}
-	singleResult, err := mongoConnection.findOneDocument(ctx, databaseSubscription, collectionSeats, filter)
+	singleResult, err := mongoDBConnection.findOneDocument(ctx, databaseSubscription, collectionSeats, filter)
 	if err != nil {
-		mongoConnection.Log.Error("Error finding seat", zap.Error(err))
+		mongoDBConnection.Log.Error("Error finding seat", zap.Error(err))
 		return Seat{}, errors.New("error finding seat")
 	}
 	if singleResult == nil {
@@ -133,8 +133,8 @@ func (mongoConnection *MongoConnection) GetSeat(ctx context.Context, subscriptio
 	return seat, nil
 }
 
-func (mongoConnection *MongoConnection) GetSeatByEmail(ctx context.Context, subscriptionID, email string) (Seat, error) {
-	singleResult, err := mongoConnection.findOneDocument(ctx, databaseSubscription, collectionSeats, bson.M{
+func (mongoDBConnection *MongoDBConnection) GetSeatByEmail(ctx context.Context, subscriptionID, email string) (Seat, error) {
+	singleResult, err := mongoDBConnection.findOneDocument(ctx, databaseSubscription, collectionSeats, bson.M{
 		"subscriptionID": subscriptionID,
 		"email":          email,
 	})
@@ -154,8 +154,8 @@ func (mongoConnection *MongoConnection) GetSeatByEmail(ctx context.Context, subs
 	return seat, nil
 }
 
-func (mongoConnection *MongoConnection) GetSeatByInvitationTokenHash(ctx context.Context, tokenHash string) (Seat, error) {
-	singleResult, err := mongoConnection.findOneDocument(ctx, databaseSubscription, collectionSeats, bson.M{
+func (mongoDBConnection *MongoDBConnection) GetSeatByInvitationTokenHash(ctx context.Context, tokenHash string) (Seat, error) {
+	singleResult, err := mongoDBConnection.findOneDocument(ctx, databaseSubscription, collectionSeats, bson.M{
 		"invitationTokenHash": tokenHash,
 	})
 	if err != nil {
@@ -174,8 +174,8 @@ func (mongoConnection *MongoConnection) GetSeatByInvitationTokenHash(ctx context
 	return seat, nil
 }
 
-func (mongoConnection *MongoConnection) GetPendingSeatByInvitationTokenHash(ctx context.Context, tokenHash string, now time.Time) (Seat, error) {
-	singleResult, err := mongoConnection.findOneDocument(ctx, databaseSubscription, collectionSeats, bson.M{
+func (mongoDBConnection *MongoDBConnection) GetPendingSeatByInvitationTokenHash(ctx context.Context, tokenHash string, now time.Time) (Seat, error) {
+	singleResult, err := mongoDBConnection.findOneDocument(ctx, databaseSubscription, collectionSeats, bson.M{
 		"status":              SeatStatusPending,
 		"invitationTokenHash": tokenHash,
 		"invitationExpiresAt": bson.M{"$gt": now},
@@ -193,11 +193,11 @@ func (mongoConnection *MongoConnection) GetPendingSeatByInvitationTokenHash(ctx 
 	return seat, nil
 }
 
-func (mongoConnection *MongoConnection) BeginSeatClaim(ctx context.Context, tokenHash, email, uid string, authentikUserPK int64, now time.Time) (Seat, error) {
+func (mongoDBConnection *MongoDBConnection) BeginSeatClaim(ctx context.Context, tokenHash, email, uid string, authentikUserPK int64, now time.Time) (Seat, error) {
 	if uid == "" {
 		return Seat{}, errors.New("uid is empty")
 	}
-	collection, err := mongoConnection.getCollection(ctx, databaseSubscription, collectionSeats)
+	collection, err := mongoDBConnection.getCollection(ctx, databaseSubscription, collectionSeats)
 	if err != nil {
 		return Seat{}, err
 	}
@@ -225,8 +225,8 @@ func (mongoConnection *MongoConnection) BeginSeatClaim(ctx context.Context, toke
 	return seat, nil
 }
 
-func (mongoConnection *MongoConnection) CompleteSeatClaim(ctx context.Context, tokenHash, uid string) error {
-	collection, err := mongoConnection.getCollection(ctx, databaseSubscription, collectionSeats)
+func (mongoDBConnection *MongoDBConnection) CompleteSeatClaim(ctx context.Context, tokenHash, uid string) error {
+	collection, err := mongoDBConnection.getCollection(ctx, databaseSubscription, collectionSeats)
 	if err != nil {
 		return err
 	}
@@ -247,22 +247,22 @@ func (mongoConnection *MongoConnection) CompleteSeatClaim(ctx context.Context, t
 	return nil
 }
 
-func (mongoConnection *MongoConnection) DeletePendingSeat(ctx context.Context, subscriptionID, email string) error {
-	return mongoConnection.deleteDocument(ctx, databaseSubscription, collectionSeats, bson.M{
+func (mongoDBConnection *MongoDBConnection) DeletePendingSeat(ctx context.Context, subscriptionID, email string) error {
+	return mongoDBConnection.deleteDocument(ctx, databaseSubscription, collectionSeats, bson.M{
 		"subscriptionID": subscriptionID,
 		"email":          email,
 		"status":         SeatStatusPending,
 	})
 }
 
-func (mongoConnection *MongoConnection) DeletePendingSeatByInvitationTokenHash(ctx context.Context, tokenHash string) error {
-	return mongoConnection.deleteDocument(ctx, databaseSubscription, collectionSeats, bson.M{
+func (mongoDBConnection *MongoDBConnection) DeletePendingSeatByInvitationTokenHash(ctx context.Context, tokenHash string) error {
+	return mongoDBConnection.deleteDocument(ctx, databaseSubscription, collectionSeats, bson.M{
 		"status":              SeatStatusPending,
 		"invitationTokenHash": tokenHash,
 	})
 }
 
-func (mongoConnection *MongoConnection) GetOwnerSeat(ctx context.Context, subscriptionID string) (Seat, error) {
+func (mongoDBConnection *MongoDBConnection) GetOwnerSeat(ctx context.Context, subscriptionID string) (Seat, error) {
 	if subscriptionID == "" {
 		return Seat{}, errors.New("subscription ID is empty")
 	}
@@ -272,9 +272,9 @@ func (mongoConnection *MongoConnection) GetOwnerSeat(ctx context.Context, subscr
 			"$in": []string{string(RoleOwner)},
 		},
 	}
-	singleResult, err := mongoConnection.findOneDocument(ctx, databaseSubscription, collectionSeats, filter)
+	singleResult, err := mongoDBConnection.findOneDocument(ctx, databaseSubscription, collectionSeats, filter)
 	if err != nil {
-		mongoConnection.Log.Error("Error finding seat", zap.Error(err))
+		mongoDBConnection.Log.Error("Error finding seat", zap.Error(err))
 		return Seat{}, errors.New("error finding seat")
 	}
 	if singleResult == nil {
@@ -288,7 +288,7 @@ func (mongoConnection *MongoConnection) GetOwnerSeat(ctx context.Context, subscr
 	return seat, nil
 }
 
-func (mongoConnection *MongoConnection) UpdateSeat(ctx context.Context, seat Seat) error {
+func (mongoDBConnection *MongoDBConnection) UpdateSeat(ctx context.Context, seat Seat) error {
 	filter := bson.M{
 		"subscriptionID": seat.SubscriptionID,
 		"uid":            seat.UID,
@@ -305,13 +305,13 @@ func (mongoConnection *MongoConnection) UpdateSeat(ctx context.Context, seat Sea
 	if seat.Status == SeatStatusActive {
 		update["$set"].(bson.M)["status"] = SeatStatusActive
 	}
-	return mongoConnection.updateDocument(ctx, databaseSubscription, collectionSeats, filter, update)
+	return mongoDBConnection.updateDocument(ctx, databaseSubscription, collectionSeats, filter, update)
 }
 
-func (mongoConnection *MongoConnection) DeleteSeat(ctx context.Context, seat Seat) error {
+func (mongoDBConnection *MongoDBConnection) DeleteSeat(ctx context.Context, seat Seat) error {
 	filter := bson.M{
 		"subscriptionID": seat.SubscriptionID,
 		"uid":            seat.UID,
 	}
-	return mongoConnection.deleteDocument(ctx, databaseSubscription, collectionSeats, filter)
+	return mongoDBConnection.deleteDocument(ctx, databaseSubscription, collectionSeats, filter)
 }

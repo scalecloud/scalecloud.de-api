@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/scalecloud/scalecloud.de-api/authmanager"
-	"github.com/scalecloud/scalecloud.de-api/mongomanager"
+	"github.com/scalecloud/scalecloud.de-api/mongodbmanager"
 	"github.com/stripe/stripe-go/v87"
 	"go.uber.org/zap"
 )
@@ -12,16 +12,16 @@ import (
 func TestIsSeatUpdateOwnerTransfer(t *testing.T) {
 	tests := []struct {
 		name  string
-		roles []mongomanager.Role
+		roles []mongodbmanager.Role
 		want  bool
 	}{
-		{name: "owner role", roles: []mongomanager.Role{mongomanager.RoleOwner}, want: true},
-		{name: "administrator role", roles: []mongomanager.Role{mongomanager.RoleAdministrator}},
+		{name: "owner role", roles: []mongodbmanager.Role{mongodbmanager.RoleOwner}, want: true},
+		{name: "administrator role", roles: []mongodbmanager.Role{mongodbmanager.RoleAdministrator}},
 		{name: "no roles"},
 	}
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			seat := mongomanager.Seat{Roles: testCase.roles}
+			seat := mongodbmanager.Seat{Roles: testCase.roles}
 			if got := isSeatUpdateOwnerTransfer(seat); got != testCase.want {
 				t.Fatalf("isSeatUpdateOwnerTransfer() = %t, want %t", got, testCase.want)
 			}
@@ -30,7 +30,7 @@ func TestIsSeatUpdateOwnerTransfer(t *testing.T) {
 }
 
 func TestHasOwnerTriggeredOwnerTransfer(t *testing.T) {
-	ownerSeat := mongomanager.Seat{UID: "owner-uid"}
+	ownerSeat := mongodbmanager.Seat{UID: "owner-uid"}
 	tests := []struct {
 		name    string
 		uid     string
@@ -54,17 +54,17 @@ func TestIsOwnerSeatUpdate(t *testing.T) {
 		name       string
 		ownerUID   string
 		requestUID string
-		roles      []mongomanager.Role
+		roles      []mongodbmanager.Role
 		want       bool
 	}{
-		{name: "same owner", ownerUID: "owner", requestUID: "owner", roles: []mongomanager.Role{mongomanager.RoleOwner}, want: true},
-		{name: "different user", ownerUID: "owner", requestUID: "other", roles: []mongomanager.Role{mongomanager.RoleOwner}},
-		{name: "owner role removed", ownerUID: "owner", requestUID: "owner", roles: []mongomanager.Role{mongomanager.RoleUser}},
+		{name: "same owner", ownerUID: "owner", requestUID: "owner", roles: []mongodbmanager.Role{mongodbmanager.RoleOwner}, want: true},
+		{name: "different user", ownerUID: "owner", requestUID: "other", roles: []mongodbmanager.Role{mongodbmanager.RoleOwner}},
+		{name: "owner role removed", ownerUID: "owner", requestUID: "owner", roles: []mongodbmanager.Role{mongodbmanager.RoleUser}},
 	}
 	for _, testCase := range tests {
 		t.Run(testCase.name, func(t *testing.T) {
-			owner := mongomanager.Seat{UID: testCase.ownerUID}
-			request := mongomanager.Seat{UID: testCase.requestUID, Roles: testCase.roles}
+			owner := mongodbmanager.Seat{UID: testCase.ownerUID}
+			request := mongodbmanager.Seat{UID: testCase.requestUID, Roles: testCase.roles}
 			if got := isOwnerSeatUpdate(owner, request); got != testCase.want {
 				t.Fatalf("isOwnerSeatUpdate() = %t, want %t", got, testCase.want)
 			}

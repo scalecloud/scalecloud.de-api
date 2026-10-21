@@ -1,4 +1,4 @@
-package mongomanager
+package mongodbmanager
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
-type MongoConnection struct {
+type MongoDBConnection struct {
 	Client                  *mongo.Client
 	Log                     *zap.Logger
 	indexesMu               sync.Mutex
@@ -19,20 +19,20 @@ type MongoConnection struct {
 	stripeUserUIDIndexReady atomic.Bool
 }
 
-func InitMongoConnection(ctx context.Context, log *zap.Logger) (*MongoConnection, error) {
-	log.Info("Init MongoManager")
+func InitMongoDBConnection(ctx context.Context, log *zap.Logger) (*MongoDBConnection, error) {
+	log.Info("Initialize MongoDB connection")
 	client, err := getClient(ctx)
 	if err != nil {
 		return nil, err
 	}
-	mongoManager := &MongoConnection{
-		Log:    log.Named("mongomanager"),
+	mongoDBConnection := &MongoDBConnection{
+		Log:    log.Named("mongodbmanager"),
 		Client: client,
 	}
-	return mongoManager, nil
+	return mongoDBConnection, nil
 }
 
-func CheckMongoConfig(log *zap.Logger) error {
+func CheckMongoDBConfig(log *zap.Logger) error {
 	log.Info("Checking MongoDB configuration")
 	if _, err := getConnectionString(); err != nil {
 		return err
@@ -44,8 +44,8 @@ func CheckMongoConfig(log *zap.Logger) error {
 	return nil
 }
 
-func (mongoConnection *MongoConnection) CheckMongoConnectability(ctx context.Context) error {
-	users, err := mongoConnection.getCollection(ctx, databaseStripe, collectionUsers)
+func (mongoDBConnection *MongoDBConnection) CheckMongoDBConnectability(ctx context.Context) error {
+	users, err := mongoDBConnection.getCollection(ctx, databaseStripe, collectionUsers)
 	if err != nil {
 		return err
 	}
@@ -53,32 +53,32 @@ func (mongoConnection *MongoConnection) CheckMongoConnectability(ctx context.Con
 	if err != nil {
 		return errors.New("Error counting documents: " + err.Error())
 	} else if usersCount == 0 {
-		mongoConnection.Log.Warn("Users collection is empty.")
+		mongoDBConnection.Log.Warn("Users collection is empty.")
 	} else {
-		mongoConnection.Log.Info("Users count: ", zap.Any("count", usersCount))
+		mongoDBConnection.Log.Info("Users count: ", zap.Any("count", usersCount))
 	}
 	return nil
 }
 
-func (mongoConnection *MongoConnection) CheckHealth(ctx context.Context) error {
-	if err := mongoConnection.CheckDatabaseAndCollectionExists(ctx); err != nil {
+func (mongoDBConnection *MongoDBConnection) CheckHealth(ctx context.Context) error {
+	if err := mongoDBConnection.CheckDatabaseAndCollectionExists(ctx); err != nil {
 		return err
 	}
 
-	mongoConnection.indexesMu.Lock()
-	defer mongoConnection.indexesMu.Unlock()
-	if !mongoConnection.indexesReady {
-		if err := mongoConnection.EnsureIndexes(ctx); err != nil {
+	mongoDBConnection.indexesMu.Lock()
+	defer mongoDBConnection.indexesMu.Unlock()
+	if !mongoDBConnection.indexesReady {
+		if err := mongoDBConnection.EnsureIndexes(ctx); err != nil {
 			return err
 		}
-		mongoConnection.indexesReady = true
+		mongoDBConnection.indexesReady = true
 	}
 	return nil
 }
 
-func (mongoConnection *MongoConnection) CheckDatabaseAndCollectionExists(ctx context.Context) error {
+func (mongoDBConnection *MongoDBConnection) CheckDatabaseAndCollectionExists(ctx context.Context) error {
 	for dbName, collections := range databases {
-		err := mongoConnection.ensureCollectionsExist(ctx, dbName, collections)
+		err := mongoDBConnection.ensureCollectionsExist(ctx, dbName, collections)
 		if err != nil {
 			return err
 		}
@@ -86,8 +86,8 @@ func (mongoConnection *MongoConnection) CheckDatabaseAndCollectionExists(ctx con
 	return nil
 }
 
-func (mongoConnection *MongoConnection) ensureCollectionsExist(ctx context.Context, dbName string, collectionNames []string) error {
-	database := mongoConnection.Client.Database(dbName)
+func (mongoDBConnection *MongoDBConnection) ensureCollectionsExist(ctx context.Context, dbName string, collectionNames []string) error {
+	database := mongoDBConnection.Client.Database(dbName)
 	existingCollections, err := database.ListCollectionNames(ctx, bson.M{})
 	if err != nil {
 		return errors.New("Failed to get collection names: " + err.Error())

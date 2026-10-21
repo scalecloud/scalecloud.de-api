@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/scalecloud/scalecloud.de-api/mongomanager"
+	"github.com/scalecloud/scalecloud.de-api/mongodbmanager"
 	"github.com/stripe/stripe-go/v87"
 	"github.com/stripe/stripe-go/v87/customer"
 )
@@ -36,10 +36,10 @@ func GetCustomerByID(ctx context.Context, customerID string) (customerDetails *s
 }
 
 func (paymentHandler *PaymentHandler) existsCustomerByUID(ctx context.Context, uid string) (bool, error) {
-	filter := mongomanager.User{
+	filter := mongodbmanager.User{
 		UID: uid,
 	}
-	userSearch, err := paymentHandler.MongoConnection.GetUser(ctx, filter)
+	userSearch, err := paymentHandler.MongoDBConnection.GetUser(ctx, filter)
 	if err != nil {
 		return false, err
 	}
@@ -51,10 +51,10 @@ func (paymentHandler *PaymentHandler) existsCustomerByUID(ctx context.Context, u
 }
 
 func (paymentHandler *PaymentHandler) GetCustomerIDByUID(ctx context.Context, uid string) (string, error) {
-	filter := mongomanager.User{
+	filter := mongodbmanager.User{
 		UID: uid,
 	}
-	userSearch, err := paymentHandler.MongoConnection.GetUser(ctx, filter)
+	userSearch, err := paymentHandler.MongoDBConnection.GetUser(ctx, filter)
 	if err != nil {
 		return "", err
 	}
@@ -94,11 +94,11 @@ func stripeCustomerIdempotencyKey(uid string) string {
 }
 
 func (paymentHandler *PaymentHandler) getOrCreateCustomer(ctx context.Context, email, uid string) (string, error) {
-	return getOrCreateStripeCustomer(ctx, paymentHandler.MongoConnection, paymentHandler.StripeConnection, email, uid)
+	return getOrCreateStripeCustomer(ctx, paymentHandler.MongoDBConnection, paymentHandler.StripeConnection, email, uid)
 }
 
 type stripeCustomerMappingStore interface {
-	GetUser(context.Context, mongomanager.User) (mongomanager.User, error)
+	GetUser(context.Context, mongodbmanager.User) (mongodbmanager.User, error)
 	EnsureUser(context.Context, string) error
 	ClaimUserProvisioning(context.Context, string, string, time.Time, time.Time) (bool, error)
 	SetUserCustomerID(context.Context, string, string, string) error
@@ -120,7 +120,7 @@ func getOrCreateStripeCustomer(ctx context.Context, store stripeCustomerMappingS
 		return "", errors.New("user UID is required")
 	}
 
-	user, err := store.GetUser(ctx, mongomanager.User{UID: uid})
+	user, err := store.GetUser(ctx, mongodbmanager.User{UID: uid})
 	if err == nil && user.CustomerID != "" {
 		return user.CustomerID, nil
 	}
@@ -138,7 +138,7 @@ func getOrCreateStripeCustomer(ctx context.Context, store stripeCustomerMappingS
 	ticker := time.NewTicker(customerProvisioningPollInterval)
 	defer ticker.Stop()
 	for {
-		user, err = store.GetUser(ctx, mongomanager.User{UID: uid})
+		user, err = store.GetUser(ctx, mongodbmanager.User{UID: uid})
 		if err != nil {
 			return "", fmt.Errorf("look up Stripe customer mapping: %w", err)
 		}
@@ -183,7 +183,7 @@ func createStripeCustomerUnderLease(ctx context.Context, store stripeCustomerMap
 	}
 
 	if err := store.SetUserCustomerID(ctx, uid, token, stripeCustomer.ID); err != nil {
-		if existingUser, lookupErr := store.GetUser(ctx, mongomanager.User{UID: uid}); lookupErr == nil && existingUser.CustomerID != "" {
+		if existingUser, lookupErr := store.GetUser(ctx, mongodbmanager.User{UID: uid}); lookupErr == nil && existingUser.CustomerID != "" {
 			return existingUser.CustomerID, nil
 		}
 		return "", releaseCustomerLease(ctx, store, uid, token, fmt.Errorf("save Stripe customer mapping: %w", err))

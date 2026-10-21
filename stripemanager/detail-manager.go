@@ -6,13 +6,13 @@ import (
 	"strconv"
 
 	"github.com/scalecloud/scalecloud.de-api/authmanager"
-	"github.com/scalecloud/scalecloud.de-api/mongomanager"
+	"github.com/scalecloud/scalecloud.de-api/mongodbmanager"
 	"github.com/stripe/stripe-go/v87"
 	"go.uber.org/zap"
 )
 
 func (paymentHandler *PaymentHandler) GetSubscriptionDetailByID(c context.Context, tokenDetails authmanager.TokenDetails, subscriptionID string) (SubscriptionDetailReply, error) {
-	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, subscriptionID, []mongomanager.Role{mongomanager.RoleBilling, mongomanager.RoleUser, mongomanager.RoleAdministrator})
+	err := paymentHandler.MongoDBConnection.HasPermission(c, tokenDetails, subscriptionID, []mongodbmanager.Role{mongodbmanager.RoleBilling, mongodbmanager.RoleUser, mongodbmanager.RoleAdministrator})
 	if err != nil {
 		return SubscriptionDetailReply{}, err
 	}
@@ -30,7 +30,7 @@ func (paymentHandler *PaymentHandler) GetSubscriptionDetailByID(c context.Contex
 }
 
 func (paymentHandler *PaymentHandler) GetCancelState(c context.Context, tokenDetails authmanager.TokenDetails, subscriptionID string) (CancelStateReply, error) {
-	err := paymentHandler.MongoConnection.HasPermission(c, tokenDetails, subscriptionID, []mongomanager.Role{mongomanager.RoleAdministrator})
+	err := paymentHandler.MongoDBConnection.HasPermission(c, tokenDetails, subscriptionID, []mongodbmanager.Role{mongodbmanager.RoleAdministrator})
 	if err != nil {
 		return CancelStateReply{}, err
 	}

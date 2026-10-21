@@ -1,4 +1,4 @@
-package mongomanager
+package mongodbmanager
 
 import (
 	"context"
@@ -7,15 +7,15 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
-func (mongoConnection *MongoConnection) CreateTrial(ctx context.Context, trial Trial) error {
+func (mongoDBConnection *MongoDBConnection) CreateTrial(ctx context.Context, trial Trial) error {
 	err := ValidateStruct(trial)
 	if err != nil {
 		return err
 	}
-	return mongoConnection.createDocument(ctx, databaseProduct, collectionTrial, trial)
+	return mongoDBConnection.createDocument(ctx, databaseProduct, collectionTrial, trial)
 }
 
-func (mongoConnection *MongoConnection) GetTrial(ctx context.Context, trialFilter TrialFilter) (Trial, error) {
+func (mongoDBConnection *MongoDBConnection) GetTrial(ctx context.Context, trialFilter TrialFilter) (Trial, error) {
 	err := ValidateStruct(trialFilter)
 	if err != nil {
 		return Trial{}, err
@@ -29,7 +29,7 @@ func (mongoConnection *MongoConnection) GetTrial(ctx context.Context, trialFilte
 			{"paymentSEPAFingerprint": trialFilter.PaymentSEPAFingerprint},
 		},
 	}
-	singleResult, err := mongoConnection.findOneDocument(ctx, databaseProduct, collectionTrial, filter)
+	singleResult, err := mongoDBConnection.findOneDocument(ctx, databaseProduct, collectionTrial, filter)
 	if err != nil {
 		return Trial{}, err
 	}

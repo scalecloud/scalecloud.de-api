@@ -1,4 +1,4 @@
-package mongomanager
+package mongodbmanager
 
 type Trial struct {
 	SubscriptionID         string `bson:"subscriptionID" validate:"required" index:"unique"`

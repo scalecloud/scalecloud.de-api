@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/scalecloud/scalecloud.de-api/mongomanager"
+	"github.com/scalecloud/scalecloud.de-api/mongodbmanager"
 	"github.com/scalecloud/scalecloud.de-api/stripemanager"
 	"github.com/stripe/stripe-go/v87"
 	"github.com/stripe/stripe-go/v87/subscription"
@@ -249,7 +249,7 @@ func (api *Api) handleAddingTrialUsed(c context.Context, event stripe.Event) err
 	if paymentMethod.SEPADebit != nil {
 		sepaDebitFingerprint = paymentMethod.SEPADebit.Fingerprint
 	}
-	trial := mongomanager.Trial{
+	trial := mongodbmanager.Trial{
 		SubscriptionID:         sub.ID,
 		ProductType:            productType,
 		CustomerID:             cus.ID,
@@ -257,7 +257,7 @@ func (api *Api) handleAddingTrialUsed(c context.Context, event stripe.Event) err
 		PaymentPayPalEMail:     paypalPayerEmail,
 		PaymentSEPAFingerprint: sepaDebitFingerprint,
 	}
-	err = api.paymentHandler.MongoConnection.CreateTrial(c, trial)
+	err = api.paymentHandler.MongoDBConnection.CreateTrial(c, trial)
 	if err != nil {
 		return err
 	}
@@ -303,7 +303,7 @@ func (api *Api) removeStripeUser(c context.Context, customerID string) error {
 			return nil
 		}
 	}
-	err := api.paymentHandler.MongoConnection.DeleteUser(c, customerID)
+	err := api.paymentHandler.MongoDBConnection.DeleteUser(c, customerID)
 	if err != nil {
 		return err
 	}
@@ -312,17 +312,17 @@ func (api *Api) removeStripeUser(c context.Context, customerID string) error {
 }
 
 func (api *Api) removeSubscriptionSeats(c context.Context, subscriptionID string) error {
-	seats, err := api.paymentHandler.MongoConnection.GetAllSeats(c, subscriptionID)
+	seats, err := api.paymentHandler.MongoDBConnection.GetAllSeats(c, subscriptionID)
 	if err != nil {
 		return err
 	}
 	for _, seat := range seats {
-		if seat.Status == mongomanager.SeatStatusPending {
-			err = api.paymentHandler.MongoConnection.DeletePendingSeat(c, seat.SubscriptionID, seat.EMail)
+		if seat.Status == mongodbmanager.SeatStatusPending {
+			err = api.paymentHandler.MongoDBConnection.DeletePendingSeat(c, seat.SubscriptionID, seat.EMail)
 		} else {
 			err = api.paymentHandler.RemoveSeatFromSubscriptionGroup(c, seat)
 			if err == nil {
-				err = api.paymentHandler.MongoConnection.DeleteSeat(c, seat)
+				err = api.paymentHandler.MongoDBConnection.DeleteSeat(c, seat)
 			}
 		}
 		if err != nil {

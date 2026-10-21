@@ -1,4 +1,4 @@
-package mongomanager
+package mongodbmanager
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 )
 
 func TestSeatClaimStateTransitions(t *testing.T) {
-	connection, ctx := newTestMongoConnection(t)
+	connection, ctx := newTestMongoDBConnection(t)
 	subscriptionID := fmt.Sprintf("claim-state-test-%d", time.Now().UnixNano())
 	tokenHash := fmt.Sprintf("claim-token-%d", time.Now().UnixNano())
 	expiresAt := time.Now().UTC().Add(time.Hour)
@@ -79,7 +79,7 @@ func TestSeatClaimStateTransitions(t *testing.T) {
 }
 
 func TestBeginSeatClaimRejectsExpiredInvitation(t *testing.T) {
-	connection, ctx := newTestMongoConnection(t)
+	connection, ctx := newTestMongoDBConnection(t)
 	subscriptionID := fmt.Sprintf("expired-claim-test-%d", time.Now().UnixNano())
 	tokenHash := fmt.Sprintf("expired-token-%d", time.Now().UnixNano())
 	expiresAt := time.Now().UTC().Add(-time.Minute)

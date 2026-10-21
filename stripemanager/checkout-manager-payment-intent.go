@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/scalecloud/scalecloud.de-api/authmanager"
-	"github.com/scalecloud/scalecloud.de-api/mongomanager"
+	"github.com/scalecloud/scalecloud.de-api/mongodbmanager"
 	"github.com/stripe/stripe-go/v87"
 	"github.com/stripe/stripe-go/v87/subscription"
 	"go.uber.org/zap"
@@ -89,17 +89,17 @@ func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Conte
 
 func createSeat(c context.Context, sub *stripe.Subscription, tokenDetails authmanager.TokenDetails, paymentHandler *PaymentHandler) error {
 	emailVerified := tokenDetails.EmailVerified
-	seat := mongomanager.Seat{
+	seat := mongodbmanager.Seat{
 		SubscriptionID: sub.ID,
 		UID:            tokenDetails.UID,
 		EMail:          tokenDetails.EMail,
 		EMailVerified:  &emailVerified,
-		Status:         mongomanager.SeatStatusActive,
-		Roles: []mongomanager.Role{
-			mongomanager.RoleOwner,
-			mongomanager.RoleAdministrator,
-			mongomanager.RoleUser,
-			mongomanager.RoleBilling,
+		Status:         mongodbmanager.SeatStatusActive,
+		Roles: []mongodbmanager.Role{
+			mongodbmanager.RoleOwner,
+			mongodbmanager.RoleAdministrator,
+			mongodbmanager.RoleUser,
+			mongodbmanager.RoleBilling,
 		},
 	}
 	user, err := paymentHandler.AuthentikConnection.FindUserByEmail(c, seat.EMail)
@@ -116,7 +116,7 @@ func createSeat(c context.Context, sub *stripe.Subscription, tokenDetails authma
 	if err := paymentHandler.AuthentikConnection.AddUserPKToSubscription(c, sub.ID, user.PK); err != nil {
 		return err
 	}
-	if err := paymentHandler.MongoConnection.CreateSeat(c, seat); err != nil {
+	if err := paymentHandler.MongoDBConnection.CreateSeat(c, seat); err != nil {
 		if removeErr := paymentHandler.AuthentikConnection.RemoveUserFromSubscription(c, sub.ID, user.PK); removeErr != nil {
 			paymentHandler.Log.Error("Could not roll back owner group membership after seat creation failed", zap.Error(removeErr))
 		}
