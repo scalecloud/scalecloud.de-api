@@ -25,7 +25,7 @@ func (api *Api) previewSeatInvitation(c *gin.Context) {
 		return
 	}
 	if err != nil {
-		api.log.Error("Could not load invitation preview", zap.Error(err))
+		api.log.Error("Could not load invitation preview", zap.String("route", c.FullPath()), zap.Error(err))
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "invitation preview is temporarily unavailable"})
 		return
 	}
@@ -49,7 +49,7 @@ func (api *Api) claimSeatInvitation(c *gin.Context) {
 	case errors.Is(err, stripemanager.ErrInvitationEmailMismatch), errors.Is(err, stripemanager.ErrInvitationEmailUnverified):
 		c.JSON(http.StatusForbidden, gin.H{"error": "signed-in account cannot claim this invitation"})
 	case err != nil:
-		api.log.Error("Could not claim seat invitation", zap.Error(err))
+		api.log.Error("Could not claim seat invitation", zap.String("route", c.FullPath()), zap.Error(err))
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": "invitation claim is temporarily unavailable; retry"})
 	default:
 		c.JSON(http.StatusOK, reply)

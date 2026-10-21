@@ -20,7 +20,6 @@ func (api *Api) StripeRequired(c *gin.Context) {
 
 	token, hasAuth := getStripeToken(c)
 	if hasAuth && token != "" {
-		api.log.Debug("Has Stripe Signature", zap.String("token:", token))
 		c.Next()
 	} else {
 		api.log.Warn("Unauthorized")
@@ -53,13 +52,13 @@ func (api *Api) handleStripeWebhook(c *gin.Context) {
 	}
 	payload, err := c.GetRawData()
 	if err != nil {
-		api.log.Error("Error getting raw data", zap.Error(err))
+		api.log.Warn("Could not read Stripe webhook request")
 		c.SecureJSON(http.StatusBadRequest, gin.H{"message": "Error getting raw data"})
 		return
 	}
 	event, err := webhook.ConstructEvent(payload, c.Request.Header.Get("Stripe-Signature"), endpointSecret)
 	if err != nil {
-		api.log.Error("Signature verification failed", zap.Error(err))
+		api.log.Warn("Stripe webhook signature verification failed")
 		c.SecureJSON(http.StatusUnauthorized, gin.H{"message": "Signature verification failed"})
 		return
 	}
@@ -67,35 +66,35 @@ func (api *Api) handleStripeWebhook(c *gin.Context) {
 	case "payment_method.attached":
 		err := api.handlePaymentMethodAttached(c, event)
 		if err != nil {
-			api.log.Error("Error handling payment_method.attached", zap.Error(err))
+			api.log.Error("Could not handle payment method attached webhook", zap.String("event_type", string(event.Type)), zap.Error(err))
 			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
 		}
 	case "setup_intent.created":
 		err := api.handleSetupIntentCreated(c, event)
 		if err != nil {
-			api.log.Error("Error handling setup_intent.created", zap.Error(err))
+			api.log.Error("Could not handle setup intent created webhook", zap.String("event_type", string(event.Type)), zap.Error(err))
 			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
 		}
 	case "setup_intent.succeeded":
 		err := api.handleSetupIntentSucceeded(c, event)
 		if err != nil {
-			api.log.Error("Error handling setup_intent.succeeded", zap.Error(err))
+			api.log.Error("Could not handle setup intent succeeded webhook", zap.String("event_type", string(event.Type)), zap.Error(err))
 			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
 		}
 	case "customer.subscription.created":
 		err := api.handleCustomerSubscriptionCreated(c, event)
 		if err != nil {
-			api.log.Error("Error handling customer.subscription.created", zap.Error(err))
+			api.log.Error("Could not handle subscription created webhook", zap.String("event_type", string(event.Type)), zap.Error(err))
 			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
 		}
 	case "customer.subscription.deleted":
 		err := api.handleCustomerSubscriptionDeleted(c, event)
 		if err != nil {
-			api.log.Error("Error handling customer.subscription.deleted", zap.Error(err))
+			api.log.Error("Could not handle subscription deleted webhook", zap.String("event_type", string(event.Type)), zap.Error(err))
 			c.SecureJSON(http.StatusInternalServerError, gin.H{"message": err})
 		}
 	default:
-		api.log.Warn("Unhandled event type", zap.Any("Unhandled event type", event.Type))
+		api.log.Warn("Unhandled Stripe webhook event", zap.String("event_type", string(event.Type)))
 		c.SecureJSON(http.StatusNotImplemented, gin.H{"message": "Unhandled event type"})
 	}
 	api.log.Info("Handled webhook", zap.Any("Handled webhook", event.Type))
