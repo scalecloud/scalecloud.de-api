@@ -192,7 +192,7 @@ func claimSeatInvitation(ctx context.Context, token string, tokenDetails authman
 	email := normalizeInvitationEmail(tokenDetails.EMail)
 	tokenHash := hashSeatInvitationToken(token)
 	seat, err := dependencies.store.GetSeatByInvitationTokenHash(ctx, tokenHash)
-	if err != nil {
+	if err != nil || seat.SubscriptionID == "" {
 		return SeatInvitationClaimReply{}, ErrInvitationUnavailable
 	}
 	if normalizeInvitationEmail(seat.EMail) != email {

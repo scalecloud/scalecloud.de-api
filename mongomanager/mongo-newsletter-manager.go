@@ -73,12 +73,11 @@ func (mongoConnection *MongoConnection) GetNewsletterSubscriber(ctx context.Cont
 	}
 	singleResult, err := mongoConnection.findOneDocument(ctx, databaseNewsletters, collectionSubscribers, filter)
 	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return NewsletterSubscriber{}, nil
-		} else {
-			mongoConnection.Log.Error("Error finding document", zap.Error(err))
-			return NewsletterSubscriber{}, errors.New("error finding newsletter subscriber")
-		}
+		mongoConnection.Log.Error("Error finding document", zap.Error(err))
+		return NewsletterSubscriber{}, errors.New("error finding newsletter subscriber")
+	}
+	if singleResult == nil {
+		return NewsletterSubscriber{}, nil
 	}
 	var newsletterSubscriber NewsletterSubscriber
 	decodeErr := singleResult.Decode(&newsletterSubscriber)
@@ -101,6 +100,9 @@ func (mongoConnection *MongoConnection) GetNewsletterSubscriberByVerificationTok
 		mongoConnection.Log.Error("Error finding document", zap.Error(err))
 		return NewsletterSubscriber{}, errors.New("error finding newsletter subscriber")
 	}
+	if singleResult == nil {
+		return NewsletterSubscriber{}, nil
+	}
 	var newsletterSubscriber NewsletterSubscriber
 	decodeErr := singleResult.Decode(&newsletterSubscriber)
 	if decodeErr != nil {
@@ -119,6 +121,9 @@ func (mongoConnection *MongoConnection) GetNewsletterSubscriberByUnsubscribeToke
 	singleResult, err := mongoConnection.findOneDocument(ctx, databaseNewsletters, collectionSubscribers, filter)
 	if err != nil {
 		mongoConnection.Log.Error("Error finding document", zap.Error(err))
+		return NewsletterSubscriber{}, errors.New("error finding newsletter subscriber")
+	}
+	if singleResult == nil {
 		return NewsletterSubscriber{}, nil
 	}
 	var newsletterSubscriber NewsletterSubscriber

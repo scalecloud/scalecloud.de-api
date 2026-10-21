@@ -145,9 +145,10 @@ func (mongoConnection *MongoConnection) findOneDocument(ctx context.Context, dat
 	singleResult := collection.FindOne(ctx, filter)
 	if singleResult.Err() != nil {
 		resultErr := singleResult.Err()
-		if !errors.Is(resultErr, mongo.ErrNoDocuments) {
-			mongoConnection.Log.Error("Error finding document", zap.Error(resultErr))
+		if errors.Is(resultErr, mongo.ErrNoDocuments) {
+			return nil, nil
 		}
+		mongoConnection.Log.Error("Error finding document", zap.Error(resultErr))
 		return nil, resultErr
 	}
 	return singleResult, nil

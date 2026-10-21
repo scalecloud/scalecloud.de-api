@@ -66,8 +66,12 @@ func TestSeatClaimStateTransitions(t *testing.T) {
 	if activeSeat.Status != SeatStatusActive || activeSeat.AuthentikUserPK != 42 {
 		t.Fatalf("unexpected active seat state: %+v", activeSeat)
 	}
-	if _, err := connection.GetSeatByInvitationTokenHash(ctx, tokenHash); !errors.Is(err, mongo.ErrNoDocuments) {
-		t.Fatalf("completed claim retained its token hash: error = %v, want ErrNoDocuments", err)
+	missingSeat, err := connection.GetSeatByInvitationTokenHash(ctx, tokenHash)
+	if err != nil {
+		t.Fatalf("lookup completed invitation token: %v", err)
+	}
+	if missingSeat.SubscriptionID != "" {
+		t.Fatalf("completed claim retained its token hash: seat = %+v", missingSeat)
 	}
 	if err := connection.CompleteSeatClaim(ctx, tokenHash, "user-123"); err == nil {
 		t.Fatal("CompleteSeatClaim() allowed replay after activation")

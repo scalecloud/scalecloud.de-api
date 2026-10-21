@@ -70,6 +70,9 @@ func (paymentHandler *PaymentHandler) GetSubscriptionSeatDetail(c context.Contex
 	if err != nil {
 		return SeatDetailReply{}, err
 	}
+	if selectedSeat.SubscriptionID == "" {
+		return SeatDetailReply{}, errors.New("seat not found")
+	}
 	mySeat, err := paymentHandler.MongoConnection.GetSeat(c, request.SubscriptionID, tokenDetails.UID)
 	if err != nil {
 		return SeatDetailReply{}, err
@@ -97,6 +100,9 @@ func (paymentHandler *PaymentHandler) GetSubscriptionUpdateSeat(c context.Contex
 	updatedSeat, err := paymentHandler.MongoConnection.GetSeat(c, request.SeatUpdated.SubscriptionID, request.SeatUpdated.UID)
 	if err != nil {
 		return UpdateSeatDetailReply{}, err
+	}
+	if updatedSeat.SubscriptionID == "" {
+		return UpdateSeatDetailReply{}, errors.New("seat not found")
 	}
 	reply := UpdateSeatDetailReply{
 		Seat: updatedSeat,
@@ -173,6 +179,9 @@ func (paymentHandler *PaymentHandler) GetSubscriptionRemoveSeat(c context.Contex
 	}
 	if err != nil {
 		return DeleteSeatReply{}, err
+	}
+	if seatToRemove.SubscriptionID == "" {
+		return DeleteSeatReply{}, errors.New("seat not found")
 	}
 	if mongomanager.ContainsRole(seatToRemove, []mongomanager.Role{mongomanager.RoleOwner}) {
 		return DeleteSeatReply{}, errors.New("cannot remove owner")

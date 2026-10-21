@@ -285,7 +285,7 @@ func (store *fakeCustomerMappingStore) GetUser(_ context.Context, filter mongoma
 	}
 	user, exists := store.users[filter.UID]
 	if !exists {
-		return mongomanager.User{}, mongo.ErrNoDocuments
+		return mongomanager.User{}, nil
 	}
 	return user, nil
 }

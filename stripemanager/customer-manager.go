@@ -12,7 +12,6 @@ import (
 	"github.com/scalecloud/scalecloud.de-api/mongomanager"
 	"github.com/stripe/stripe-go/v87"
 	"github.com/stripe/stripe-go/v87/customer"
-	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 func (paymentHandler *PaymentHandler) GetCustomerByUID(ctx context.Context, uid string) (customerDetails *stripe.Customer, err error) {
@@ -42,14 +41,11 @@ func (paymentHandler *PaymentHandler) existsCustomerByUID(ctx context.Context, u
 	}
 	userSearch, err := paymentHandler.MongoConnection.GetUser(ctx, filter)
 	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return false, nil
-		}
 		return false, err
 	}
 	customerID := userSearch.CustomerID
 	if customerID == "" {
-		return false, errors.New("customer ID is empty")
+		return false, nil
 	}
 	return true, nil
 }
@@ -128,10 +124,10 @@ func getOrCreateStripeCustomer(ctx context.Context, store stripeCustomerMappingS
 	if err == nil && user.CustomerID != "" {
 		return user.CustomerID, nil
 	}
-	if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+	if err != nil {
 		return "", fmt.Errorf("look up Stripe customer mapping: %w", err)
 	}
-	if errors.Is(err, mongo.ErrNoDocuments) {
+	if user.UID == "" {
 		if err := store.EnsureUser(ctx, uid); err != nil {
 			return "", fmt.Errorf("create Stripe customer placeholder: %w", err)
 		}

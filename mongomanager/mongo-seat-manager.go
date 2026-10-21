@@ -119,6 +119,9 @@ func (mongoConnection *MongoConnection) GetSeat(ctx context.Context, subscriptio
 		mongoConnection.Log.Error("Error finding seat", zap.Error(err))
 		return Seat{}, errors.New("error finding seat")
 	}
+	if singleResult == nil {
+		return Seat{}, nil
+	}
 	var seat Seat
 	decodeErr := singleResult.Decode(&seat)
 	if decodeErr != nil {
@@ -138,6 +141,9 @@ func (mongoConnection *MongoConnection) GetSeatByEmail(ctx context.Context, subs
 	if err != nil {
 		return Seat{}, err
 	}
+	if singleResult == nil {
+		return Seat{}, nil
+	}
 	var seat Seat
 	if err := singleResult.Decode(&seat); err != nil {
 		return Seat{}, err
@@ -154,6 +160,9 @@ func (mongoConnection *MongoConnection) GetSeatByInvitationTokenHash(ctx context
 	})
 	if err != nil {
 		return Seat{}, err
+	}
+	if singleResult == nil {
+		return Seat{}, nil
 	}
 	var seat Seat
 	if err := singleResult.Decode(&seat); err != nil {
@@ -173,6 +182,9 @@ func (mongoConnection *MongoConnection) GetPendingSeatByInvitationTokenHash(ctx 
 	})
 	if err != nil {
 		return Seat{}, err
+	}
+	if singleResult == nil {
+		return Seat{}, nil
 	}
 	var seat Seat
 	if err := singleResult.Decode(&seat); err != nil {
@@ -264,6 +276,9 @@ func (mongoConnection *MongoConnection) GetOwnerSeat(ctx context.Context, subscr
 	if err != nil {
 		mongoConnection.Log.Error("Error finding seat", zap.Error(err))
 		return Seat{}, errors.New("error finding seat")
+	}
+	if singleResult == nil {
+		return Seat{}, nil
 	}
 	var seat Seat
 	decodeErr := singleResult.Decode(&seat)

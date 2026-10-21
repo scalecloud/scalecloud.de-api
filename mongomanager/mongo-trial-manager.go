@@ -2,11 +2,9 @@ package mongomanager
 
 import (
 	"context"
-	"errors"
 
 	"github.com/go-playground/validator/v10"
 	"go.mongodb.org/mongo-driver/v2/bson"
-	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
 func (mongoConnection *MongoConnection) CreateTrial(ctx context.Context, trial Trial) error {
@@ -33,11 +31,10 @@ func (mongoConnection *MongoConnection) GetTrial(ctx context.Context, trialFilte
 	}
 	singleResult, err := mongoConnection.findOneDocument(ctx, databaseProduct, collectionTrial, filter)
 	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return Trial{}, nil
-		} else {
-			return Trial{}, err
-		}
+		return Trial{}, err
+	}
+	if singleResult == nil {
+		return Trial{}, nil
 	}
 	var trial Trial
 	decodeErr := singleResult.Decode(&trial)

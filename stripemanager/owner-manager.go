@@ -22,6 +22,9 @@ func (paymentHandler *PaymentHandler) handleOwnerTransfer(c context.Context, tok
 	if err != nil {
 		return err
 	}
+	if ownerSeat.SubscriptionID == "" {
+		return errors.New("owner seat not found")
+	}
 	if isOwnerSeatUpdate(ownerSeat, seatUpdateRequest) {
 		return nil
 	}

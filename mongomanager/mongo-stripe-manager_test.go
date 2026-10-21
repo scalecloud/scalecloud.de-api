@@ -2,7 +2,6 @@ package mongomanager
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 	"testing"
@@ -12,12 +11,15 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo"
 )
 
-func TestGetUserReturnsNoDocumentsForMissingMapping(t *testing.T) {
+func TestGetUserReturnsEmptyUserForMissingMapping(t *testing.T) {
 	connection, ctx := newTestMongoConnection(t)
 	uid := fmt.Sprintf("missing-customer-test-%d", time.Now().UnixNano())
-	_, err := connection.GetUser(ctx, User{UID: uid})
-	if !errors.Is(err, mongo.ErrNoDocuments) {
-		t.Fatalf("GetUser() error = %v, want mongo.ErrNoDocuments", err)
+	user, err := connection.GetUser(ctx, User{UID: uid})
+	if err != nil {
+		t.Fatalf("GetUser() error = %v, want nil", err)
+	}
+	if user != (User{}) {
+		t.Fatalf("GetUser() = %+v, want empty user", user)
 	}
 }
 

@@ -148,11 +148,11 @@ func (mongoConnection *MongoConnection) GetUser(ctx context.Context, userFilter 
 	filter := bson.M{"uid": userFilter.UID}
 	singleResult, err := mongoConnection.findOneDocument(ctx, databaseStripe, collectionUsers, filter)
 	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return User{}, mongo.ErrNoDocuments
-		}
 		mongoConnection.Log.Error("Error finding user", zap.Error(err))
 		return User{}, fmt.Errorf("error finding user: %w", err)
+	}
+	if singleResult == nil {
+		return User{}, nil
 	}
 	var user User
 	decodeErr := singleResult.Decode(&user)
