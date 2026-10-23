@@ -11,6 +11,9 @@ const (
 	databaseStripe  = "stripe"
 	collectionUsers = "users"
 
+	databaseAuthentik         = "authentik"
+	collectionAuthentikEvents = "events"
+
 	databaseNewsletters   = "newsletters"
 	collectionSubscribers = "subscribers"
 )
@@ -19,5 +22,6 @@ var databases = map[string][]string{
 	databaseSubscription: {collectionSeats},
 	databaseProduct:      {collectionTrial},
 	databaseStripe:       {collectionUsers},
+	databaseAuthentik:    {collectionAuthentikEvents},
 	databaseNewsletters:  {collectionSubscribers},
 }

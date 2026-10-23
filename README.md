@@ -22,7 +22,7 @@ The API powers ScaleCloud.de.
 
 ## Requirements
 
-- Authentik OIDC application and server-side API token
+- Authentik
 - MongoDB Atlas cluster and X.509 client certificate
 - Stripe secret key and webhook signing secret
 - SMTP server credentials
@@ -44,8 +44,6 @@ docker run -d --restart unless-stopped \
 
 - `GET /health/live`: process status.
 - `GET /health/ready`: dependency status; returns `503` if MongoDB, Stripe, or Authentik is unhealthy. SMTP is optional.
-
-Checks run at startup and every 60 seconds.
 
 ## SonarCloud Code Quality
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -39,8 +40,10 @@ type Api struct {
 }
 
 type WebhookHandler struct {
-	StripeConnection *stripemanager.StripeConnection
-	Log              *zap.Logger
+	StripeConnection      *stripemanager.StripeConnection
+	MongoDBConnection     *mongodbmanager.MongoDBConnection
+	AuthentikWebhookToken string
+	Log                   *zap.Logger
 }
 
 func InitAPI(log *zap.Logger, config appconfig.Config) (*Api, error) {
@@ -121,8 +124,10 @@ func InitAPI(log *zap.Logger, config appconfig.Config) (*Api, error) {
 			Log:                  log.Named("paymenthandler"),
 		},
 		webhookHandler: &WebhookHandler{
-			StripeConnection: stripeConnection,
-			Log:              log.Named("webhookhandler"),
+			StripeConnection:      stripeConnection,
+			MongoDBConnection:     mongoDBConnection,
+			AuthentikWebhookToken: strings.TrimSpace(os.Getenv("AUTHENTIK_WEBHOOK_TOKEN")),
+			Log:                   log.Named("webhookhandler"),
 		},
 		validate:      validate,
 		log:           log.Named("apimanager"),
@@ -173,9 +178,9 @@ func (api *Api) initRoutes() {
 	api.router.POST("/invitation/claim", api.authRequired, api.claimSeatInvitation)
 
 	webhook := api.router.Group("/webhook/")
-	webhook.Use(api.StripeRequired)
 	{
-		webhook.POST("/stripe", api.handleStripeWebhook)
+		webhook.POST("/stripe", api.StripeRequired, api.handleStripeWebhook)
+		webhook.POST("/authentik", api.authentikWebhookRequired, api.handleAuthentikWebhook)
 	}
 
 	product := api.router.Group("/product/tiers")
