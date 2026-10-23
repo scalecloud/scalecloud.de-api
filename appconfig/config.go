@@ -18,6 +18,7 @@ const (
 
 type Config struct {
 	Environment    Environment
+	LogLevel       string
 	FrontendURL    string
 	APIDomain      string
 	TrustedProxyIP string
@@ -31,6 +32,16 @@ func LoadFromEnv() (Config, error) {
 		return Config{}, errors.New("APP_ENV must be local, beta, or production")
 	}
 
+	logLevel := strings.ToLower(strings.TrimSpace(os.Getenv("LOG_LEVEL")))
+	if logLevel == "" {
+		logLevel = "info"
+	}
+	switch logLevel {
+	case "debug", "info", "warn", "error":
+	default:
+		return Config{}, errors.New("LOG_LEVEL must be debug, info, warn, or error")
+	}
+
 	frontendURL, err := parseFrontendURL(os.Getenv("FRONTEND_URL"))
 	if err != nil {
 		return Config{}, err
@@ -38,6 +49,7 @@ func LoadFromEnv() (Config, error) {
 
 	config := Config{
 		Environment:    environment,
+		LogLevel:       logLevel,
 		FrontendURL:    frontendURL,
 		APIDomain:      strings.TrimSpace(os.Getenv("API_DOMAIN")),
 		TrustedProxyIP: strings.TrimSpace(os.Getenv("TRUSTED_PROXY_IP")),
