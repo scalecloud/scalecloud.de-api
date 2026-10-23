@@ -20,7 +20,7 @@ type StripeConnection struct {
 }
 
 type PaymentHandler struct {
-	AuthentikConnection  *authentikmanager.AdminAPIClient
+	AuthentikConnection  *authentikmanager.AuthentikManager
 	InvitationClaimURL   string
 	StripeConnection     *StripeConnection
 	MongoDBConnection    *mongodbmanager.MongoDBConnection

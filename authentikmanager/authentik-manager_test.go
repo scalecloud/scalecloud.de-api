@@ -19,9 +19,9 @@ func TestFindUserByEmailReturnsEmptyUserWhenNoMatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	client := NewAdminAPIClient(baseURL, "test-api-token", server.Client())
+	authentikManager := NewAuthentikManager(baseURL, "test-api-token", server.Client())
 
-	user, err := client.FindUserByEmail(context.Background(), "missing@example.com")
+	user, err := authentikManager.FindUserByEmail(context.Background(), "missing@example.com")
 	if err != nil {
 		t.Fatalf("FindUserByEmail() error = %v, want nil", err)
 	}
@@ -39,8 +39,8 @@ func TestAddUserToSubscriptionCreatesGroupAndAddsUser(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	client := NewAdminAPIClient(baseURL, "test-api-token", server.Client())
-	if err := client.AddUserToSubscription(context.Background(), "sub_test", "invite@example.com"); err != nil {
+	authentikManager := NewAuthentikManager(baseURL, "test-api-token", server.Client())
+	if err := authentikManager.AddUserToSubscription(context.Background(), "sub_test", "invite@example.com"); err != nil {
 		t.Fatal(err)
 	}
 	if !fixture.groupCreated || !fixture.membershipAdded {
@@ -63,8 +63,8 @@ func TestCheckHealthDecodesUUIDGroupPK(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	client := NewAdminAPIClient(baseURL, "test-api-token", server.Client())
-	if err := client.CheckHealth(context.Background()); err != nil {
+	authentikManager := NewAuthentikManager(baseURL, "test-api-token", server.Client())
+	if err := authentikManager.CheckHealth(context.Background()); err != nil {
 		t.Fatalf("CheckHealth() with UUID group PK: %v", err)
 	}
 }

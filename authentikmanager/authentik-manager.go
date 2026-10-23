@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-type AdminAPIClient struct {
+type AuthentikManager struct {
 	baseURL    *url.URL
 	apiToken   string
 	httpClient *http.Client
@@ -35,7 +35,7 @@ type listResponse[T any] struct {
 	Results []T `json:"results"`
 }
 
-func NewAdminAPIClientFromEnv() (*AdminAPIClient, error) {
+func NewAuthentikManagerFromEnv() (*AuthentikManager, error) {
 	apiURL := strings.TrimRight(os.Getenv("AUTHENTIK_API_URL"), "/")
 	apiToken := os.Getenv("AUTHENTIK_API_TOKEN")
 	if apiURL == "" {
@@ -50,29 +50,29 @@ func NewAdminAPIClientFromEnv() (*AdminAPIClient, error) {
 		return nil, errors.New("AUTHENTIK_API_URL must be an absolute HTTPS URL without credentials or query parameters")
 	}
 
-	return NewAdminAPIClient(parsedURL, apiToken, &http.Client{Timeout: 10 * time.Second}), nil
+	return NewAuthentikManager(parsedURL, apiToken, &http.Client{Timeout: 10 * time.Second}), nil
 }
 
-func NewAdminAPIClient(baseURL *url.URL, apiToken string, httpClient *http.Client) *AdminAPIClient {
+func NewAuthentikManager(baseURL *url.URL, apiToken string, httpClient *http.Client) *AuthentikManager {
 	base := *baseURL
 	base.Path = strings.TrimRight(base.Path, "/") + "/"
-	return &AdminAPIClient{baseURL: &base, apiToken: apiToken, httpClient: httpClient}
+	return &AuthentikManager{baseURL: &base, apiToken: apiToken, httpClient: httpClient}
 }
 
-func (client *AdminAPIClient) CheckHealth(ctx context.Context) error {
+func (authentikManager *AuthentikManager) CheckHealth(ctx context.Context) error {
 	var users listResponse[User]
-	if err := client.requestJSON(ctx, http.MethodGet, "core/users/?page_size=1&include_groups=false&include_roles=false", nil, &users); err != nil {
+	if err := authentikManager.requestJSON(ctx, http.MethodGet, "core/users/?page_size=1&include_groups=false&include_roles=false", nil, &users); err != nil {
 		return fmt.Errorf("authentik user API health check failed: %w", err)
 	}
 	var groups listResponse[Group]
-	if err := client.requestJSON(ctx, http.MethodGet, "core/groups/?page_size=1&include_users=false&include_children=false&include_parents=false", nil, &groups); err != nil {
+	if err := authentikManager.requestJSON(ctx, http.MethodGet, "core/groups/?page_size=1&include_users=false&include_children=false&include_parents=false", nil, &groups); err != nil {
 		return fmt.Errorf("authentik group API health check failed: %w", err)
 	}
 	return nil
 }
 
-func (client *AdminAPIClient) AddUserToSubscription(ctx context.Context, subscriptionID, email string) error {
-	user, err := client.FindUserByEmail(ctx, email)
+func (authentikManager *AuthentikManager) AddUserToSubscription(ctx context.Context, subscriptionID, email string) error {
+	user, err := authentikManager.FindUserByEmail(ctx, email)
 	if err != nil {
 		return err
 	}
@@ -82,40 +82,40 @@ func (client *AdminAPIClient) AddUserToSubscription(ctx context.Context, subscri
 	if !user.IsActive {
 		return errors.New("authentik user is inactive")
 	}
-	return client.AddUserPKToSubscription(ctx, subscriptionID, user.PK)
+	return authentikManager.AddUserPKToSubscription(ctx, subscriptionID, user.PK)
 }
 
-func (client *AdminAPIClient) FindUserByEmail(ctx context.Context, email string) (User, error) {
-	return client.findUserByEmail(ctx, email)
+func (authentikManager *AuthentikManager) FindUserByEmail(ctx context.Context, email string) (User, error) {
+	return authentikManager.findUserByEmail(ctx, email)
 }
 
-func (client *AdminAPIClient) AddUserPKToSubscription(ctx context.Context, subscriptionID string, userPK int64) error {
-	group, err := client.ensureSubscriptionGroup(ctx, subscriptionID)
+func (authentikManager *AuthentikManager) AddUserPKToSubscription(ctx context.Context, subscriptionID string, userPK int64) error {
+	group, err := authentikManager.ensureSubscriptionGroup(ctx, subscriptionID)
 	if err != nil {
 		return err
 	}
-	return client.changeGroupMembership(ctx, group.PK, userPK, "add_user")
+	return authentikManager.changeGroupMembership(ctx, group.PK, userPK, "add_user")
 }
 
-func (client *AdminAPIClient) RemoveUserFromSubscription(ctx context.Context, subscriptionID string, userPK int64) error {
-	group, err := client.findSubscriptionGroup(ctx, subscriptionID)
+func (authentikManager *AuthentikManager) RemoveUserFromSubscription(ctx context.Context, subscriptionID string, userPK int64) error {
+	group, err := authentikManager.findSubscriptionGroup(ctx, subscriptionID)
 	if err != nil {
 		return err
 	}
 	if group == nil {
 		return nil
 	}
-	return client.changeGroupMembership(ctx, group.PK, userPK, "remove_user")
+	return authentikManager.changeGroupMembership(ctx, group.PK, userPK, "remove_user")
 }
 
-func (client *AdminAPIClient) findUserByEmail(ctx context.Context, email string) (User, error) {
+func (authentikManager *AuthentikManager) findUserByEmail(ctx context.Context, email string) (User, error) {
 	query := url.Values{}
 	query.Set("search", email)
 	query.Set("page_size", "100")
 	query.Set("include_groups", "false")
 	query.Set("include_roles", "false")
 	var response listResponse[User]
-	if err := client.requestJSON(ctx, http.MethodGet, "core/users/?"+query.Encode(), nil, &response); err != nil {
+	if err := authentikManager.requestJSON(ctx, http.MethodGet, "core/users/?"+query.Encode(), nil, &response); err != nil {
 		return User{}, err
 	}
 
@@ -137,8 +137,8 @@ func (client *AdminAPIClient) findUserByEmail(ctx context.Context, email string)
 	return *match, nil
 }
 
-func (client *AdminAPIClient) ensureSubscriptionGroup(ctx context.Context, subscriptionID string) (Group, error) {
-	group, err := client.findSubscriptionGroup(ctx, subscriptionID)
+func (authentikManager *AuthentikManager) ensureSubscriptionGroup(ctx context.Context, subscriptionID string) (Group, error) {
+	group, err := authentikManager.findSubscriptionGroup(ctx, subscriptionID)
 	if err != nil {
 		return Group{}, err
 	}
@@ -148,19 +148,19 @@ func (client *AdminAPIClient) ensureSubscriptionGroup(ctx context.Context, subsc
 
 	name := subscriptionGroupName(subscriptionID)
 	var created Group
-	err = client.requestJSON(ctx, http.MethodPost, "core/groups/", map[string]string{"name": name}, &created)
+	err = authentikManager.requestJSON(ctx, http.MethodPost, "core/groups/", map[string]string{"name": name}, &created)
 	if err == nil {
 		return created, nil
 	}
 
 	// A concurrent claim may have created the deterministic group first.
-	if existing, lookupErr := client.findSubscriptionGroup(ctx, subscriptionID); lookupErr == nil && existing != nil {
+	if existing, lookupErr := authentikManager.findSubscriptionGroup(ctx, subscriptionID); lookupErr == nil && existing != nil {
 		return *existing, nil
 	}
 	return Group{}, err
 }
 
-func (client *AdminAPIClient) findSubscriptionGroup(ctx context.Context, subscriptionID string) (*Group, error) {
+func (authentikManager *AuthentikManager) findSubscriptionGroup(ctx context.Context, subscriptionID string) (*Group, error) {
 	query := url.Values{}
 	query.Set("search", subscriptionGroupName(subscriptionID))
 	query.Set("page_size", "100")
@@ -168,7 +168,7 @@ func (client *AdminAPIClient) findSubscriptionGroup(ctx context.Context, subscri
 	query.Set("include_children", "false")
 	query.Set("include_parents", "false")
 	var response listResponse[Group]
-	if err := client.requestJSON(ctx, http.MethodGet, "core/groups/?"+query.Encode(), nil, &response); err != nil {
+	if err := authentikManager.requestJSON(ctx, http.MethodGet, "core/groups/?"+query.Encode(), nil, &response); err != nil {
 		return nil, err
 	}
 	name := subscriptionGroupName(subscriptionID)
@@ -180,16 +180,16 @@ func (client *AdminAPIClient) findSubscriptionGroup(ctx context.Context, subscri
 	return nil, nil
 }
 
-func (client *AdminAPIClient) changeGroupMembership(ctx context.Context, groupPK string, userPK int64, action string) error {
+func (authentikManager *AuthentikManager) changeGroupMembership(ctx context.Context, groupPK string, userPK int64, action string) error {
 	if action != "add_user" && action != "remove_user" {
 		return errors.New("invalid group membership action")
 	}
 	path := fmt.Sprintf("core/groups/%s/%s/", groupPK, action)
-	return client.requestJSON(ctx, http.MethodPost, path, map[string]int64{"pk": userPK}, nil)
+	return authentikManager.requestJSON(ctx, http.MethodPost, path, map[string]int64{"pk": userPK}, nil)
 }
 
-func (client *AdminAPIClient) requestJSON(ctx context.Context, method, path string, requestBody, responseBody any) (resultErr error) {
-	endpoint := *client.baseURL
+func (authentikManager *AuthentikManager) requestJSON(ctx context.Context, method, path string, requestBody, responseBody any) (resultErr error) {
+	endpoint := *authentikManager.baseURL
 	relative, err := url.Parse(path)
 	if err != nil {
 		return err
@@ -208,13 +208,13 @@ func (client *AdminAPIClient) requestJSON(ctx context.Context, method, path stri
 	if err != nil {
 		return err
 	}
-	request.Header.Set("Authorization", "Bearer "+client.apiToken)
+	request.Header.Set("Authorization", "Bearer "+authentikManager.apiToken)
 	request.Header.Set("Accept", "application/json")
 	if requestBody != nil {
 		request.Header.Set("Content-Type", "application/json")
 	}
 
-	response, err := client.httpClient.Do(request)
+	response, err := authentikManager.httpClient.Do(request)
 	if err != nil {
 		return fmt.Errorf("authentik API request failed: %w", err)
 	}

@@ -50,7 +50,7 @@ func InitAPI(log *zap.Logger, config appconfig.Config) (*Api, error) {
 	if err != nil {
 		return &Api{}, err
 	}
-	authentikConnection, err := authentikmanager.NewAdminAPIClientFromEnv()
+	authentikConnection, err := authentikmanager.NewAuthentikManagerFromEnv()
 	if err != nil {
 		return &Api{}, err
 	}
