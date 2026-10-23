@@ -17,7 +17,7 @@ require (
 	github.com/wneessen/go-mail v0.8.1
 	go.mongodb.org/mongo-driver/v2 v2.9.2
 	go.uber.org/zap v1.28.0
-	google.golang.org/api v0.307.0
+	google.golang.org/api v0.308.0
 )
 
 require (
