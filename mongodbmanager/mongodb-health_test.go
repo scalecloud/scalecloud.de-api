@@ -33,7 +33,7 @@ func TestCheckHealthValidatesCollectionsAndEnsuresIndexes(t *testing.T) {
 	assertMongoIndexExists(t, ctx, connection.Client.Database(databaseSubscription).Collection(collectionSeats), "UniqueSeatInvitationTokenHash")
 	assertMongoIndexExists(t, ctx, connection.Client.Database(databaseNewsletters).Collection(collectionSubscribers), "UniqueNewsletterEmail")
 	assertMongoIndexExists(t, ctx, connection.Client.Database(databaseStripe).Collection(collectionUsers), "UniqueStripeUserUID")
-	assertMongoIndexExists(t, ctx, connection.Client.Database(databaseAuthentik).Collection(collectionAuthentikEvents), "AuthentikActionUserCreated")
+	assertMongoIndexExists(t, ctx, connection.Client.Database(databaseAuthentik).Collection(collectionAuthentikEvents), "AuthentikOpenCloudUserCreated")
 
 	productDatabase := connection.Client.Database(databaseProduct)
 	if err := productDatabase.Collection(collectionTrial).Drop(ctx); err != nil {

@@ -17,11 +17,11 @@ func (mongoDBConnection *MongoDBConnection) ensureAuthentikEventIndex(ctx contex
 	_, err = collection.Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys: bson.D{
 			{Key: "action", Value: 1},
-			{Key: "context.authorized_application", Value: 1},
+			{Key: "context.authorized_application.name", Value: 1},
 			{Key: "user.pk", Value: 1},
 			{Key: "created", Value: 1},
 		},
-		Options: options.Index().SetName("AuthentikActionUserCreated"),
+		Options: options.Index().SetName("AuthentikOpenCloudUserCreated"),
 	})
 	if err != nil {
 		mongoDBConnection.Log.Error("Error creating Authentik event lookup index", zap.Error(err))

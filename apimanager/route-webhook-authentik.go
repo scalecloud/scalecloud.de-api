@@ -15,6 +15,13 @@ import (
 )
 
 const authentikWebhookMaxBodySize = 1 << 20
+const authentikOpenCloudApplicationName = "OpenCloud"
+
+type authentikWebhookEvent struct {
+	EventUUID string `json:"event_uuid"`
+	UserPK    int64  `json:"user_pk"`
+	Created   string `json:"created"`
+}
 
 func (api *Api) authentikWebhookRequired(c *gin.Context) {
 	token := api.webhookHandler.AuthentikWebhookToken
@@ -45,32 +52,40 @@ func (api *Api) handleAuthentikWebhook(c *gin.Context) {
 		return
 	}
 
-	payload := bson.M{}
-	if err := json.Unmarshal(body, &payload); err != nil {
+	var event authentikWebhookEvent
+	if err := json.Unmarshal(body, &event); err != nil {
+		api.log.Info("Authentik webhook payload rejected as invalid JSON", zap.String("body", string(body)))
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Invalid JSON payload"})
 		return
 	}
-	eventUUID, hasEventUUID := payload["event_uuid"].(string)
-	action, hasAction := payload["action"].(string)
-	created, hasCreated := payload["created"].(string)
-	if !hasEventUUID || strings.TrimSpace(eventUUID) == "" || !hasAction || strings.TrimSpace(action) == "" || !hasCreated {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Payload must include event_uuid, action, and created"})
+	if strings.TrimSpace(event.EventUUID) == "" || event.UserPK == 0 || strings.TrimSpace(event.Created) == "" {
+		api.log.Info("Authentik webhook payload missing required fields", zap.String("body", string(body)))
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "Payload must include event_uuid, user_pk, and created"})
 		return
 	}
-	createdAt, err := time.Parse(time.RFC3339Nano, created)
+	createdAt, err := time.Parse(time.RFC3339Nano, event.Created)
 	if err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"message": "created must be an RFC3339 timestamp"})
 		return
 	}
-	payload["created"] = createdAt.UTC()
+	payload := bson.M{
+		"event_uuid":             event.EventUUID,
+		"user_pk":                event.UserPK,
+		"authorized_application": authentikOpenCloudApplicationName,
+		"created":                createdAt.UTC(),
+	}
 
 	inserted, err := api.webhookHandler.MongoDBConnection.StoreAuthentikEvent(c.Request.Context(), payload)
 	if err != nil {
-		api.log.Error("Could not store Authentik webhook event", zap.String("event_uuid", eventUUID), zap.Error(err))
+		api.log.Error("Could not store Authentik webhook event", zap.String("event_uuid", event.EventUUID), zap.Error(err))
 		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"message": "Could not store webhook event"})
 		return
 	}
 	if inserted {
+		api.log.Info("Stored OpenCloud authorization event",
+			zap.String("event_uuid", event.EventUUID),
+			zap.Int64("authentik_user_pk", event.UserPK),
+		)
 		c.Status(http.StatusAccepted)
 		return
 	}

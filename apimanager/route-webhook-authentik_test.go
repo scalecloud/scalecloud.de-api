@@ -35,7 +35,19 @@ func TestAuthentikWebhookUnavailableWithoutToken(t *testing.T) {
 
 func TestAuthentikWebhookRejectsInvalidPayload(t *testing.T) {
 	_, router := newAuthentikWebhookTestRouter("expected-token")
-	request := httptest.NewRequest(http.MethodPost, "/webhook/authentik", strings.NewReader(`{"event_uuid":"event-1","action":"login"}`))
+	request := httptest.NewRequest(http.MethodPost, "/webhook/authentik", strings.NewReader(`{"event_uuid":"event-1","action":"authorize_application","context":{"authorized_application":{"name":"OpenCloud"}}}`))
+	request.Header.Set("Authorization", "Bearer expected-token")
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+
+	if response.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d; body: %s", response.Code, http.StatusBadRequest, response.Body.String())
+	}
+}
+
+func TestAuthentikWebhookRejectsNullUserPK(t *testing.T) {
+	_, router := newAuthentikWebhookTestRouter("expected-token")
+	request := httptest.NewRequest(http.MethodPost, "/webhook/authentik", strings.NewReader(`{"event_uuid":"event-1","user_pk":null,"created":"2026-10-23T23:34:45.957995+00:00"}`))
 	request.Header.Set("Authorization", "Bearer expected-token")
 	response := httptest.NewRecorder()
 	router.ServeHTTP(response, request)
