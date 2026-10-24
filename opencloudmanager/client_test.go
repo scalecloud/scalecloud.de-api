@@ -145,11 +145,11 @@ func TestEnsureMemberInvitesOnlyWhenMissing(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	added, err := client.EnsureMember(context.Background(), "drive-1", "user-1", RoleEditor)
+	added, err := client.EnsureMember(context.Background(), "drive-1", "user-1", SpaceRoleEditor)
 	if err != nil || !added {
 		t.Fatalf("first EnsureMember() = %t, %v", added, err)
 	}
-	added, err = client.EnsureMember(context.Background(), "drive-1", "user-1", RoleEditor)
+	added, err = client.EnsureMember(context.Background(), "drive-1", "user-1", SpaceRoleEditor)
 	if err != nil || added || inviteCalls != 1 {
 		t.Fatalf("second EnsureMember() = %t, %v; invite calls = %d", added, err, inviteCalls)
 	}

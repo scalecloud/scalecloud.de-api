@@ -25,9 +25,9 @@ type OpenCloudSpaceReply struct {
 }
 
 type OpenCloudUsageReply struct {
-	SubscriptionID string                  `json:"subscriptionID"`
-	Provisioned    bool                    `json:"provisioned"`
-	Usage          *opencloudmanager.Usage `json:"usage,omitempty"`
+	SubscriptionID string                       `json:"subscriptionID"`
+	Provisioned    bool                         `json:"provisioned"`
+	Usage          *opencloudmanager.SpaceUsage `json:"usage,omitempty"`
 }
 
 type OpenCloudQuotaReply struct {
@@ -171,7 +171,7 @@ func (paymentHandler *PaymentHandler) ActivateOpenCloudSeats(ctx context.Context
 		if owner.OpenCloudDriveID == "" {
 			continue
 		}
-		if _, err := paymentHandler.OpenCloudConnection.EnsureMember(ctx, owner.OpenCloudDriveID, user.ID, opencloudmanager.RoleEditor); err != nil {
+		if _, err := paymentHandler.OpenCloudConnection.EnsureMember(ctx, owner.OpenCloudDriveID, user.ID, opencloudmanager.SpaceRoleEditor); err != nil {
 			if firstErr == nil {
 				firstErr = err
 			}

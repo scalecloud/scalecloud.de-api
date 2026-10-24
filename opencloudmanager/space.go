@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-type Quota struct {
+type SpaceQuota struct {
 	Total     int64  `json:"total"`
 	Used      int64  `json:"used"`
 	Remaining int64  `json:"remaining"`
@@ -16,12 +16,12 @@ type Quota struct {
 }
 
 type Space struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	DriveType   string `json:"driveType"`
-	WebURL      string `json:"webUrl"`
-	Quota       *Quota `json:"quota"`
+	ID          string      `json:"id"`
+	Name        string      `json:"name"`
+	Description string      `json:"description"`
+	DriveType   string      `json:"driveType"`
+	WebURL      string      `json:"webUrl"`
+	Quota       *SpaceQuota `json:"quota"`
 	Root        *struct {
 		Deleted *struct {
 			State string `json:"state"`
@@ -33,7 +33,7 @@ func (space Space) Disabled() bool {
 	return space.Root != nil && space.Root.Deleted != nil && space.Root.Deleted.State == "trashed"
 }
 
-type Usage struct {
+type SpaceUsage struct {
 	Used      int64  `json:"used"`
 	Total     int64  `json:"total"`
 	Remaining int64  `json:"remaining"`
@@ -94,12 +94,12 @@ func (client *Client) SetSpaceQuota(ctx context.Context, driveID string, quotaBy
 	return &space, nil
 }
 
-func (client *Client) GetSpaceUsage(ctx context.Context, driveID string) (*Usage, error) {
+func (client *Client) GetSpaceUsage(ctx context.Context, driveID string) (*SpaceUsage, error) {
 	space, err := client.GetSpace(ctx, driveID)
 	if err != nil {
 		return nil, err
 	}
-	usage := &Usage{Disabled: space.Disabled()}
+	usage := &SpaceUsage{Disabled: space.Disabled()}
 	if space.Quota != nil {
 		usage.Total = space.Quota.Total
 		usage.Used = space.Quota.Used

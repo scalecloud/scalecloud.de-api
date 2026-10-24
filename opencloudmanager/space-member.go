@@ -11,15 +11,15 @@ import (
 	"strings"
 )
 
-type Role string
+type SpaceRole string
 
 const (
-	RoleViewer  Role = "viewer"
-	RoleEditor  Role = "editor"
-	RoleManager Role = "manager"
+	SpaceRoleViewer  SpaceRole = "viewer"
+	SpaceRoleEditor  SpaceRole = "editor"
+	SpaceRoleManager SpaceRole = "manager"
 )
 
-type Member struct {
+type SpaceMember struct {
 	PermissionID string   `json:"permissionId"`
 	UserID       string   `json:"userId,omitempty"`
 	GroupID      string   `json:"groupId,omitempty"`
@@ -27,7 +27,7 @@ type Member struct {
 	RoleIDs      []string `json:"roles,omitempty"`
 }
 
-type RoleDefinition struct {
+type SpaceRoleDefinition struct {
 	ID          string `json:"id"`
 	DisplayName string `json:"displayName"`
 	Description string `json:"description"`
@@ -70,22 +70,22 @@ type permission struct {
 }
 
 type permissionList struct {
-	Value []permission     `json:"value"`
-	Roles []RoleDefinition `json:"@libre.graph.permissions.roles.allowedValues"`
+	Value []permission          `json:"value"`
+	Roles []SpaceRoleDefinition `json:"@libre.graph.permissions.roles.allowedValues"`
 }
 
-func (client *Client) ListMembers(ctx context.Context, driveID string) ([]Member, error) {
+func (client *Client) ListMembers(ctx context.Context, driveID string) ([]SpaceMember, error) {
 	var permissions permissionList
 	if err := client.request(ctx, http.MethodGet, spacePermissionsPath(driveID), nil, &permissions); err != nil {
 		return nil, err
 	}
-	members := make([]Member, 0, len(permissions.Value))
+	members := make([]SpaceMember, 0, len(permissions.Value))
 	for _, permission := range permissions.Value {
 		identities := permission.GrantedToV2
 		if len(identities) == 0 {
 			identities = permission.GrantedToIdentities
 		}
-		member := Member{PermissionID: permission.ID, RoleIDs: permission.Roles}
+		member := SpaceMember{PermissionID: permission.ID, RoleIDs: permission.Roles}
 		for _, identity := range identities {
 			switch {
 			case identity.User != nil:
@@ -104,7 +104,7 @@ func (client *Client) ListMembers(ctx context.Context, driveID string) ([]Member
 	return members, nil
 }
 
-func (client *Client) ListAssignableRoles(ctx context.Context, driveID string) ([]RoleDefinition, error) {
+func (client *Client) ListAssignableRoles(ctx context.Context, driveID string) ([]SpaceRoleDefinition, error) {
 	var permissions permissionList
 	if err := client.request(ctx, http.MethodGet, spacePermissionsPath(driveID), nil, &permissions); err != nil {
 		return nil, err
@@ -112,7 +112,7 @@ func (client *Client) ListAssignableRoles(ctx context.Context, driveID string) (
 	return permissions.Roles, nil
 }
 
-func (client *Client) InviteUser(ctx context.Context, driveID, userID string, role Role) error {
+func (client *Client) InviteUser(ctx context.Context, driveID, userID string, role SpaceRole) error {
 	if strings.TrimSpace(userID) == "" {
 		return errors.New("OpenCloud user ID is required")
 	}
@@ -135,7 +135,7 @@ func (client *Client) InviteUser(ctx context.Context, driveID, userID string, ro
 	return client.request(ctx, http.MethodPost, path, input, nil)
 }
 
-func (client *Client) EnsureMember(ctx context.Context, driveID, userID string, role Role) (bool, error) {
+func (client *Client) EnsureMember(ctx context.Context, driveID, userID string, role SpaceRole) (bool, error) {
 	members, err := client.ListMembers(ctx, driveID)
 	if err != nil {
 		return false, err
@@ -151,7 +151,7 @@ func (client *Client) EnsureMember(ctx context.Context, driveID, userID string, 
 	return true, nil
 }
 
-func (client *Client) SetMemberRole(ctx context.Context, driveID, permissionID string, role Role) error {
+func (client *Client) SetMemberRole(ctx context.Context, driveID, permissionID string, role SpaceRole) error {
 	roleID, err := client.roleID(role)
 	if err != nil {
 		return err
@@ -184,14 +184,14 @@ func (client *Client) RemoveUser(ctx context.Context, driveID, userID string) er
 	return fmt.Errorf("%w: %q", ErrNotMember, userID)
 }
 
-func (client *Client) roleID(role Role) (string, error) {
+func (client *Client) roleID(role SpaceRole) (string, error) {
 	var roleID string
 	switch role {
-	case RoleViewer:
+	case SpaceRoleViewer:
 		roleID = client.roles.Viewer
-	case RoleEditor:
+	case SpaceRoleEditor:
 		roleID = client.roles.Editor
-	case RoleManager:
+	case SpaceRoleManager:
 		roleID = client.roles.Manager
 	default:
 		return "", fmt.Errorf("unsupported OpenCloud role %q", role)
