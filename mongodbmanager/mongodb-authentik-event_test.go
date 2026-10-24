@@ -1,11 +1,46 @@
 package mongodbmanager
 
 import (
+	"strings"
 	"testing"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
+
+func TestStoreAuthentikEventRejectsMissingRequiredFields(t *testing.T) {
+	connection, ctx := newTestMongoDBConnection(t)
+
+	t.Run("missing event uuid", func(t *testing.T) {
+		payload := bson.M{
+			"user_pk":                42,
+			"authorized_application": "OpenCloud",
+			"created":                time.Now().UTC(),
+		}
+		inserted, err := connection.StoreAuthentikEvent(ctx, payload)
+		if err == nil || !strings.Contains(err.Error(), "event UUID") {
+			t.Fatalf("StoreAuthentikEvent() error = %v, want event UUID validation", err)
+		}
+		if inserted {
+			t.Fatal("missing event UUID should not insert")
+		}
+	})
+
+	t.Run("missing created timestamp", func(t *testing.T) {
+		payload := bson.M{
+			"event_uuid":             "event-without-created",
+			"user_pk":                42,
+			"authorized_application": "OpenCloud",
+		}
+		inserted, err := connection.StoreAuthentikEvent(ctx, payload)
+		if err == nil || !strings.Contains(err.Error(), "created timestamp") {
+			t.Fatalf("StoreAuthentikEvent() error = %v, want created timestamp validation", err)
+		}
+		if inserted {
+			t.Fatal("missing created timestamp should not insert")
+		}
+	})
+}
 
 func TestStoreAuthentikEventIsIdempotent(t *testing.T) {
 	connection, ctx := newTestMongoDBConnection(t)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -46,6 +47,53 @@ func TestRequestMapsAuthorizationError(t *testing.T) {
 	if err := client.CheckHealth(context.Background()); !errors.Is(err, ErrForbidden) {
 		t.Fatalf("error = %v, want ErrForbidden", err)
 	}
+}
+
+func TestRequestReturnsBodyCloseError(t *testing.T) {
+	closeErr := errors.New("response body close failed")
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(http.StatusOK)
+		_, _ = writer.Write([]byte(`{"id":"me"}`))
+	}))
+	defer server.Close()
+
+	client, err := NewClient(Config{BaseURL: server.URL, Username: "billing-service", AppToken: "app-secret", HTTP: &http.Client{Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
+		resp, err := http.DefaultTransport.RoundTrip(req)
+		if err != nil {
+			return nil, err
+		}
+		resp.Body = &closeTrackingReader{ReadCloser: resp.Body, closeErr: closeErr}
+		return resp, nil
+	})}})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = client.CheckHealth(context.Background())
+	if err == nil || !strings.Contains(err.Error(), "close OpenCloud response body") {
+		t.Fatalf("CheckHealth() error = %v, want close response body error", err)
+	}
+	if !strings.Contains(err.Error(), closeErr.Error()) {
+		t.Fatalf("CheckHealth() error = %v, want original close error %q", err, closeErr)
+	}
+}
+
+type roundTripperFunc func(*http.Request) (*http.Response, error)
+
+func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
+
+type closeTrackingReader struct {
+	io.ReadCloser
+	closeErr error
+}
+
+func (r *closeTrackingReader) Close() error {
+	if err := r.ReadCloser.Close(); err != nil {
+		return err
+	}
+	return r.closeErr
 }
 
 func TestGetSpaceUsagePreservesMissingQuotaValues(t *testing.T) {
