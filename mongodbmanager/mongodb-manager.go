@@ -77,9 +77,35 @@ func (mongoDBConnection *MongoDBConnection) CheckHealth(ctx context.Context) err
 }
 
 func (mongoDBConnection *MongoDBConnection) CheckDatabaseAndCollectionExists(ctx context.Context) error {
+	if err := mongoDBConnection.ensureOpenCloudUsageCollections(ctx); err != nil {
+		return err
+	}
 	for dbName, collections := range databases {
 		err := mongoDBConnection.ensureCollectionsExist(ctx, dbName, collections)
 		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (mongoDBConnection *MongoDBConnection) ensureOpenCloudUsageCollections(ctx context.Context) error {
+	database := mongoDBConnection.Client.Database(databaseOpenCloud)
+	existing, err := database.ListCollectionNames(ctx, bson.M{})
+	if err != nil {
+		return err
+	}
+	existingCollections := make(map[string]struct{}, len(existing))
+	for _, name := range existing {
+		existingCollections[name] = struct{}{}
+	}
+	name := collectionOpenCloudHistory
+	if _, ok := existingCollections[name]; ok {
+		return nil
+	}
+	if err := database.CreateCollection(ctx, name); err != nil {
+		createdSinceList, listErr := database.ListCollectionNames(ctx, bson.M{"name": name})
+		if listErr != nil || len(createdSinceList) == 0 {
 			return err
 		}
 	}

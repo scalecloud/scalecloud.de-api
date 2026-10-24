@@ -141,6 +141,15 @@ func (api *Api) getOpenCloudUsage(c *gin.Context) {
 	}
 }
 
+func (api *Api) getOpenCloudUsageHistory(c *gin.Context) {
+	var request stripemanager.OpenCloudSubscriptionRequest
+	tokenDetails, err := api.handleTokenDetails(c)
+	if err == nil && api.handleBind(c, &request) {
+		reply, err := api.paymentHandler.GetOpenCloudUsageHistory(c, tokenDetails, request)
+		api.validateAndWriteReply(c, err, reply)
+	}
+}
+
 func (api *Api) getSubscriptionInvoices(c *gin.Context) {
 	var request stripemanager.ListInvoicesRequest
 	tokenDetails, err := api.handleTokenDetails(c)

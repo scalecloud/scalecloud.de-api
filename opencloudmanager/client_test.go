@@ -48,6 +48,42 @@ func TestRequestMapsAuthorizationError(t *testing.T) {
 	}
 }
 
+func TestGetSpaceUsagePreservesMissingQuotaValues(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		_, _ = writer.Write([]byte(`{"id":"drive-1","quota":{"state":"normal"}}`))
+	}))
+	defer server.Close()
+	client, err := NewClient(Config{BaseURL: server.URL, Username: "billing-service", AppToken: "app-secret"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	usage, err := client.GetSpaceUsage(context.Background(), "drive-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if usage.Used != nil || usage.Total != nil || usage.Remaining != nil {
+		t.Fatalf("missing quota values should remain unknown: %+v", usage)
+	}
+}
+
+func TestGetUserDriveUsageUsesGraphPersonalDriveEndpoint(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.Method != http.MethodGet || request.URL.Path != "/graph/v1.0/users/user-1/drive" {
+			t.Errorf("unexpected request: %s %s", request.Method, request.URL.Path)
+		}
+		_, _ = writer.Write([]byte(`{"id":"personal-drive-1","driveType":"personal","quota":{"used":24,"total":100,"remaining":76,"state":"normal"}}`))
+	}))
+	defer server.Close()
+	client, err := NewClient(Config{BaseURL: server.URL, Username: "billing-service", AppToken: "app-secret"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	usage, err := client.GetUserDriveUsage(context.Background(), "user-1")
+	if err != nil || usage.Used == nil || *usage.Used != 24 || usage.Total == nil || *usage.Total != 100 {
+		t.Fatalf("GetUserDriveUsage() = %+v, %v", usage, err)
+	}
+}
+
 func TestNewClientFromEnvIsOptionalButRejectsPartialSettings(t *testing.T) {
 	t.Setenv("OPENCLOUD_BASE_URL", "")
 	t.Setenv("OPENCLOUD_USERNAME", "")
@@ -99,11 +135,11 @@ func TestCreateSpaceAndSetQuotaUseProjectDriveRequests(t *testing.T) {
 		t.Fatal(err)
 	}
 	space, err := client.CreateSpace(context.Background(), "Subscription 1", "subscription:sub_1", 1000000000)
-	if err != nil || space.ID != "drive-1" || space.Quota.Total != 1000000000 {
+	if err != nil || space.ID != "drive-1" || space.Quota == nil || space.Quota.Total == nil || *space.Quota.Total != 1000000000 {
 		t.Fatalf("CreateSpace() = %+v, %v", space, err)
 	}
 	space, err = client.SetSpaceQuota(context.Background(), space.ID, 2000000000)
-	if err != nil || space.Quota.Total != 2000000000 {
+	if err != nil || space.Quota == nil || space.Quota.Total == nil || *space.Quota.Total != 2000000000 {
 		t.Fatalf("SetSpaceQuota() = %+v, %v", space, err)
 	}
 }

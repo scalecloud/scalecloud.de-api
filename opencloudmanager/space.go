@@ -9,9 +9,9 @@ import (
 )
 
 type SpaceQuota struct {
-	Total     int64  `json:"total"`
-	Used      int64  `json:"used"`
-	Remaining int64  `json:"remaining"`
+	Total     *int64 `json:"total"`
+	Used      *int64 `json:"used"`
+	Remaining *int64 `json:"remaining"`
 	State     string `json:"state"`
 }
 
@@ -34,9 +34,9 @@ func (space Space) Disabled() bool {
 }
 
 type SpaceUsage struct {
-	Used      int64  `json:"used"`
-	Total     int64  `json:"total"`
-	Remaining int64  `json:"remaining"`
+	Used      *int64 `json:"used"`
+	Total     *int64 `json:"total"`
+	Remaining *int64 `json:"remaining"`
 	State     string `json:"state"`
 	Disabled  bool   `json:"disabled"`
 }
@@ -99,6 +99,22 @@ func (client *Client) GetSpaceUsage(ctx context.Context, driveID string) (*Space
 	if err != nil {
 		return nil, err
 	}
+	return spaceUsage(space), nil
+}
+
+func (client *Client) GetUserDriveUsage(ctx context.Context, userID string) (*SpaceUsage, error) {
+	if strings.TrimSpace(userID) == "" {
+		return nil, errors.New("OpenCloud user ID is required")
+	}
+	var space Space
+	path := "/graph/v1.0/users/" + url.PathEscape(userID) + "/drive"
+	if err := client.request(ctx, http.MethodGet, path, nil, &space); err != nil {
+		return nil, err
+	}
+	return spaceUsage(&space), nil
+}
+
+func spaceUsage(space *Space) *SpaceUsage {
 	usage := &SpaceUsage{Disabled: space.Disabled()}
 	if space.Quota != nil {
 		usage.Total = space.Quota.Total
@@ -106,7 +122,7 @@ func (client *Client) GetSpaceUsage(ctx context.Context, driveID string) (*Space
 		usage.Remaining = space.Quota.Remaining
 		usage.State = space.Quota.State
 	}
-	return usage, nil
+	return usage
 }
 
 func (client *Client) DisableSpace(ctx context.Context, driveID string) error {

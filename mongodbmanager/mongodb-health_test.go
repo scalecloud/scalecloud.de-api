@@ -12,6 +12,9 @@ import (
 func TestCheckHealthValidatesCollectionsAndEnsuresIndexes(t *testing.T) {
 	connection, ctx := newTestMongoDBConnection(t)
 	for databaseName, collectionNames := range databases {
+		if databaseName == databaseOpenCloud {
+			continue
+		}
 		database := connection.Client.Database(databaseName)
 		for _, collectionName := range collectionNames {
 			names, err := database.ListCollectionNames(ctx, bson.M{"name": collectionName})
@@ -34,6 +37,12 @@ func TestCheckHealthValidatesCollectionsAndEnsuresIndexes(t *testing.T) {
 	assertMongoIndexExists(t, ctx, connection.Client.Database(databaseNewsletters).Collection(collectionSubscribers), "UniqueNewsletterEmail")
 	assertMongoIndexExists(t, ctx, connection.Client.Database(databaseStripe).Collection(collectionUsers), "UniqueStripeUserUID")
 	assertMongoIndexExists(t, ctx, connection.Client.Database(databaseAuthentik).Collection(collectionAuthentikEvents), "AuthentikOpenCloudUserCreated")
+	assertMongoIndexExists(t, ctx, connection.Client.Database(databaseOpenCloud).Collection(collectionOpenCloudHistory), "UniqueOpenCloudUsageDriveDay")
+	assertMongoIndexExists(t, ctx, connection.Client.Database(databaseOpenCloud).Collection(collectionOpenCloudHistory), "ExpireOpenCloudUsageHistory")
+	collections, err := connection.Client.Database(databaseOpenCloud).ListCollectionNames(ctx, bson.M{"name": collectionOpenCloudHistory})
+	if err != nil || len(collections) == 0 {
+		t.Fatalf("OpenCloud usage collection was not created: %v", err)
+	}
 
 	productDatabase := connection.Client.Database(databaseProduct)
 	if err := productDatabase.Collection(collectionTrial).Drop(ctx); err != nil {

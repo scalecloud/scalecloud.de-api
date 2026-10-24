@@ -3,6 +3,7 @@ package stripemanager
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	"github.com/scalecloud/scalecloud.de-api/authentikmanager"
 	"github.com/scalecloud/scalecloud.de-api/emailmanager"
@@ -21,14 +22,17 @@ type StripeConnection struct {
 }
 
 type PaymentHandler struct {
-	AuthentikConnection  *authentikmanager.AuthentikManager
-	InvitationClaimURL   string
-	StripeConnection     *StripeConnection
-	MongoDBConnection    *mongodbmanager.MongoDBConnection
-	EMailConnection      *emailmanager.EMailConnection
-	NewsletterConnection *newslettermanager.NewsletterConnection
-	OpenCloudConnection  *opencloudmanager.Client
-	Log                  *zap.Logger
+	AuthentikConnection   *authentikmanager.AuthentikManager
+	InvitationClaimURL    string
+	StripeConnection      *StripeConnection
+	MongoDBConnection     *mongodbmanager.MongoDBConnection
+	EMailConnection       *emailmanager.EMailConnection
+	NewsletterConnection  *newslettermanager.NewsletterConnection
+	OpenCloudConnection   *opencloudmanager.Client
+	Log                   *zap.Logger
+	openCloudUsageMu      sync.Mutex
+	openCloudUsageCache   map[string]openCloudUsageCacheEntry
+	openCloudUsageFlights map[string]*openCloudUsageFlight
 }
 
 func InitStripeConnection(ctx context.Context, log *zap.Logger) (*StripeConnection, error) {
