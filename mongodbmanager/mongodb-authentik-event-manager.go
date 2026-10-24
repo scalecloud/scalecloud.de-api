@@ -39,7 +39,6 @@ func (mongoDBConnection *MongoDBConnection) StoreAuthentikEvent(ctx context.Cont
 		"_id":                    documentID,
 		"event_uuid":             eventUUID,
 		"user_pk":                userPK,
-		"user_email":             payload["user_email"],
 		"authorized_application": applicationName,
 		"created":                payload["created"],
 		"received_at":            time.Now().UTC(),

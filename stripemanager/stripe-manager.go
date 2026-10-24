@@ -8,6 +8,7 @@ import (
 	"github.com/scalecloud/scalecloud.de-api/emailmanager"
 	"github.com/scalecloud/scalecloud.de-api/mongodbmanager"
 	"github.com/scalecloud/scalecloud.de-api/newslettermanager"
+	"github.com/scalecloud/scalecloud.de-api/opencloudmanager"
 	"github.com/scalecloud/scalecloud.de-api/stripemanager/secret"
 	"github.com/stripe/stripe-go/v87"
 	"go.uber.org/zap"
@@ -26,6 +27,7 @@ type PaymentHandler struct {
 	MongoDBConnection    *mongodbmanager.MongoDBConnection
 	EMailConnection      *emailmanager.EMailConnection
 	NewsletterConnection *newslettermanager.NewsletterConnection
+	OpenCloudConnection  *opencloudmanager.Client
 	Log                  *zap.Logger
 }
 

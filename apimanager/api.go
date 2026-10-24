@@ -22,6 +22,7 @@ import (
 	"github.com/scalecloud/scalecloud.de-api/healthmanager"
 	"github.com/scalecloud/scalecloud.de-api/mongodbmanager"
 	"github.com/scalecloud/scalecloud.de-api/newslettermanager"
+	"github.com/scalecloud/scalecloud.de-api/opencloudmanager"
 	"github.com/scalecloud/scalecloud.de-api/stripemanager"
 	"github.com/scalecloud/scalecloud.de-api/stripemanager/secret"
 	"go.uber.org/zap"
@@ -42,6 +43,7 @@ type Api struct {
 type WebhookHandler struct {
 	StripeConnection      *stripemanager.StripeConnection
 	MongoDBConnection     *mongodbmanager.MongoDBConnection
+	OpenCloudConnection   *opencloudmanager.Client
 	AuthentikWebhookToken string
 	Log                   *zap.Logger
 }
@@ -93,9 +95,13 @@ func InitAPI(log *zap.Logger, config appconfig.Config) (*Api, error) {
 	if err != nil {
 		return &Api{}, err
 	}
+	openCloudConnection, openCloudConfigured, err := opencloudmanager.NewClientFromEnv()
+	if err != nil {
+		return &Api{}, err
+	}
 
 	validate := validator.New(validator.WithRequiredStructEnabled())
-	healthMonitor := healthmanager.NewMonitor([]healthmanager.Check{
+	healthChecks := []healthmanager.Check{
 		{Name: "mongodb", Required: true, Run: mongoDBConnection.CheckHealth},
 		{Name: "stripe", Required: true, Run: stripeConnection.CheckHealth},
 		{Name: "authentik", Required: true, Run: func(ctx context.Context) error {
@@ -105,7 +111,11 @@ func InitAPI(log *zap.Logger, config appconfig.Config) (*Api, error) {
 			return authentikConnection.CheckHealth(ctx)
 		}},
 		{Name: "smtp", Required: false, Run: emailConnection.CheckHealth},
-	}, 60*time.Second, 5*time.Second, log.Named("health"))
+	}
+	if openCloudConfigured {
+		healthChecks = append(healthChecks, healthmanager.Check{Name: "opencloud", Required: true, Run: openCloudConnection.CheckHealth})
+	}
+	healthMonitor := healthmanager.NewMonitor(healthChecks, 60*time.Second, 5*time.Second, log.Named("health"))
 	healthContext, cancelHealth := context.WithCancel(context.Background())
 	healthMonitor.CheckNow(healthContext)
 	healthMonitor.Start(healthContext)
@@ -121,11 +131,13 @@ func InitAPI(log *zap.Logger, config appconfig.Config) (*Api, error) {
 			StripeConnection:     stripeConnection,
 			EMailConnection:      emailConnection,
 			NewsletterConnection: newsletterConnection,
+			OpenCloudConnection:  openCloudConnection,
 			Log:                  log.Named("paymenthandler"),
 		},
 		webhookHandler: &WebhookHandler{
 			StripeConnection:      stripeConnection,
 			MongoDBConnection:     mongoDBConnection,
+			OpenCloudConnection:   openCloudConnection,
 			AuthentikWebhookToken: strings.TrimSpace(os.Getenv("AUTHENTIK_WEBHOOK_TOKEN")),
 			Log:                   log.Named("webhookhandler"),
 		},
@@ -201,6 +213,9 @@ func (api *Api) initRoutes() {
 		dashboard.POST("/subscription/update-seat", api.getSubscriptionUpdateSeat)
 		dashboard.POST("/subscription/add-seat", api.getSubscriptionAddSeat)
 		dashboard.POST("/subscription/delete-seat", api.getSubscriptionRemoveSeat)
+		dashboard.POST("/subscription/opencloud/create-space", api.createOpenCloudSpace)
+		dashboard.POST("/subscription/opencloud/apply-storage", api.applyOpenCloudStorage)
+		dashboard.POST("/subscription/opencloud/usage", api.getOpenCloudUsage)
 		dashboard.POST("/subscription/invoices", api.getSubscriptionInvoices)
 		dashboard.POST("/subscription/billing-address", api.getBillingAddress)
 		dashboard.POST("/subscription/update-billing-address", api.updateBillingAddress)

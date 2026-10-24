@@ -29,4 +29,6 @@ type Seat struct {
 	InvitationTokenHash string     `bson:"invitationTokenHash,omitempty" json:"-"`
 	InvitationExpiresAt *time.Time `bson:"invitationExpiresAt,omitempty" json:"invitationExpiresAt,omitempty"`
 	AuthentikUserPK     int64      `bson:"authentikUserPk,omitempty" json:"-"`
+	OpenCloudDriveID    string     `bson:"openCloudDriveId,omitempty" json:"-"`
+	OpenCloudUserID     string     `bson:"openCloudUserId,omitempty" json:"-"`
 }

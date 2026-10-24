@@ -288,6 +288,70 @@ func (mongoDBConnection *MongoDBConnection) GetOwnerSeat(ctx context.Context, su
 	return seat, nil
 }
 
+func (mongoDBConnection *MongoDBConnection) SetOpenCloudDriveID(ctx context.Context, subscriptionID, driveID string) error {
+	if subscriptionID == "" || driveID == "" {
+		return errors.New("subscription ID and OpenCloud drive ID are required")
+	}
+	collection, err := mongoDBConnection.getCollection(ctx, databaseSubscription, collectionSeats)
+	if err != nil {
+		return err
+	}
+	result, err := collection.UpdateOne(ctx, bson.M{
+		"subscriptionID": subscriptionID,
+		"roles":          bson.M{"$in": []string{string(RoleOwner)}},
+	}, bson.M{"$set": bson.M{"openCloudDriveId": driveID}})
+	if err != nil {
+		return err
+	}
+	if result.MatchedCount == 0 {
+		return errors.New("subscription owner seat not found")
+	}
+	return nil
+}
+
+func (mongoDBConnection *MongoDBConnection) GetActiveSeatsByAuthentikUserPK(ctx context.Context, userPK int64) ([]Seat, error) {
+	if userPK <= 0 {
+		return nil, errors.New("Authentik user ID is required")
+	}
+	filter := bson.M{
+		"authentikUserPk": userPK,
+		"$or": []bson.M{
+			{"status": SeatStatusActive},
+			{"status": bson.M{"$exists": false}},
+		},
+	}
+	var seats []Seat
+	if err := mongoDBConnection.findDocuments(ctx, databaseSubscription, collectionSeats, filter, &seats, options.Find()); err != nil {
+		return nil, err
+	}
+	return seats, nil
+}
+
+func (mongoDBConnection *MongoDBConnection) SetOpenCloudUserID(ctx context.Context, subscriptionID string, userPK int64, openCloudUserID string) error {
+	if subscriptionID == "" || userPK <= 0 || openCloudUserID == "" {
+		return errors.New("subscription ID, Authentik user ID, and OpenCloud user ID are required")
+	}
+	collection, err := mongoDBConnection.getCollection(ctx, databaseSubscription, collectionSeats)
+	if err != nil {
+		return err
+	}
+	result, err := collection.UpdateOne(ctx, bson.M{
+		"subscriptionID":  subscriptionID,
+		"authentikUserPk": userPK,
+		"$or": []bson.M{
+			{"status": SeatStatusActive},
+			{"status": bson.M{"$exists": false}},
+		},
+	}, bson.M{"$set": bson.M{"openCloudUserId": openCloudUserID}})
+	if err != nil {
+		return err
+	}
+	if result.MatchedCount == 0 {
+		return errors.New("active subscription seat not found")
+	}
+	return nil
+}
+
 func (mongoDBConnection *MongoDBConnection) UpdateSeat(ctx context.Context, seat Seat) error {
 	filter := bson.M{
 		"subscriptionID": seat.SubscriptionID,

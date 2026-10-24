@@ -279,6 +279,9 @@ func (api *Api) handleSubscriptionEnded(c context.Context, event stripe.Event) e
 		api.log.Warn("Subscription is not canceled but customer.subscription.deleted was called.", zap.Any("SubscriptionID", sub.ID))
 		return errors.New("Subscription is not canceled but customer.subscription.deleted was called. SubscriptionID: " + sub.ID)
 	}
+	if err := api.paymentHandler.DisableOpenCloudSpace(c, sub.ID); err != nil {
+		return err
+	}
 	err = api.removeStripeUser(c, sub.Customer.ID)
 	if err != nil {
 		return err

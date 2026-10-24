@@ -16,6 +16,7 @@ import (
 	"github.com/scalecloud/scalecloud.de-api/authmanager"
 	"github.com/scalecloud/scalecloud.de-api/emailmanager"
 	"github.com/scalecloud/scalecloud.de-api/mongodbmanager"
+	"github.com/scalecloud/scalecloud.de-api/opencloudmanager"
 	"github.com/stripe/stripe-go/v87"
 	"go.uber.org/zap"
 )
@@ -276,7 +277,21 @@ func (paymentHandler *PaymentHandler) RemoveSeatFromSubscriptionGroup(ctx contex
 	if userPK == 0 {
 		return nil
 	}
-	return paymentHandler.AuthentikConnection.RemoveUserFromSubscription(ctx, seat.SubscriptionID, userPK)
+	if err := paymentHandler.AuthentikConnection.RemoveUserFromSubscription(ctx, seat.SubscriptionID, userPK); err != nil {
+		return err
+	}
+	if paymentHandler.OpenCloudConnection == nil || seat.OpenCloudUserID == "" {
+		return nil
+	}
+	owner, err := paymentHandler.MongoDBConnection.GetOwnerSeat(ctx, seat.SubscriptionID)
+	if err != nil || owner.OpenCloudDriveID == "" {
+		return err
+	}
+	err = paymentHandler.OpenCloudConnection.RemoveUser(ctx, owner.OpenCloudDriveID, seat.OpenCloudUserID)
+	if errors.Is(err, opencloudmanager.ErrNotMember) {
+		return nil
+	}
+	return err
 }
 
 func (paymentHandler *PaymentHandler) AddSeatToSubscriptionGroup(ctx context.Context, seat mongodbmanager.Seat) error {
