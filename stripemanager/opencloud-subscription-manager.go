@@ -346,6 +346,7 @@ func (paymentHandler *PaymentHandler) SampleOpenCloudUsage(ctx context.Context) 
 	if err != nil {
 		return err
 	}
+	var firstErr error
 	if len(spaces) == 0 {
 		discoveredSpaces, listErr := paymentHandler.OpenCloudConnection.ListProjectSpaces(ctx)
 		if listErr == nil {
@@ -361,19 +362,16 @@ func (paymentHandler *PaymentHandler) SampleOpenCloudUsage(ctx context.Context) 
 					Scope:          "project",
 					DriveType:      space.DriveType,
 					LastSeenAt:     time.Now().UTC(),
-				}); upsertErr != nil {
-					if err == nil {
-						err = upsertErr
-					}
+				}); upsertErr != nil && firstErr == nil {
+					firstErr = fmt.Errorf("register OpenCloud space %s: %w", space.ID, upsertErr)
 				}
 			}
-		} else if err == nil {
-			err = listErr
+		} else if firstErr == nil {
+			firstErr = listErr
 		}
 	}
 	now := time.Now().UTC()
 	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
-	var firstErr error
 	for _, space := range spaces {
 		existing, existingErr := paymentHandler.MongoDBConnection.GetOpenCloudUsageHistory(ctx, space.DriveID, today, today.AddDate(0, 0, 1))
 		if existingErr != nil {

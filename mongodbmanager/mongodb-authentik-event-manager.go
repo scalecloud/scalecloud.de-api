@@ -16,7 +16,7 @@ import (
 func (mongoDBConnection *MongoDBConnection) StoreAuthentikEvent(ctx context.Context, payload bson.M) (bool, error) {
 	eventUUID, ok := payload["event_uuid"].(string)
 	if !ok || eventUUID == "" {
-		return false, errors.New("Authentik event UUID is required")
+		return false, errors.New("authentik event UUID is required")
 	}
 	applicationName, _ := payload["authorized_application"].(string)
 	if !strings.EqualFold(applicationName, "OpenCloud") {
@@ -24,10 +24,10 @@ func (mongoDBConnection *MongoDBConnection) StoreAuthentikEvent(ctx context.Cont
 	}
 	userPK, err := getInt64FieldFromPayload(payload, "user_pk")
 	if err != nil {
-		return false, errors.New("Authentik user ID is required")
+		return false, errors.New("authentik user ID is required")
 	}
 	if _, ok := payload["created"]; !ok {
-		return false, errors.New("Authentik event created timestamp is required")
+		return false, errors.New("authentik event created timestamp is required")
 	}
 
 	collection, err := mongoDBConnection.getCollection(ctx, databaseAuthentik, collectionAuthentikEvents)

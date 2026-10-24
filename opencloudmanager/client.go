@@ -128,7 +128,7 @@ func (client *Client) request(ctx context.Context, method, path string, input, o
 	return client.requestWithHeaders(ctx, method, path, input, output, nil)
 }
 
-func (client *Client) requestWithHeaders(ctx context.Context, method, path string, input, output any, headers map[string]string) error {
+func (client *Client) requestWithHeaders(ctx context.Context, method, path string, input, output any, headers map[string]string) (err error) {
 	var body io.Reader
 	if input != nil {
 		encoded, err := json.Marshal(input)
@@ -153,7 +153,11 @@ func (client *Client) requestWithHeaders(ctx context.Context, method, path strin
 	if err != nil {
 		return fmt.Errorf("send OpenCloud request: %w", err)
 	}
-	defer response.Body.Close()
+	defer func() {
+		if closeErr := response.Body.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("close OpenCloud response body: %w", closeErr)
+		}
+	}()
 	responseBody, err := io.ReadAll(io.LimitReader(response.Body, 4<<20))
 	if err != nil {
 		return fmt.Errorf("read OpenCloud response: %w", err)

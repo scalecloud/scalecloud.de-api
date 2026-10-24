@@ -311,7 +311,7 @@ func (mongoDBConnection *MongoDBConnection) SetOpenCloudDriveID(ctx context.Cont
 
 func (mongoDBConnection *MongoDBConnection) GetActiveSeatsByAuthentikUserPK(ctx context.Context, userPK int64) ([]Seat, error) {
 	if userPK <= 0 {
-		return nil, errors.New("Authentik user ID is required")
+		return nil, errors.New("authentik user ID is required")
 	}
 	filter := bson.M{
 		"authentikUserPk": userPK,
