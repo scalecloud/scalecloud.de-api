@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -75,6 +76,71 @@ func TestSeatClaimStateTransitions(t *testing.T) {
 	}
 	if err := connection.CompleteSeatClaim(ctx, tokenHash, "user-123"); err == nil {
 		t.Fatal("CompleteSeatClaim() allowed replay after activation")
+	}
+}
+
+func TestGetActiveSeatsByAuthentikUserPKFiltersOnlyEligibleSeats(t *testing.T) {
+	connection, ctx := newTestMongoDBConnection(t)
+	collection := connection.Client.Database(databaseSubscription).Collection(collectionSeats)
+	userPK := int64(42)
+	cleanupID := fmt.Sprintf("auth-user-pk-test-%d", time.Now().UnixNano())
+
+	seatDocs := []any{
+		bson.M{
+			"subscriptionID":  cleanupID + "-active",
+			"uid":             "uid-active",
+			"email":           "active@example.com",
+			"roles":           []Role{RoleUser},
+			"status":          SeatStatusActive,
+			"authentikUserPk": userPK,
+		},
+		bson.M{
+			"subscriptionID":  cleanupID + "-implicit",
+			"uid":             "uid-implicit",
+			"email":           "implicit@example.com",
+			"roles":           []Role{RoleUser},
+			"authentikUserPk": userPK,
+		},
+		bson.M{
+			"subscriptionID":  cleanupID + "-pending",
+			"uid":             "uid-pending",
+			"email":           "pending@example.com",
+			"roles":           []Role{RoleUser},
+			"status":          SeatStatusPending,
+			"authentikUserPk": userPK,
+		},
+		bson.M{
+			"subscriptionID":  cleanupID + "-other",
+			"uid":             "uid-other",
+			"email":           "other@example.com",
+			"roles":           []Role{RoleUser},
+			"status":          SeatStatusActive,
+			"authentikUserPk": userPK + 1,
+		},
+	}
+
+	if _, err := collection.InsertMany(ctx, seatDocs); err != nil {
+		t.Fatalf("insert seats: %v", err)
+	}
+	t.Cleanup(func() {
+		cleanupContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_, _ = collection.DeleteMany(cleanupContext, bson.M{"subscriptionID": bson.M{"$regex": "^" + cleanupID}})
+	})
+
+	seats, err := connection.GetActiveSeatsByAuthentikUserPK(ctx, userPK)
+	if err != nil {
+		t.Fatalf("GetActiveSeatsByAuthentikUserPK() error = %v", err)
+	}
+	if len(seats) != 2 {
+		t.Fatalf("GetActiveSeatsByAuthentikUserPK() returned %d seats, want 2", len(seats))
+	}
+	if seats[0].SubscriptionID == cleanupID+"-pending" || seats[1].SubscriptionID == cleanupID+"-pending" {
+		t.Fatalf("pending seat should be excluded: %+v", seats)
+	}
+
+	if _, err := connection.GetActiveSeatsByAuthentikUserPK(ctx, 0); err == nil || !strings.Contains(err.Error(), "authentik user ID is required") {
+		t.Fatalf("GetActiveSeatsByAuthentikUserPK(0) error = %v, want validation error", err)
 	}
 }
 
