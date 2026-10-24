@@ -145,19 +145,29 @@ func (client *Client) RestoreSpace(ctx context.Context, driveID string) (*Space,
 	return &space, nil
 }
 
+func (client *Client) ListProjectSpaces(ctx context.Context) ([]Space, error) {
+	var response struct {
+		Value []Space `json:"value"`
+	}
+	params := url.Values{}
+	params.Set("$filter", "driveType eq 'project'")
+	if err := client.request(ctx, http.MethodGet, "/graph/v1.0/drives?"+params.Encode(), nil, &response); err != nil {
+		return nil, err
+	}
+	return response.Value, nil
+}
+
 func (client *Client) FindProjectSpace(ctx context.Context, marker string) (*Space, error) {
 	if strings.TrimSpace(marker) == "" {
 		return nil, errors.New("OpenCloud space marker is required")
 	}
-	var response struct {
-		Value []Space `json:"value"`
-	}
-	if err := client.request(ctx, http.MethodGet, "/graph/v1.0/drives", nil, &response); err != nil {
+	spaces, err := client.ListProjectSpaces(ctx)
+	if err != nil {
 		return nil, err
 	}
-	for index := range response.Value {
-		space := &response.Value[index]
-		if space.DriveType == "project" && strings.Contains(space.Description, marker) {
+	for index := range spaces {
+		space := &spaces[index]
+		if strings.Contains(space.Description, marker) {
 			return space, nil
 		}
 	}

@@ -99,14 +99,15 @@ func (mongoDBConnection *MongoDBConnection) ensureOpenCloudUsageCollections(ctx 
 	for _, name := range existing {
 		existingCollections[name] = struct{}{}
 	}
-	name := collectionOpenCloudHistory
-	if _, ok := existingCollections[name]; ok {
-		return nil
-	}
-	if err := database.CreateCollection(ctx, name); err != nil {
-		createdSinceList, listErr := database.ListCollectionNames(ctx, bson.M{"name": name})
-		if listErr != nil || len(createdSinceList) == 0 {
-			return err
+	for _, name := range []string{collectionOpenCloudHistory, collectionOpenCloudRegistry} {
+		if _, ok := existingCollections[name]; ok {
+			continue
+		}
+		if err := database.CreateCollection(ctx, name); err != nil {
+			createdSinceList, listErr := database.ListCollectionNames(ctx, bson.M{"name": name})
+			if listErr != nil || len(createdSinceList) == 0 {
+				return err
+			}
 		}
 	}
 	return nil

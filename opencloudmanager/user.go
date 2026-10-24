@@ -15,6 +15,16 @@ type User struct {
 	Username    string `json:"onPremisesSamAccountName"`
 }
 
+func (client *Client) ListUsers(ctx context.Context) ([]User, error) {
+	var response struct {
+		Value []User `json:"value"`
+	}
+	if err := client.request(ctx, http.MethodGet, "/graph/v1.0/users", nil, &response); err != nil {
+		return nil, err
+	}
+	return response.Value, nil
+}
+
 func (client *Client) GetUser(ctx context.Context, idOrUsername string) (*User, error) {
 	if strings.TrimSpace(idOrUsername) == "" {
 		return nil, errors.New("OpenCloud user ID or username is required")

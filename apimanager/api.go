@@ -199,7 +199,8 @@ func (api *Api) startOpenCloudUsageSampler() {
 
 	go func() {
 		defer close(done)
-		ticker := time.NewTicker(24 * time.Hour)
+		// Temporary testing override: sample every minute so live OpenCloud usage pulls can be observed.
+		ticker := time.NewTicker(time.Minute)
 		defer ticker.Stop()
 		for {
 			if err := api.paymentHandler.SampleOpenCloudUsage(ctx); err != nil && ctx.Err() == nil {

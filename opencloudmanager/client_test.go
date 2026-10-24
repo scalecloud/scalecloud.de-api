@@ -190,3 +190,41 @@ func TestEnsureMemberInvitesOnlyWhenMissing(t *testing.T) {
 		t.Fatalf("second EnsureMember() = %t, %v; invite calls = %d", added, err, inviteCalls)
 	}
 }
+
+func TestListProjectSpacesAndUsersUsesGraphCollectionEndpoints(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		switch request.URL.Path {
+		case "/graph/v1.0/drives":
+			if request.URL.Query().Get("$filter") != "driveType eq 'project'" {
+				t.Fatalf("unexpected drives filter %q", request.URL.RawQuery)
+			}
+			_, _ = writer.Write([]byte(`{"value":[{"id":"drive-1","driveType":"project","description":"subscription:sub-1"},{"id":"drive-2","driveType":"project","description":"subscription:sub-2"}]}`))
+		case "/graph/v1.0/users":
+			_, _ = writer.Write([]byte(`{"value":[{"id":"user-1","displayName":"Alice","mail":"alice@example.com"},{"id":"user-2","displayName":"Bob","mail":"bob@example.com"}]}`))
+		default:
+			t.Fatalf("unexpected request: %s %s", request.Method, request.URL.Path)
+		}
+	}))
+	defer server.Close()
+
+	client, err := NewClient(Config{BaseURL: server.URL, Username: "billing-service", AppToken: "app-secret"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	spaces, err := client.ListProjectSpaces(context.Background())
+	if err != nil {
+		t.Fatalf("ListProjectSpaces() error = %v", err)
+	}
+	if len(spaces) != 2 || spaces[0].ID != "drive-1" || spaces[1].ID != "drive-2" {
+		t.Fatalf("ListProjectSpaces() = %+v", spaces)
+	}
+
+	users, err := client.ListUsers(context.Background())
+	if err != nil {
+		t.Fatalf("ListUsers() error = %v", err)
+	}
+	if len(users) != 2 || users[0].ID != "user-1" || users[1].ID != "user-2" {
+		t.Fatalf("ListUsers() = %+v", users)
+	}
+}
