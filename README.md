@@ -44,6 +44,7 @@ docker run -d --restart unless-stopped \
 
 ```sh
 docker run -d --restart unless-stopped \
+  -p 15001:15001 \
   --env-file=.env \
   --name scalecloud-opencloud-usage-collector \
   --entrypoint /app/opencloud-usage-collector \

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -101,6 +102,26 @@ func run() error {
 
 	collector := opencloudusage.NewCollector(mongoDBConnection, openCloudConnection)
 	meter := sentry.NewMeter(ctx)
+	health := newCollectorHealth(2 * sampleInterval)
+	healthServer := &http.Server{
+		Addr:              ":15001",
+		Handler:           health,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	healthServerErrors := make(chan error, 1)
+	go func() {
+		if err := healthServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			healthServerErrors <- err
+		}
+	}()
+	defer func() {
+		shutdownContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := healthServer.Shutdown(shutdownContext); err != nil {
+			log.Error("Could not shut down collector health server", zap.Error(err))
+		}
+	}()
+
 	log.Info("Starting OpenCloud usage collector", zap.String("environment", environment.String()), zap.Duration("interval", sampleInterval))
 	ticker := time.NewTicker(sampleInterval)
 	defer ticker.Stop()
@@ -108,10 +129,33 @@ func run() error {
 	for {
 		runStarted := time.Now()
 		log.Info("Starting OpenCloud usage collection")
-		sampleErr := collector.Sample(ctx)
+		sampleResult := make(chan error, 1)
+		go func() {
+			sampleResult <- collector.Sample(ctx)
+		}()
+		var sampleErr error
+		select {
+		case sampleErr = <-sampleResult:
+		case <-ctx.Done():
+			sampleErr = <-sampleResult
+			if sampleErr != nil && !errors.Is(sampleErr, context.Canceled) {
+				log.Warn("OpenCloud usage collection interrupted with an error", zap.Error(sampleErr))
+			}
+			log.Info("Stopping OpenCloud usage collector")
+			return nil
+		case serverErr := <-healthServerErrors:
+			stop()
+			sampleErr = <-sampleResult
+			if sampleErr != nil && !errors.Is(sampleErr, context.Canceled) {
+				log.Warn("OpenCloud usage collection interrupted with an error", zap.Error(sampleErr))
+			}
+			log.Error("Collector health server failed", zap.Error(serverErr))
+			return fmt.Errorf("collector health server failed: %w", serverErr)
+		}
 		duration := time.Since(runStarted)
 		meter.Count("opencloud_usage_collector.runs", 1)
 		meter.Distribution("opencloud_usage_collector.duration", duration.Seconds(), sentry.WithUnit(sentry.UnitSecond))
+		health.recordCollection(sampleErr, time.Now())
 
 		switch {
 		case sampleErr != nil && ctx.Err() == nil:
@@ -126,6 +170,10 @@ func run() error {
 		case <-ctx.Done():
 			log.Info("Stopping OpenCloud usage collector")
 			return nil
+		case serverErr := <-healthServerErrors:
+			stop()
+			log.Error("Collector health server failed", zap.Error(serverErr))
+			return fmt.Errorf("collector health server failed: %w", serverErr)
 		case <-ticker.C:
 		}
 	}

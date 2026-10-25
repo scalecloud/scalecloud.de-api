@@ -32,7 +32,7 @@ WORKDIR /app
 COPY --from=build /scalecloud.de-api /app/scalecloud-api.de
 COPY --from=build /opencloud-usage-collector /app/opencloud-usage-collector
 
-EXPOSE 15000
+EXPOSE 15000 15001
 
 USER nonroot:nonroot
 
