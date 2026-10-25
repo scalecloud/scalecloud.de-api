@@ -40,6 +40,16 @@ docker run -d --restart unless-stopped \
   scalecloudde/scalecloud.de-api:latest
 ```
 
+## OpenCloud Usage Collector
+
+```sh
+docker run -d --restart unless-stopped \
+  --env-file=.env \
+  --name scalecloud-opencloud-usage-collector \
+  --entrypoint /app/opencloud-usage-collector \
+  scalecloudde/scalecloud.de-api:latest
+```
+
 ## Health Checks
 
 - `GET /health/live`: process status.

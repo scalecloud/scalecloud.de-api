@@ -144,6 +144,54 @@ func TestGetActiveSeatsByAuthentikUserPKFiltersOnlyEligibleSeats(t *testing.T) {
 	}
 }
 
+func TestSetOpenCloudSeatIdentifiersUpdatesMatchingOwnerAndUserSeats(t *testing.T) {
+	connection, ctx := newTestMongoDBConnection(t)
+	collection := connection.Client.Database(databaseSubscription).Collection(collectionSeats)
+	subscriptionID := fmt.Sprintf("opencloud-seat-identifiers-%d", time.Now().UnixNano())
+	seat := Seat{
+		SubscriptionID:  subscriptionID,
+		UID:             "owner-uid",
+		EMail:           "owner@example.com",
+		Roles:           []Role{RoleOwner},
+		Status:          SeatStatusActive,
+		AuthentikUserPK: 99,
+	}
+	if _, err := collection.InsertOne(ctx, seat); err != nil {
+		t.Fatalf("insert owner seat: %v", err)
+	}
+	t.Cleanup(func() {
+		cleanupContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_, _ = collection.DeleteOne(cleanupContext, bson.M{"subscriptionID": subscriptionID})
+	})
+
+	if err := connection.SetOpenCloudDriveID(ctx, subscriptionID, "drive-123"); err != nil {
+		t.Fatalf("SetOpenCloudDriveID() error = %v", err)
+	}
+
+	if err := connection.SetOpenCloudUserID(ctx, subscriptionID, 99, "user-456"); err != nil {
+		t.Fatalf("SetOpenCloudUserID() error = %v", err)
+	}
+
+	var updated Seat
+	if err := collection.FindOne(ctx, bson.M{"subscriptionID": subscriptionID}).Decode(&updated); err != nil {
+		t.Fatalf("read updated seat: %v", err)
+	}
+	if updated.OpenCloudDriveID != "drive-123" {
+		t.Fatalf("open cloud drive ID = %q, want %q", updated.OpenCloudDriveID, "drive-123")
+	}
+	if updated.OpenCloudUserID != "user-456" {
+		t.Fatalf("open cloud user ID = %q, want %q", updated.OpenCloudUserID, "user-456")
+	}
+
+	if err := connection.SetOpenCloudDriveID(ctx, "", "drive-123"); err == nil {
+		t.Fatal("SetOpenCloudDriveID() accepted empty subscription ID")
+	}
+	if err := connection.SetOpenCloudUserID(ctx, subscriptionID, 0, "user-456"); err == nil {
+		t.Fatal("SetOpenCloudUserID() accepted invalid Authentik user PK")
+	}
+}
+
 func TestBeginSeatClaimRejectsExpiredInvitation(t *testing.T) {
 	connection, ctx := newTestMongoDBConnection(t)
 	subscriptionID := fmt.Sprintf("expired-claim-test-%d", time.Now().UnixNano())

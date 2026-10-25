@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	sentrygin "github.com/getsentry/sentry-go/gin"
@@ -30,18 +29,15 @@ import (
 )
 
 type Api struct {
-	config             appconfig.Config
-	router             *gin.Engine
-	paymentHandler     *stripemanager.PaymentHandler
-	webhookHandler     *WebhookHandler
-	authConnection     *authmanager.OIDCConnection
-	validate           *validator.Validate
-	log                *zap.Logger
-	healthMonitor      *healthmanager.Monitor
-	cancelHealth       context.CancelFunc
-	usageSamplerMu     sync.Mutex
-	cancelUsageSampler context.CancelFunc
-	usageSamplerDone   chan struct{}
+	config         appconfig.Config
+	router         *gin.Engine
+	paymentHandler *stripemanager.PaymentHandler
+	webhookHandler *WebhookHandler
+	authConnection *authmanager.OIDCConnection
+	validate       *validator.Validate
+	log            *zap.Logger
+	healthMonitor  *healthmanager.Monitor
+	cancelHealth   context.CancelFunc
 }
 
 type WebhookHandler struct {
@@ -157,16 +153,6 @@ func (api *Api) CloseMongoClient() {
 	if api.cancelHealth != nil {
 		api.cancelHealth()
 	}
-	api.usageSamplerMu.Lock()
-	cancelUsageSampler := api.cancelUsageSampler
-	usageSamplerDone := api.usageSamplerDone
-	api.usageSamplerMu.Unlock()
-	if cancelUsageSampler != nil {
-		cancelUsageSampler()
-	}
-	if usageSamplerDone != nil {
-		<-usageSamplerDone
-	}
 	err := api.paymentHandler.MongoDBConnection.Client.Disconnect(context.Background())
 	if err != nil {
 		api.log.Fatal("Error closing MongoDB", zap.Error(err))
@@ -176,43 +162,9 @@ func (api *Api) CloseMongoClient() {
 func (api *Api) RunAPI() {
 	api.initHeaders()
 	api.initRoutes()
-	api.startOpenCloudUsageSampler()
 	api.initCertificate()
 	api.initTrustedProxies()
 	api.startListening()
-}
-
-func (api *Api) startOpenCloudUsageSampler() {
-	if api.paymentHandler.OpenCloudConnection == nil {
-		return
-	}
-	api.usageSamplerMu.Lock()
-	if api.usageSamplerDone != nil {
-		api.usageSamplerMu.Unlock()
-		return
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	done := make(chan struct{})
-	api.cancelUsageSampler = cancel
-	api.usageSamplerDone = done
-	api.usageSamplerMu.Unlock()
-
-	go func() {
-		defer close(done)
-		// Temporary testing override: sample every minute so live OpenCloud usage pulls can be observed.
-		ticker := time.NewTicker(time.Minute)
-		defer ticker.Stop()
-		for {
-			if err := api.paymentHandler.SampleOpenCloudUsage(ctx); err != nil && ctx.Err() == nil {
-				api.log.Warn("OpenCloud usage sampling failed", zap.Error(err))
-			}
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-			}
-		}
-	}()
 }
 
 func (api *Api) initHeaders() {
