@@ -13,7 +13,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/scalecloud/scalecloud.de-api/mongodbmanager"
 	"github.com/scalecloud/scalecloud.de-api/opencloudmanager"
-	"github.com/scalecloud/scalecloud.de-api/stripemanager"
+	"github.com/scalecloud/scalecloud.de-api/opencloudusage"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -75,17 +75,13 @@ func run() error {
 		return fmt.Errorf("OpenCloud health check failed: %w", err)
 	}
 
-	paymentHandler := &stripemanager.PaymentHandler{
-		MongoDBConnection:   mongoDBConnection,
-		OpenCloudConnection: openCloudConnection,
-		Log:                 log.Named("paymenthandler"),
-	}
+	collector := opencloudusage.NewCollector(mongoDBConnection, openCloudConnection)
 	log.Info("Starting OpenCloud usage collector", zap.Duration("interval", sampleInterval))
 	ticker := time.NewTicker(sampleInterval)
 	defer ticker.Stop()
 
 	for {
-		if err := paymentHandler.SampleOpenCloudUsage(ctx); err != nil && ctx.Err() == nil {
+		if err := collector.Sample(ctx); err != nil && ctx.Err() == nil {
 			log.Warn("OpenCloud usage sampling failed", zap.Error(err))
 		}
 		select {
