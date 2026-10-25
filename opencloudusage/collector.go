@@ -10,12 +10,26 @@ import (
 	"github.com/scalecloud/scalecloud.de-api/opencloudmanager"
 )
 
-type Collector struct {
-	mongoDB   *mongodbmanager.MongoDBConnection
-	openCloud *opencloudmanager.Client
+type MongoDB interface {
+	GetOpenCloudProjectSpaces(context.Context) ([]mongodbmanager.OpenCloudSpaceReference, error)
+	GetOpenCloudUsageHistory(context.Context, string, time.Time, time.Time) ([]mongodbmanager.OpenCloudUsageRecord, error)
+	StoreOpenCloudDailyUsage(context.Context, mongodbmanager.OpenCloudUsageRecord) error
+	UpsertOpenCloudResource(context.Context, mongodbmanager.OpenCloudResourceRegistry) error
 }
 
-func NewCollector(mongoDB *mongodbmanager.MongoDBConnection, openCloud *opencloudmanager.Client) *Collector {
+type OpenCloud interface {
+	ListProjectSpaces(context.Context) ([]opencloudmanager.Space, error)
+	GetSpaceUsage(context.Context, string) (*opencloudmanager.SpaceUsage, error)
+	ListUsers(context.Context) ([]opencloudmanager.User, error)
+	GetUserDriveUsage(context.Context, string) (*opencloudmanager.SpaceUsage, error)
+}
+
+type Collector struct {
+	mongoDB   MongoDB
+	openCloud OpenCloud
+}
+
+func NewCollector(mongoDB MongoDB, openCloud OpenCloud) *Collector {
 	return &Collector{mongoDB: mongoDB, openCloud: openCloud}
 }
 
