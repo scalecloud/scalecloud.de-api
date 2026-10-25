@@ -1,4 +1,4 @@
-package main
+package sentrylogging
 
 import (
 	"encoding/json"
@@ -8,22 +8,22 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-type sentryZapCore struct {
+type zapCore struct {
 	logger sentry.Logger
 	level  zapcore.LevelEnabler
 	fields []zapcore.Field
 }
 
-func newSentryZapCore(logger sentry.Logger, level zapcore.LevelEnabler) zapcore.Core {
-	return &sentryZapCore{logger: logger, level: level}
+func NewZapCore(logger sentry.Logger, level zapcore.LevelEnabler) zapcore.Core {
+	return &zapCore{logger: logger, level: level}
 }
 
-func (core *sentryZapCore) Enabled(level zapcore.Level) bool {
+func (core *zapCore) Enabled(level zapcore.Level) bool {
 	return core.level.Enabled(level)
 }
 
-func (core *sentryZapCore) With(fields []zapcore.Field) zapcore.Core {
-	withFields := &sentryZapCore{
+func (core *zapCore) With(fields []zapcore.Field) zapcore.Core {
+	withFields := &zapCore{
 		logger: core.logger,
 		level:  core.level,
 		fields: append([]zapcore.Field(nil), core.fields...),
@@ -32,14 +32,14 @@ func (core *sentryZapCore) With(fields []zapcore.Field) zapcore.Core {
 	return withFields
 }
 
-func (core *sentryZapCore) Check(entry zapcore.Entry, checked *zapcore.CheckedEntry) *zapcore.CheckedEntry {
+func (core *zapCore) Check(entry zapcore.Entry, checked *zapcore.CheckedEntry) *zapcore.CheckedEntry {
 	if core.Enabled(entry.Level) {
 		return checked.AddCore(entry, core)
 	}
 	return checked
 }
 
-func (core *sentryZapCore) Write(entry zapcore.Entry, fields []zapcore.Field) error {
+func (core *zapCore) Write(entry zapcore.Entry, fields []zapcore.Field) error {
 	logEntry := core.logger.Info()
 	switch entry.Level {
 	case zapcore.DebugLevel:
@@ -73,7 +73,7 @@ func (core *sentryZapCore) Write(entry zapcore.Entry, fields []zapcore.Field) er
 	return nil
 }
 
-func (core *sentryZapCore) Sync() error {
+func (core *zapCore) Sync() error {
 	return nil
 }
 

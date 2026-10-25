@@ -10,15 +10,21 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/TheZeroSlave/zapsentry"
+	"github.com/getsentry/sentry-go"
 	"github.com/joho/godotenv"
 	"github.com/scalecloud/scalecloud.de-api/mongodbmanager"
 	"github.com/scalecloud/scalecloud.de-api/opencloudmanager"
 	"github.com/scalecloud/scalecloud.de-api/opencloudusage"
+	"github.com/scalecloud/scalecloud.de-api/sentrylogging"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-const sampleInterval = time.Minute
+const (
+	sampleInterval = time.Minute
+	sentryDSN      = "https://f3fc4d13459e69a5ff5349e9a9b7dd2d@o4508966853083136.ingest.de.sentry.io/4512316950708304"
+)
 
 func main() {
 	if err := run(); err != nil {
@@ -36,20 +42,23 @@ func run() error {
 		return fmt.Errorf("check .env: %w", err)
 	}
 
-	log, err := newLogger()
+	log, sentryClient, err := newLogger()
 	if err != nil {
 		return fmt.Errorf("initialize logger: %w", err)
 	}
 	defer log.Sync()
+	defer sentryClient.Flush(2 * time.Second)
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	if err := mongodbmanager.CheckMongoDBConfig(log); err != nil {
+		log.Error("Invalid MongoDB configuration", zap.Error(err))
 		return fmt.Errorf("invalid MongoDB configuration: %w", err)
 	}
 	mongoDBConnection, err := mongodbmanager.InitMongoDBConnection(ctx, log)
 	if err != nil {
+		log.Error("Failed to initialize MongoDB connection", zap.Error(err))
 		return fmt.Errorf("initialize MongoDB connection: %w", err)
 	}
 	defer func() {
@@ -61,17 +70,22 @@ func run() error {
 	}()
 
 	if err := mongoDBConnection.CheckHealth(ctx); err != nil {
+		log.Error("MongoDB health check failed", zap.Error(err))
 		return fmt.Errorf("MongoDB health check failed: %w", err)
 	}
 
 	openCloudConnection, configured, err := opencloudmanager.NewClientFromEnv()
 	if err != nil {
+		log.Error("Invalid OpenCloud configuration", zap.Error(err))
 		return fmt.Errorf("invalid OpenCloud configuration: %w", err)
 	}
 	if !configured {
-		return errors.New("OpenCloud is not configured; set OPENCLOUD_BASE_URL, OPENCLOUD_USERNAME, and OPENCLOUD_APP_TOKEN")
+		err := errors.New("OpenCloud is not configured; set OPENCLOUD_BASE_URL, OPENCLOUD_USERNAME, and OPENCLOUD_APP_TOKEN")
+		log.Error("OpenCloud is not configured", zap.Error(err))
+		return err
 	}
 	if err := openCloudConnection.CheckHealth(ctx); err != nil {
+		log.Error("OpenCloud health check failed", zap.Error(err))
 		return fmt.Errorf("OpenCloud health check failed: %w", err)
 	}
 
@@ -93,7 +107,7 @@ func run() error {
 	}
 }
 
-func newLogger() (*zap.Logger, error) {
+func newLogger() (*zap.Logger, *sentry.Client, error) {
 	levelText := strings.ToLower(strings.TrimSpace(os.Getenv("LOG_LEVEL")))
 	if levelText == "" {
 		levelText = "info"
@@ -101,14 +115,43 @@ func newLogger() (*zap.Logger, error) {
 	switch levelText {
 	case "debug", "info", "warn", "error":
 	default:
-		return nil, errors.New("LOG_LEVEL must be debug, info, warn, or error")
+		return nil, nil, errors.New("LOG_LEVEL must be debug, info, warn, or error")
 	}
 
 	config := zap.NewProductionConfig()
 	var level zapcore.Level
 	if err := level.UnmarshalText([]byte(levelText)); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	config.Level.SetLevel(level)
-	return config.Build()
+	log, err := config.Build()
+	if err != nil {
+		return nil, nil, err
+	}
+	client, err := sentry.NewClient(sentry.ClientOptions{
+		Dsn:         sentryDSN,
+		Environment: strings.TrimSpace(os.Getenv("APP_ENV")),
+	})
+	if err != nil {
+		_ = log.Sync()
+		return nil, nil, fmt.Errorf("initialize Sentry client: %w", err)
+	}
+	sentry.CurrentHub().BindClient(client)
+
+	sentryCore, err := zapsentry.NewCore(zapsentry.Configuration{
+		Level:             zapcore.ErrorLevel,
+		EnableBreadcrumbs: true,
+		BreadcrumbLevel:   zapcore.InfoLevel,
+	}, zapsentry.NewSentryClientFromClient(client))
+	if err != nil {
+		client.Flush(2 * time.Second)
+		_ = log.Sync()
+		return nil, nil, fmt.Errorf("initialize Sentry Zap core: %w", err)
+	}
+	log = zapsentry.AttachCoreToLogger(sentryCore, log)
+	log = log.WithOptions(zap.WrapCore(func(core zapcore.Core) zapcore.Core {
+		return zapcore.NewTee(core, sentrylogging.NewZapCore(sentry.NewLogger(context.Background()), level))
+	}))
+	log = log.With(zapsentry.NewScope())
+	return log, client, nil
 }

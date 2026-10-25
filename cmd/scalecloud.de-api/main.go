@@ -10,9 +10,12 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/scalecloud/scalecloud.de-api/apimanager"
 	"github.com/scalecloud/scalecloud.de-api/appconfig"
+	"github.com/scalecloud/scalecloud.de-api/sentrylogging"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
+
+const sentryDSN = "https://8195a374d52c2473d306fc8af2517849@o4508966853083136.ingest.de.sentry.io/4508972534661200"
 
 func main() {
 	if _, err := os.Stat(".env"); err == nil {
@@ -38,7 +41,7 @@ func main() {
 	}
 
 	sentryClient, err := sentry.NewClient(sentry.ClientOptions{
-		Dsn:              "https://8195a374d52c2473d306fc8af2517849@o4508966853083136.ingest.de.sentry.io/4508972534661200",
+		Dsn:              sentryDSN,
 		EnableTracing:    true,
 		TracesSampleRate: 1.0,
 		Environment:      appConfig.Environment.String(),
@@ -101,7 +104,7 @@ func modifyToSentryLogger(log *zap.Logger, client *sentry.Client, level zapcore.
 
 	log = zapsentry.AttachCoreToLogger(core, log)
 	log = log.WithOptions(zap.WrapCore(func(core zapcore.Core) zapcore.Core {
-		return zapcore.NewTee(core, newSentryZapCore(sentry.NewLogger(context.Background()), level))
+		return zapcore.NewTee(core, sentrylogging.NewZapCore(sentry.NewLogger(context.Background()), level))
 	}))
 
 	return log.With(zapsentry.NewScope())
