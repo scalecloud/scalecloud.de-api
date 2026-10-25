@@ -46,8 +46,12 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("initialize logger: %w", err)
 	}
-	defer log.Sync()
-	defer sentryClient.Flush(2 * time.Second)
+	defer func() {
+		if err := log.Sync(); err != nil {
+			fmt.Fprintln(os.Stderr, "Sync collector logger:", err)
+		}
+		sentryClient.Flush(2 * time.Second)
+	}()
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
@@ -90,13 +94,27 @@ func run() error {
 	}
 
 	collector := opencloudusage.NewCollector(mongoDBConnection, openCloudConnection)
+	meter := sentry.NewMeter(ctx)
 	log.Info("Starting OpenCloud usage collector", zap.Duration("interval", sampleInterval))
 	ticker := time.NewTicker(sampleInterval)
 	defer ticker.Stop()
 
 	for {
-		if err := collector.Sample(ctx); err != nil && ctx.Err() == nil {
-			log.Warn("OpenCloud usage sampling failed", zap.Error(err))
+		runStarted := time.Now()
+		log.Info("Starting OpenCloud usage collection")
+		sampleErr := collector.Sample(ctx)
+		duration := time.Since(runStarted)
+		meter.Count("opencloud_usage_collector.runs", 1)
+		meter.Distribution("opencloud_usage_collector.duration", duration.Seconds(), sentry.WithUnit(sentry.UnitSecond))
+
+		switch {
+		case sampleErr != nil && ctx.Err() == nil:
+			meter.Count("opencloud_usage_collector.failures", 1)
+			log.Warn("OpenCloud usage collection failed", zap.Duration("duration", duration), zap.Error(sampleErr))
+		case sampleErr != nil:
+			log.Info("OpenCloud usage collection interrupted", zap.Duration("duration", duration))
+		default:
+			log.Info("OpenCloud usage collection completed", zap.Duration("duration", duration))
 		}
 		select {
 		case <-ctx.Done():
