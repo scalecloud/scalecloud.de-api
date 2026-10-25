@@ -36,8 +36,8 @@ jobs:
         with:
           version: latest
 
-      - name: Test with coverage
-        run: go test -v -coverprofile=coverage.out ./...
+      - name: Run tests (verbose, uncached; coverage disabled)
+        run: go test -v -count=1 ./...
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v8
