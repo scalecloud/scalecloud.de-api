@@ -37,7 +37,7 @@ func TestCheckHealthValidatesCollectionsAndEnsuresIndexes(t *testing.T) {
 	assertMongoIndexExists(t, ctx, connection.Client.Database(databaseNewsletters).Collection(collectionSubscribers), "UniqueNewsletterEmail")
 	assertMongoIndexExists(t, ctx, connection.Client.Database(databaseStripe).Collection(collectionUsers), "UniqueStripeUserUID")
 	assertMongoIndexExists(t, ctx, connection.Client.Database(databaseAuthentik).Collection(collectionAuthentikEvents), "AuthentikOpenCloudUserCreated")
-	assertMongoIndexExists(t, ctx, connection.Client.Database(databaseOpenCloud).Collection(collectionOpenCloudHistory), "UniqueOpenCloudUsageDriveDay")
+	assertMongoIndexExists(t, ctx, connection.Client.Database(databaseOpenCloud).Collection(collectionOpenCloudHistory), "UniqueOpenCloudUsageResourceDay")
 	assertMongoIndexExists(t, ctx, connection.Client.Database(databaseOpenCloud).Collection(collectionOpenCloudHistory), "ExpireOpenCloudUsageHistory")
 	collections, err := connection.Client.Database(databaseOpenCloud).ListCollectionNames(ctx, bson.M{"name": collectionOpenCloudHistory})
 	if err != nil || len(collections) == 0 {

@@ -1,6 +1,7 @@
 package mongodbmanager
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
@@ -55,7 +56,9 @@ func TestStoreAuthentikEventIsIdempotent(t *testing.T) {
 	}
 	collection := connection.Client.Database(databaseAuthentik).Collection(collectionAuthentikEvents)
 	t.Cleanup(func() {
-		if _, err := collection.DeleteOne(ctx, bson.M{"event_uuid": eventUUID}); err != nil {
+		cleanupContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if _, err := collection.DeleteOne(cleanupContext, bson.M{"event_uuid": eventUUID}); err != nil {
 			t.Errorf("delete test Authentik event: %v", err)
 		}
 	})
@@ -102,7 +105,11 @@ func TestFindFirstOpenCloudAuthorizationByUser(t *testing.T) {
 	secondEventUUID := "second-opencloud-auth-" + time.Now().UTC().Format("20060102150405.000000001")
 
 	t.Cleanup(func() {
-		_, _ = collection.DeleteMany(ctx, bson.M{"user.pk": userPK})
+		cleanupContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if _, err := collection.DeleteMany(cleanupContext, bson.M{"user_pk": userPK}); err != nil {
+			t.Errorf("delete test Authentik events: %v", err)
+		}
 	})
 
 	firstCreated := time.Now().UTC().Add(-2 * time.Hour).Truncate(time.Second)
@@ -155,7 +162,11 @@ func TestStoreAuthentikEventDeduplicatesByUser(t *testing.T) {
 	secondUUID := "second-opencloud-duplicate-" + time.Now().UTC().Format("20060102150405.000000001")
 
 	t.Cleanup(func() {
-		_, _ = collection.DeleteMany(ctx, bson.M{"user.pk": userPK})
+		cleanupContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if _, err := collection.DeleteMany(cleanupContext, bson.M{"user_pk": userPK}); err != nil {
+			t.Errorf("delete test Authentik events: %v", err)
+		}
 	})
 
 	firstPayload := bson.M{
@@ -189,7 +200,7 @@ func TestStoreAuthentikEventDeduplicatesByUser(t *testing.T) {
 		t.Fatal("second event for same user should be ignored")
 	}
 
-	count, err := collection.CountDocuments(ctx, bson.M{"user.pk": userPK})
+	count, err := collection.CountDocuments(ctx, bson.M{"user_pk": userPK})
 	if err != nil {
 		t.Fatalf("count Authentik events for user: %v", err)
 	}
