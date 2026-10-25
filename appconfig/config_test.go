@@ -2,6 +2,34 @@ package appconfig
 
 import "testing"
 
+func TestLoadEnvironmentFromEnv(t *testing.T) {
+	tests := []struct {
+		name      string
+		value     string
+		want      Environment
+		wantError bool
+	}{
+		{name: "local", value: "local", want: Local},
+		{name: "normalized", value: " BETA ", want: Beta},
+		{name: "production", value: "production", want: Production},
+		{name: "unknown", value: "test", wantError: true},
+		{name: "empty", value: "", wantError: true},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			t.Setenv("APP_ENV", test.value)
+			got, err := LoadEnvironmentFromEnv()
+			if (err != nil) != test.wantError {
+				t.Fatalf("LoadEnvironmentFromEnv() error = %v, wantError %t", err, test.wantError)
+			}
+			if err == nil && got != test.want {
+				t.Fatalf("environment = %q, want %q", got, test.want)
+			}
+		})
+	}
+}
+
 func TestLoadFromEnv(t *testing.T) {
 	tests := []struct {
 		name         string

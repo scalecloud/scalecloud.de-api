@@ -13,6 +13,7 @@ import (
 	"github.com/TheZeroSlave/zapsentry"
 	"github.com/getsentry/sentry-go"
 	"github.com/joho/godotenv"
+	"github.com/scalecloud/scalecloud.de-api/appconfig"
 	"github.com/scalecloud/scalecloud.de-api/mongodbmanager"
 	"github.com/scalecloud/scalecloud.de-api/opencloudmanager"
 	"github.com/scalecloud/scalecloud.de-api/opencloudusage"
@@ -42,7 +43,12 @@ func run() error {
 		return fmt.Errorf("check .env: %w", err)
 	}
 
-	log, sentryClient, err := newLogger()
+	environment, err := appconfig.LoadEnvironmentFromEnv()
+	if err != nil {
+		return fmt.Errorf("invalid application environment: %w", err)
+	}
+
+	log, sentryClient, err := newLogger(environment)
 	if err != nil {
 		return fmt.Errorf("initialize logger: %w", err)
 	}
@@ -95,7 +101,7 @@ func run() error {
 
 	collector := opencloudusage.NewCollector(mongoDBConnection, openCloudConnection)
 	meter := sentry.NewMeter(ctx)
-	log.Info("Starting OpenCloud usage collector", zap.Duration("interval", sampleInterval))
+	log.Info("Starting OpenCloud usage collector", zap.String("environment", environment.String()), zap.Duration("interval", sampleInterval))
 	ticker := time.NewTicker(sampleInterval)
 	defer ticker.Stop()
 
@@ -125,7 +131,7 @@ func run() error {
 	}
 }
 
-func newLogger() (*zap.Logger, *sentry.Client, error) {
+func newLogger(environment appconfig.Environment) (*zap.Logger, *sentry.Client, error) {
 	levelText := strings.ToLower(strings.TrimSpace(os.Getenv("LOG_LEVEL")))
 	if levelText == "" {
 		levelText = "info"
@@ -148,7 +154,7 @@ func newLogger() (*zap.Logger, *sentry.Client, error) {
 	}
 	client, err := sentry.NewClient(sentry.ClientOptions{
 		Dsn:         sentryDSN,
-		Environment: strings.TrimSpace(os.Getenv("APP_ENV")),
+		Environment: environment.String(),
 	})
 	if err != nil {
 		_ = log.Sync()

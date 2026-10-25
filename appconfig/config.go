@@ -25,11 +25,9 @@ type Config struct {
 }
 
 func LoadFromEnv() (Config, error) {
-	environment := Environment(strings.ToLower(strings.TrimSpace(os.Getenv("APP_ENV"))))
-	switch environment {
-	case Local, Beta, Production:
-	default:
-		return Config{}, errors.New("APP_ENV must be local, beta, or production")
+	environment, err := LoadEnvironmentFromEnv()
+	if err != nil {
+		return Config{}, err
 	}
 
 	logLevel := strings.ToLower(strings.TrimSpace(os.Getenv("LOG_LEVEL")))
@@ -68,6 +66,16 @@ func LoadFromEnv() (Config, error) {
 	}
 
 	return config, nil
+}
+
+func LoadEnvironmentFromEnv() (Environment, error) {
+	environment := Environment(strings.ToLower(strings.TrimSpace(os.Getenv("APP_ENV"))))
+	switch environment {
+	case Local, Beta, Production:
+	default:
+		return "", errors.New("APP_ENV must be local, beta, or production")
+	}
+	return environment, nil
 }
 
 func parseFrontendURL(rawURL string) (string, error) {
