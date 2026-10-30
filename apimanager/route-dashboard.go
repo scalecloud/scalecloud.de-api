@@ -15,6 +15,11 @@ func (api *Api) getProductTiersSynology(c *gin.Context) {
 	api.validateAndWriteReply(c, err, reply)
 }
 
+func (api *Api) getProductOpenCloud(c *gin.Context) {
+	reply, err := api.paymentHandler.GetSingleProduct(c, stripemanager.ProductOpenCloud)
+	api.validateAndWriteReply(c, err, reply)
+}
+
 func (api *Api) getSubscriptionsOverview(c *gin.Context) {
 	tokenDetails, err := api.handleTokenDetails(c)
 	if err != nil {

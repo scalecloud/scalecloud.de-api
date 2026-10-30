@@ -81,6 +81,17 @@ func (paymentHandler *PaymentHandler) GetProductTiers(c context.Context, prodTyp
 	return reply, nil
 }
 
+func (paymentHandler *PaymentHandler) GetSingleProduct(c context.Context, prodType ProductType) (ProductTier, error) {
+	reply, err := paymentHandler.GetProductTiers(c, prodType)
+	if err != nil {
+		return ProductTier{}, err
+	}
+	if len(reply.ProductTiers) != 1 {
+		return ProductTier{}, errors.New("expected exactly one product")
+	}
+	return reply.ProductTiers[0], nil
+}
+
 func sortByPrice(productTiers []ProductTier) []ProductTier {
 	sort.Slice(productTiers, func(i, j int) bool {
 		return productTiers[i].PricePerMonth < productTiers[j].PricePerMonth

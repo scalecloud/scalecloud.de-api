@@ -5,6 +5,7 @@ type ProductType string
 const (
 	ProductNextcloud ProductType = "Nextcloud"
 	ProductSynology  ProductType = "Synology"
+	ProductOpenCloud ProductType = "OpenCloud"
 )
 
 type ProductTiersRequest struct {
