@@ -197,7 +197,6 @@ func (api *Api) initRoutes() {
 
 	product := api.router.Group("/product/tiers")
 	{
-		product.GET("/nextcloud", cache.CachePage(store, time.Hour*24, api.getProductTiersNextcloud))
 		product.GET("/synology", cache.CachePage(store, time.Hour*24, api.getProductTiersSynology))
 	}
 	api.router.GET("/product/opencloud", cache.CachePage(store, time.Hour*24, api.getProductOpenCloud))

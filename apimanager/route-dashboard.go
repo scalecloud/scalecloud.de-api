@@ -5,11 +5,6 @@ import (
 	"github.com/scalecloud/scalecloud.de-api/stripemanager"
 )
 
-func (api *Api) getProductTiersNextcloud(c *gin.Context) {
-	reply, err := api.paymentHandler.GetProductTiers(c, stripemanager.ProductNextcloud)
-	api.validateAndWriteReply(c, err, reply)
-}
-
 func (api *Api) getProductTiersSynology(c *gin.Context) {
 	reply, err := api.paymentHandler.GetProductTiers(c, stripemanager.ProductSynology)
 	api.validateAndWriteReply(c, err, reply)

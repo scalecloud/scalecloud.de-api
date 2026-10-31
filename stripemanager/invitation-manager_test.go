@@ -211,7 +211,7 @@ func TestCreateSeatInvitationReservesBeforeSendingAndBuildsEscapedLink(t *testin
 	if !strings.Contains(mailer.message.Body, "&lt;Cloud &amp; Storage&gt;") || strings.Contains(mailer.message.Body, "<Cloud & Storage>") {
 		t.Fatalf("product name was not HTML-escaped: %s", mailer.message.Body)
 	}
-	for _, expected := range []string{"100 GB", "This invitation link expires seven days after it was sent.", "admin@example.com", "Nextcloud"} {
+	for _, expected := range []string{"100 GB", "This invitation link expires seven days after it was sent.", "admin@example.com", "Synology"} {
 		if !strings.Contains(mailer.message.Body, expected) {
 			t.Errorf("invitation email body does not contain %q", expected)
 		}
@@ -425,7 +425,7 @@ func newInvitationCreateTestDependencies(sendErr, reserveErr error) (invitationC
 			ID:   "prod_123",
 			Name: "Cloud Storage",
 			Metadata: map[string]string{
-				"productType":   "Nextcloud",
+				"productType":   "Synology",
 				"storageAmount": "100",
 				"storageUnit":   "GB",
 			},
