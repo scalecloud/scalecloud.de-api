@@ -7,9 +7,9 @@ require (
 	github.com/coreos/go-oidc/v3 v3.21.0
 	github.com/getsentry/sentry-go v0.50.0
 	github.com/getsentry/sentry-go/gin v0.50.0
-	github.com/gin-contrib/cache v1.4.6
-	github.com/gin-contrib/cors v1.7.9
-	github.com/gin-gonic/autotls v1.3.0
+	github.com/gin-contrib/cache v1.4.7
+	github.com/gin-contrib/cors v1.7.10
+	github.com/gin-gonic/autotls v1.3.1
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-playground/validator/v10 v10.30.5
 	github.com/joho/godotenv v1.5.1
@@ -28,7 +28,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cloudwego/base64x v0.1.7 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.16 // indirect
-	github.com/gin-contrib/sse v1.1.2 // indirect
+	github.com/gin-contrib/sse v1.2.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.7 // indirect
 	github.com/go-playground/locales v0.14.2 // indirect
 	github.com/go-playground/universal-translator v0.18.2 // indirect
