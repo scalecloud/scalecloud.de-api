@@ -150,6 +150,87 @@ func (api *Api) getOpenCloudUsageHistory(c *gin.Context) {
 	}
 }
 
+func (api *Api) getOpenCloudAllocationOverview(c *gin.Context) {
+	var request stripemanager.OpenCloudSubscriptionRequest
+	tokenDetails, err := api.handleTokenDetails(c)
+	if err == nil && api.handleBind(c, &request) {
+		reply, err := api.paymentHandler.GetOpenCloudAllocationOverview(c, tokenDetails, request)
+		api.validateAndWriteReply(c, err, reply)
+	}
+}
+
+func (api *Api) inviteOpenCloudUser(c *gin.Context) {
+	var request stripemanager.OpenCloudInviteUserRequest
+	tokenDetails, err := api.handleTokenDetails(c)
+	if err == nil && api.handleBind(c, &request) {
+		reply, err := api.paymentHandler.InviteOpenCloudUser(c, tokenDetails, request)
+		api.validateAndWriteReply(c, err, reply)
+	}
+}
+
+func (api *Api) updateOpenCloudOwnerStorage(c *gin.Context) {
+	var request stripemanager.OpenCloudUpdateOwnerStorageRequest
+	tokenDetails, err := api.handleTokenDetails(c)
+	if err == nil && api.handleBind(c, &request) {
+		reply, err := api.paymentHandler.UpdateOpenCloudOwnerStorage(c, tokenDetails, request)
+		api.validateAndWriteReply(c, err, reply)
+	}
+}
+
+func (api *Api) updateOpenCloudUserStorage(c *gin.Context) {
+	var request stripemanager.OpenCloudUpdateUserStorageRequest
+	tokenDetails, err := api.handleTokenDetails(c)
+	if err == nil && api.handleBind(c, &request) {
+		reply, err := api.paymentHandler.UpdateOpenCloudUserStorage(c, tokenDetails, request)
+		api.validateAndWriteReply(c, err, reply)
+	}
+}
+
+func (api *Api) updateOpenCloudUserRoles(c *gin.Context) {
+	var request stripemanager.OpenCloudUpdateUserRolesRequest
+	tokenDetails, err := api.handleTokenDetails(c)
+	if err == nil && api.handleBind(c, &request) {
+		reply, err := api.paymentHandler.UpdateOpenCloudUserRoles(c, tokenDetails, request)
+		api.validateAndWriteReply(c, err, reply)
+	}
+}
+
+func (api *Api) createOpenCloudManagedSpace(c *gin.Context) {
+	var request stripemanager.OpenCloudCreateManagedSpaceRequest
+	tokenDetails, err := api.handleTokenDetails(c)
+	if err == nil && api.handleBind(c, &request) {
+		reply, err := api.paymentHandler.CreateOpenCloudManagedSpace(c, tokenDetails, request)
+		api.validateAndWriteReply(c, err, reply)
+	}
+}
+
+func (api *Api) updateOpenCloudSpaceStorage(c *gin.Context) {
+	var request stripemanager.OpenCloudUpdateSpaceStorageRequest
+	tokenDetails, err := api.handleTokenDetails(c)
+	if err == nil && api.handleBind(c, &request) {
+		reply, err := api.paymentHandler.UpdateOpenCloudSpaceStorage(c, tokenDetails, request)
+		api.validateAndWriteReply(c, err, reply)
+	}
+}
+
+func (api *Api) addOpenCloudSpaceMember(c *gin.Context) {
+	var request stripemanager.OpenCloudAddSpaceMemberRequest
+	tokenDetails, err := api.handleTokenDetails(c)
+	if err == nil && api.handleBind(c, &request) {
+		reply, err := api.paymentHandler.AddOpenCloudSpaceMember(c, tokenDetails, request)
+		api.validateAndWriteReply(c, err, reply)
+	}
+}
+
+func (api *Api) removeOpenCloudSpaceMember(c *gin.Context) {
+	var request stripemanager.OpenCloudRemoveSpaceMemberRequest
+	tokenDetails, err := api.handleTokenDetails(c)
+	if err == nil && api.handleBind(c, &request) {
+		reply, err := api.paymentHandler.RemoveOpenCloudSpaceMember(c, tokenDetails, request)
+		api.validateAndWriteReply(c, err, reply)
+	}
+}
+
 func (api *Api) getSubscriptionInvoices(c *gin.Context) {
 	var request stripemanager.ListInvoicesRequest
 	tokenDetails, err := api.handleTokenDetails(c)

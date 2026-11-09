@@ -36,14 +36,16 @@ type OpenCloudUsageRecord struct {
 }
 
 type OpenCloudResourceRegistry struct {
-	SubscriptionID string    `bson:"subscriptionID,omitempty" json:"subscriptionID,omitempty"`
-	ResourceType   string    `bson:"resourceType" json:"resourceType"`
-	ResourceID     string    `bson:"resourceID" json:"resourceID"`
-	Scope          string    `bson:"scope,omitempty" json:"scope,omitempty"`
-	DriveType      string    `bson:"driveType,omitempty" json:"driveType,omitempty"`
-	UserUID        string    `bson:"userUID,omitempty" json:"userUID,omitempty"`
-	UserEmail      string    `bson:"userEmail,omitempty" json:"userEmail,omitempty"`
-	LastSeenAt     time.Time `bson:"lastSeenAt" json:"lastSeenAt"`
+	SubscriptionID    string    `bson:"subscriptionID,omitempty" json:"subscriptionID,omitempty"`
+	ResourceType      string    `bson:"resourceType" json:"resourceType"`
+	ResourceID        string    `bson:"resourceID" json:"resourceID"`
+	Scope             string    `bson:"scope,omitempty" json:"scope,omitempty"`
+	DriveType         string    `bson:"driveType,omitempty" json:"driveType,omitempty"`
+	Name              string    `bson:"name,omitempty" json:"name,omitempty"`
+	StorageQuotaBytes int64     `bson:"storageQuotaBytes,omitempty" json:"storageQuotaBytes,omitempty"`
+	UserUID           string    `bson:"userUID,omitempty" json:"userUID,omitempty"`
+	UserEmail         string    `bson:"userEmail,omitempty" json:"userEmail,omitempty"`
+	LastSeenAt        time.Time `bson:"lastSeenAt" json:"lastSeenAt"`
 }
 
 func (mongoDBConnection *MongoDBConnection) ensureOpenCloudUsageIndexes(ctx context.Context) error {
@@ -95,6 +97,22 @@ func (mongoDBConnection *MongoDBConnection) GetOpenCloudProjectSpaces(ctx contex
 	var references []OpenCloudSpaceReference
 	if err := mongoDBConnection.findDocuments(ctx, databaseSubscription, collectionSeats, filter, &references, opts); err != nil {
 		return nil, err
+	}
+	var allocatedSpaces []OpenCloudResourceRegistry
+	if err := mongoDBConnection.findDocuments(ctx, databaseOpenCloud, collectionOpenCloudRegistry, bson.M{
+		"resourceType": "space",
+		"scope":        "allocation",
+	}, &allocatedSpaces, options.Find()); err != nil {
+		return nil, err
+	}
+	for _, resource := range allocatedSpaces {
+		if resource.SubscriptionID == "" || resource.ResourceID == "" {
+			continue
+		}
+		references = append(references, OpenCloudSpaceReference{
+			SubscriptionID: resource.SubscriptionID,
+			DriveID:        resource.ResourceID,
+		})
 	}
 	seen := make(map[string]struct{}, len(references))
 	unique := references[:0]
@@ -184,14 +202,16 @@ func (mongoDBConnection *MongoDBConnection) UpsertOpenCloudResource(ctx context.
 		"resourceID":     resource.ResourceID,
 	}
 	document := bson.M{
-		"subscriptionID": resource.SubscriptionID,
-		"resourceType":   resource.ResourceType,
-		"resourceID":     resource.ResourceID,
-		"scope":          resource.Scope,
-		"driveType":      resource.DriveType,
-		"userUID":        resource.UserUID,
-		"userEmail":      resource.UserEmail,
-		"lastSeenAt":     resource.LastSeenAt,
+		"subscriptionID":    resource.SubscriptionID,
+		"resourceType":      resource.ResourceType,
+		"resourceID":        resource.ResourceID,
+		"scope":             resource.Scope,
+		"driveType":         resource.DriveType,
+		"name":              resource.Name,
+		"storageQuotaBytes": resource.StorageQuotaBytes,
+		"userUID":           resource.UserUID,
+		"userEmail":         resource.UserEmail,
+		"lastSeenAt":        resource.LastSeenAt,
 	}
 	_, err = registry.UpdateOne(ctx, filter, bson.M{"$set": document}, options.UpdateOne().SetUpsert(true))
 	return err

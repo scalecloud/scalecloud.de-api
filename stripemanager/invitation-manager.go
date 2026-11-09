@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"math"
 	"net/url"
 	"strconv"
 	"strings"
@@ -60,6 +61,10 @@ type invitationCreateStore interface {
 	DeletePendingSeatByInvitationTokenHash(context.Context, string) error
 }
 
+type invitationCreateOpenCloudStore interface {
+	CreatePendingOpenCloudSeatWithinCapacity(context.Context, mongodbmanager.Seat, int64, int64) error
+}
+
 type invitationCreateStripe interface {
 	GetSubscriptionByID(context.Context, string) (*stripe.Subscription, error)
 	GetProduct(context.Context, string) (*stripe.Product, error)
@@ -89,22 +94,51 @@ func (paymentHandler *PaymentHandler) CreateSeatInvitation(ctx context.Context, 
 	}, subscriptionID, email, roles, maxSeats)
 }
 
+func (paymentHandler *PaymentHandler) CreateOpenCloudSeatInvitation(ctx context.Context, subscriptionID, email, inviterEmail string, roles []mongodbmanager.Role, maxSeats, storageBytes, maxStorageBytes int64) (AddSeatReply, error) {
+	return createSeatInvitationWithStorage(ctx, invitationCreateDependencies{
+		store:        paymentHandler.MongoDBConnection,
+		stripe:       paymentHandler.StripeConnection,
+		mailer:       paymentHandler.EMailConnection,
+		claimURL:     paymentHandler.InvitationClaimURL,
+		inviterEmail: inviterEmail,
+		logger:       paymentHandler.Log,
+	}, subscriptionID, email, roles, maxSeats, storageBytes, maxStorageBytes)
+}
+
 func createSeatInvitation(ctx context.Context, dependencies invitationCreateDependencies, subscriptionID, email string, roles []mongodbmanager.Role, maxSeats int64) (AddSeatReply, error) {
+	return createSeatInvitationWithStorage(ctx, dependencies, subscriptionID, email, roles, maxSeats, 0, 0)
+}
+
+func createSeatInvitationWithStorage(ctx context.Context, dependencies invitationCreateDependencies, subscriptionID, email string, roles []mongodbmanager.Role, maxSeats, storageBytes, maxStorageBytes int64) (AddSeatReply, error) {
+	if storageBytes < 0 || (storageBytes > 0 && maxStorageBytes < storageBytes) {
+		return AddSeatReply{}, mongodbmanager.ErrOpenCloudStorageCapacityReached
+	}
 	token, tokenHash, err := createSeatInvitationToken()
 	if err != nil {
 		return AddSeatReply{}, err
 	}
 	expiresAt := time.Now().UTC().Add(seatInvitationLifetime)
 	seat := mongodbmanager.Seat{
-		SubscriptionID:      subscriptionID,
-		EMail:               normalizeInvitationEmail(email),
-		Roles:               roles,
-		Status:              mongodbmanager.SeatStatusPending,
-		InvitationTokenHash: tokenHash,
-		InvitationExpiresAt: &expiresAt,
+		SubscriptionID:        subscriptionID,
+		EMail:                 normalizeInvitationEmail(email),
+		Roles:                 roles,
+		Status:                mongodbmanager.SeatStatusPending,
+		InvitationTokenHash:   tokenHash,
+		InvitationExpiresAt:   &expiresAt,
+		OpenCloudStorageBytes: storageBytes,
 	}
-	if err := dependencies.store.CreatePendingSeatWithinCapacity(ctx, seat, maxSeats); err != nil {
-		return AddSeatReply{}, err
+	var reservationErr error
+	if storageBytes > 0 {
+		storageStore, ok := dependencies.store.(invitationCreateOpenCloudStore)
+		if !ok {
+			return AddSeatReply{}, errors.New("OpenCloud storage reservation is unavailable")
+		}
+		reservationErr = storageStore.CreatePendingOpenCloudSeatWithinCapacity(ctx, seat, maxSeats, maxStorageBytes)
+	} else {
+		reservationErr = dependencies.store.CreatePendingSeatWithinCapacity(ctx, seat, maxSeats)
+	}
+	if reservationErr != nil {
+		return AddSeatReply{}, reservationErr
 	}
 
 	claimURL := dependencies.claimURL + "?token=" + url.QueryEscape(token)
@@ -120,7 +154,17 @@ func createSeatInvitation(ctx context.Context, dependencies invitationCreateDepe
 			storageAmount, amountErr := strconv.ParseInt(product.Metadata["storageAmount"], 10, 64)
 			storageUnit := product.Metadata["storageUnit"]
 			if amountErr == nil && storageAmount > 0 && storageUnit != "" {
-				storageQuota = strconv.FormatInt(storageAmount, 10) + " " + storageUnit
+				allocatedAmount := storageAmount
+				if storageBytes > 0 {
+					unitBytes, unitErr := storageQuotaBytes(storageAmount, storageUnit)
+					if unitErr == nil && unitBytes > 0 && storageBytes%unitBytes == 0 {
+						allocatedUnits := storageBytes / unitBytes
+						if allocatedUnits <= math.MaxInt64/storageAmount {
+							allocatedAmount = storageAmount * allocatedUnits
+						}
+					}
+				}
+				storageQuota = strconv.FormatInt(allocatedAmount, 10) + " " + storageUnit
 			}
 		}
 	}

@@ -391,6 +391,16 @@ func (paymentHandler *PaymentHandler) ActivateOpenCloudSeats(ctx context.Context
 		}
 		activated++
 	}
+	storageBytes, err := paymentHandler.MongoDBConnection.GetOpenCloudUserStorageBytes(ctx, user.ID)
+	if err != nil {
+		if firstErr == nil {
+			firstErr = err
+		}
+	} else if storageBytes > 0 {
+		if _, err := paymentHandler.OpenCloudConnection.SetUserDriveQuota(ctx, user.ID, storageBytes); err != nil && firstErr == nil {
+			firstErr = err
+		}
+	}
 	return activated, firstErr
 }
 

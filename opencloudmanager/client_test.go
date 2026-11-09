@@ -132,6 +132,46 @@ func TestGetUserDriveUsageUsesGraphPersonalDriveEndpoint(t *testing.T) {
 	}
 }
 
+func TestSetUserDriveQuotaResolvesPersonalDriveAndPatchesQuota(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		switch request.Method {
+		case http.MethodGet:
+			if request.URL.Path != "/graph/v1.0/users/user-1/drive" {
+				t.Errorf("unexpected personal drive path: %s", request.URL.Path)
+			}
+			_, _ = writer.Write([]byte(`{"id":"drive-user-1","driveType":"personal"}`))
+		case http.MethodPatch:
+			if request.URL.Path != "/graph/v1.0/drives/drive-user-1" {
+				t.Errorf("unexpected quota path: %s", request.URL.Path)
+			}
+			var body struct {
+				Quota struct {
+					Total int64 `json:"total"`
+				} `json:"quota"`
+			}
+			if err := json.NewDecoder(request.Body).Decode(&body); err != nil {
+				t.Errorf("decode quota request: %v", err)
+			}
+			if body.Quota.Total != 2_000_000_000 {
+				t.Errorf("quota = %d, want 2000000000", body.Quota.Total)
+			}
+			_, _ = writer.Write([]byte(`{"id":"drive-user-1","quota":{"total":2000000000}}`))
+		default:
+			t.Errorf("unexpected method %s", request.Method)
+		}
+	}))
+	defer server.Close()
+	client, err := NewClient(Config{BaseURL: server.URL, Username: "billing-service", AppToken: "app-secret"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	space, err := client.SetUserDriveQuota(context.Background(), "user-1", 2_000_000_000)
+	if err != nil || space.ID != "drive-user-1" || space.Quota == nil || space.Quota.Total == nil || *space.Quota.Total != 2_000_000_000 {
+		t.Fatalf("SetUserDriveQuota() = %+v, %v", space, err)
+	}
+}
+
 func TestNewClientFromEnvIsOptionalButRejectsPartialSettings(t *testing.T) {
 	t.Setenv("OPENCLOUD_BASE_URL", "")
 	t.Setenv("OPENCLOUD_USERNAME", "")

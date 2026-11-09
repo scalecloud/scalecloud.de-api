@@ -103,6 +103,14 @@ func (client *Client) GetSpaceUsage(ctx context.Context, driveID string) (*Space
 }
 
 func (client *Client) GetUserDriveUsage(ctx context.Context, userID string) (*SpaceUsage, error) {
+	space, err := client.GetUserDrive(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return spaceUsage(space), nil
+}
+
+func (client *Client) GetUserDrive(ctx context.Context, userID string) (*Space, error) {
 	if strings.TrimSpace(userID) == "" {
 		return nil, errors.New("OpenCloud user ID is required")
 	}
@@ -111,7 +119,21 @@ func (client *Client) GetUserDriveUsage(ctx context.Context, userID string) (*Sp
 	if err := client.request(ctx, http.MethodGet, path, nil, &space); err != nil {
 		return nil, err
 	}
-	return spaceUsage(&space), nil
+	if space.ID == "" {
+		return nil, errors.New("OpenCloud personal drive response did not include an ID")
+	}
+	return &space, nil
+}
+
+func (client *Client) SetUserDriveQuota(ctx context.Context, userID string, quotaBytes int64) (*Space, error) {
+	if quotaBytes <= 0 {
+		return nil, ErrInvalidQuota
+	}
+	space, err := client.GetUserDrive(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return client.SetSpaceQuota(ctx, space.ID, quotaBytes)
 }
 
 func spaceUsage(space *Space) *SpaceUsage {

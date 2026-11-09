@@ -11,16 +11,65 @@ import (
 	"go.mongodb.org/mongo-driver/v2/mongo/options"
 )
 
-var ErrSeatCapacityReached = errors.New("all purchased seats are already assigned or invited")
+var (
+	ErrSeatCapacityReached             = errors.New("all purchased seats are already assigned or invited")
+	ErrOpenCloudStorageCapacityReached = errors.New("OpenCloud storage allocation exceeds the purchased capacity")
+)
 
 const (
-	seatReservationLockLease = 30 * time.Second
+	seatReservationLockLease = 90 * time.Second
 	seatReservationLockWait  = 5 * time.Second
 )
 
 func (mongoDBConnection *MongoDBConnection) CreatePendingSeatWithinCapacity(ctx context.Context, seat Seat, maxSeats int64) error {
 	if maxSeats < 1 {
 		return ErrSeatCapacityReached
+	}
+	return mongoDBConnection.withSubscriptionSeatLock(ctx, seat.SubscriptionID, func() error {
+		usedSeats, err := mongoDBConnection.CountSeats(ctx, seat.SubscriptionID)
+		if err != nil {
+			return err
+		}
+		if usedSeats >= maxSeats {
+			return ErrSeatCapacityReached
+		}
+		return mongoDBConnection.CreatePendingSeat(ctx, seat)
+	})
+}
+
+func (mongoDBConnection *MongoDBConnection) CreatePendingOpenCloudSeatWithinCapacity(ctx context.Context, seat Seat, maxSeats, maxStorageBytes int64) error {
+	if maxSeats < 1 || seat.OpenCloudStorageBytes < 1 || maxStorageBytes < 1 {
+		return ErrOpenCloudStorageCapacityReached
+	}
+	return mongoDBConnection.withSubscriptionSeatLock(ctx, seat.SubscriptionID, func() error {
+		usedSeats, err := mongoDBConnection.CountSeats(ctx, seat.SubscriptionID)
+		if err != nil {
+			return err
+		}
+		if usedSeats >= maxSeats {
+			return ErrSeatCapacityReached
+		}
+		usedStorage, err := mongoDBConnection.GetOpenCloudStorageUsedBytes(ctx, seat.SubscriptionID)
+		if err != nil {
+			return err
+		}
+		if usedStorage > maxStorageBytes || seat.OpenCloudStorageBytes > maxStorageBytes-usedStorage {
+			return ErrOpenCloudStorageCapacityReached
+		}
+		return mongoDBConnection.CreatePendingSeat(ctx, seat)
+	})
+}
+
+func (mongoDBConnection *MongoDBConnection) WithOpenCloudAllocationLock(ctx context.Context, subscriptionID string, operation func() error) error {
+	if subscriptionID == "" || operation == nil {
+		return errors.New("subscription ID and allocation operation are required")
+	}
+	return mongoDBConnection.withSubscriptionSeatLock(ctx, subscriptionID, operation)
+}
+
+func (mongoDBConnection *MongoDBConnection) withSubscriptionSeatLock(ctx context.Context, subscriptionID string, operation func() error) error {
+	if subscriptionID == "" {
+		return errors.New("subscription ID is required")
 	}
 	lockContext, cancel := context.WithTimeout(ctx, seatReservationLockWait)
 	defer cancel()
@@ -30,7 +79,7 @@ func (mongoDBConnection *MongoDBConnection) CreatePendingSeatWithinCapacity(ctx 
 	}
 	_, err = collection.UpdateOne(
 		lockContext,
-		bson.M{"_id": seat.SubscriptionID},
+		bson.M{"_id": subscriptionID},
 		bson.M{"$setOnInsert": bson.M{"lockUntil": time.Unix(0, 0).UTC()}},
 		options.UpdateOne().SetUpsert(true),
 	)
@@ -49,7 +98,7 @@ func (mongoDBConnection *MongoDBConnection) CreatePendingSeatWithinCapacity(ctx 
 		now := time.Now().UTC()
 		result, err := collection.UpdateOne(
 			lockContext,
-			bson.M{"_id": seat.SubscriptionID, "lockUntil": bson.M{"$lte": now}},
+			bson.M{"_id": subscriptionID, "lockUntil": bson.M{"$lte": now}},
 			bson.M{"$set": bson.M{"lockUntil": now.Add(seatReservationLockLease), "lockID": lockID}},
 		)
 		if err != nil {
@@ -69,17 +118,10 @@ func (mongoDBConnection *MongoDBConnection) CreatePendingSeatWithinCapacity(ctx 
 		defer releaseCancel()
 		_, _ = collection.UpdateOne(
 			releaseContext,
-			bson.M{"_id": seat.SubscriptionID, "lockID": lockID},
+			bson.M{"_id": subscriptionID, "lockID": lockID},
 			bson.M{"$set": bson.M{"lockUntil": time.Unix(0, 0).UTC()}, "$unset": bson.M{"lockID": ""}},
 		)
 	}()
 
-	usedSeats, err := mongoDBConnection.CountSeats(ctx, seat.SubscriptionID)
-	if err != nil {
-		return err
-	}
-	if usedSeats >= maxSeats {
-		return ErrSeatCapacityReached
-	}
-	return mongoDBConnection.CreatePendingSeat(ctx, seat)
+	return operation()
 }

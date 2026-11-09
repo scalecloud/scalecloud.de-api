@@ -3,6 +3,7 @@ package mongodbmanager
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -370,6 +371,23 @@ func (mongoDBConnection *MongoDBConnection) UpdateSeat(ctx context.Context, seat
 		update["$set"].(bson.M)["status"] = SeatStatusActive
 	}
 	return mongoDBConnection.updateDocument(ctx, databaseSubscription, collectionSeats, filter, update)
+}
+
+func (mongoDBConnection *MongoDBConnection) UpdateSeatRoles(ctx context.Context, subscriptionID, uidOrEmail string, roles []Role) error {
+	if subscriptionID == "" || strings.TrimSpace(uidOrEmail) == "" || len(roles) == 0 {
+		return errors.New("subscription ID, seat identity, and at least one role are required")
+	}
+	identityFilter := bson.M{"uid": uidOrEmail}
+	if strings.Contains(uidOrEmail, "@") {
+		identityFilter = bson.M{"email": strings.ToLower(strings.TrimSpace(uidOrEmail))}
+	}
+	filter := bson.M{"subscriptionID": subscriptionID}
+	for key, value := range identityFilter {
+		filter[key] = value
+	}
+	return mongoDBConnection.updateDocument(ctx, databaseSubscription, collectionSeats, filter, bson.M{
+		"$set": bson.M{"roles": roles},
+	})
 }
 
 func (mongoDBConnection *MongoDBConnection) DeleteSeat(ctx context.Context, seat Seat) error {

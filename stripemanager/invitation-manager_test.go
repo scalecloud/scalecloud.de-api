@@ -229,6 +229,31 @@ func TestCreateSeatInvitationReservesBeforeSendingAndBuildsEscapedLink(t *testin
 	}
 }
 
+func TestCreateOpenCloudSeatInvitationReservesStorageWithPendingSeat(t *testing.T) {
+	dependencies, store, mailer := newInvitationCreateTestDependencies(nil, nil)
+	storageBytes := int64(200_000_000_000)
+	capacityBytes := int64(400_000_000_000)
+
+	reply, err := createSeatInvitationWithStorage(
+		t.Context(), dependencies, "sub_123", "person@example.com", []mongodbmanager.Role{mongodbmanager.RoleUser}, 4, storageBytes, capacityBytes,
+	)
+	if err != nil {
+		t.Fatalf("create OpenCloud invitation: %v", err)
+	}
+	if !reply.Success || store.openCloudCreateCalls != 1 || store.createCalls != 0 {
+		t.Fatalf("unexpected reservation path: reply=%+v OpenCloud=%d regular=%d", reply, store.openCloudCreateCalls, store.createCalls)
+	}
+	if store.openCloudMaxSeats != 4 || store.openCloudMaxBytes != capacityBytes || store.seat.OpenCloudStorageBytes != storageBytes {
+		t.Fatalf("unexpected OpenCloud reservation: maxSeats=%d maxBytes=%d seat=%+v", store.openCloudMaxSeats, store.openCloudMaxBytes, store.seat)
+	}
+	if mailer.calls != 1 {
+		t.Fatalf("invitation email calls = %d, want 1", mailer.calls)
+	}
+	if !strings.Contains(mailer.message.Body, "200 GB") {
+		t.Fatalf("invitation email does not show the requested allocation: %s", mailer.message.Body)
+	}
+}
+
 func TestCreateSeatInvitationCleansPendingSeatWhenEmailFails(t *testing.T) {
 	sendErr := errors.New("smtp unavailable")
 	dependencies, store, mailer := newInvitationCreateTestDependencies(sendErr, nil)
@@ -461,19 +486,32 @@ func invitationClaimURLFromMessage(t *testing.T, body string) *url.URL {
 }
 
 type fakeInvitationCreateStore struct {
-	seat               mongodbmanager.Seat
-	createErr          error
-	cleanupErr         error
-	createCalls        int
-	cleanupCalls       int
-	cleanupTokenHash   string
-	maxSeats           int64
-	createdBeforeEmail bool
+	seat                 mongodbmanager.Seat
+	createErr            error
+	cleanupErr           error
+	createCalls          int
+	cleanupCalls         int
+	cleanupTokenHash     string
+	maxSeats             int64
+	openCloudMaxSeats    int64
+	openCloudMaxBytes    int64
+	openCloudCreateCalls int
+	createdBeforeEmail   bool
 }
 
 func (store *fakeInvitationCreateStore) CreatePendingSeatWithinCapacity(_ context.Context, seat mongodbmanager.Seat, maxSeats int64) error {
 	store.createCalls++
 	store.maxSeats = maxSeats
+	if store.createErr == nil {
+		store.seat = seat
+	}
+	return store.createErr
+}
+
+func (store *fakeInvitationCreateStore) CreatePendingOpenCloudSeatWithinCapacity(_ context.Context, seat mongodbmanager.Seat, maxSeats, maxStorageBytes int64) error {
+	store.openCloudCreateCalls++
+	store.openCloudMaxSeats = maxSeats
+	store.openCloudMaxBytes = maxStorageBytes
 	if store.createErr == nil {
 		store.seat = seat
 	}
