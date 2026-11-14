@@ -165,10 +165,59 @@ func TestSetUserDriveQuotaResolvesPersonalDriveAndPatchesQuota(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	space, err := client.SetUserDriveQuota(context.Background(), "user-1", 2_000_000_000)
 	if err != nil || space.ID != "drive-user-1" || space.Quota == nil || space.Quota.Total == nil || *space.Quota.Total != 2_000_000_000 {
 		t.Fatalf("SetUserDriveQuota() = %+v, %v", space, err)
+	}
+}
+
+func TestSetUserDriveQuotaAllowsZero(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		switch request.Method {
+		case http.MethodGet:
+			_, _ = writer.Write([]byte(`{"id":"drive-user-1","driveType":"personal"}`))
+		case http.MethodPatch:
+			var body struct {
+				Quota struct {
+					Total int64 `json:"total"`
+				} `json:"quota"`
+			}
+			if err := json.NewDecoder(request.Body).Decode(&body); err != nil {
+				t.Errorf("decode quota request: %v", err)
+			}
+			if body.Quota.Total != 0 {
+				t.Errorf("quota = %d, want 0", body.Quota.Total)
+			}
+			_, _ = writer.Write([]byte(`{"id":"drive-user-1","quota":{"total":0,"used":100,"remaining":0,"state":"normal"}}`))
+		default:
+			t.Errorf("unexpected method %s", request.Method)
+		}
+	}))
+	defer server.Close()
+	client, err := NewClient(Config{BaseURL: server.URL, Username: "billing-service", AppToken: "app-secret"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	space, err := client.SetUserDriveQuota(context.Background(), "user-1", 0)
+	if err != nil || space.Quota == nil || space.Quota.Total == nil || *space.Quota.Total != 0 {
+		t.Fatalf("SetUserDriveQuota(0) = %+v, %v", space, err)
+	}
+}
+
+func TestDeleteSpaceUsesGraphDelete(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		if request.Method != http.MethodDelete || request.URL.Path != "/graph/v1.0/drives/drive-1" {
+			t.Errorf("unexpected delete request: %s %s", request.Method, request.URL.Path)
+		}
+		writer.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+	client, err := NewClient(Config{BaseURL: server.URL, Username: "billing-service", AppToken: "app-secret"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := client.DeleteSpace(context.Background(), "drive-1"); err != nil {
+		t.Fatalf("DeleteSpace() error = %v", err)
 	}
 }
 

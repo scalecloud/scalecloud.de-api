@@ -12,8 +12,7 @@ import (
 )
 
 var (
-	ErrSeatCapacityReached             = errors.New("all purchased seats are already assigned or invited")
-	ErrOpenCloudStorageCapacityReached = errors.New("OpenCloud storage allocation exceeds the purchased capacity")
+	ErrSeatCapacityReached = errors.New("all purchased seats are already assigned or invited")
 )
 
 const (
@@ -32,29 +31,6 @@ func (mongoDBConnection *MongoDBConnection) CreatePendingSeatWithinCapacity(ctx 
 		}
 		if usedSeats >= maxSeats {
 			return ErrSeatCapacityReached
-		}
-		return mongoDBConnection.CreatePendingSeat(ctx, seat)
-	})
-}
-
-func (mongoDBConnection *MongoDBConnection) CreatePendingOpenCloudSeatWithinCapacity(ctx context.Context, seat Seat, maxSeats, maxStorageBytes int64) error {
-	if maxSeats < 1 || seat.OpenCloudStorageBytes < 1 || maxStorageBytes < 1 {
-		return ErrOpenCloudStorageCapacityReached
-	}
-	return mongoDBConnection.withSubscriptionSeatLock(ctx, seat.SubscriptionID, func() error {
-		usedSeats, err := mongoDBConnection.CountSeats(ctx, seat.SubscriptionID)
-		if err != nil {
-			return err
-		}
-		if usedSeats >= maxSeats {
-			return ErrSeatCapacityReached
-		}
-		usedStorage, err := mongoDBConnection.GetOpenCloudStorageUsedBytes(ctx, seat.SubscriptionID)
-		if err != nil {
-			return err
-		}
-		if usedStorage > maxStorageBytes || seat.OpenCloudStorageBytes > maxStorageBytes-usedStorage {
-			return ErrOpenCloudStorageCapacityReached
 		}
 		return mongoDBConnection.CreatePendingSeat(ctx, seat)
 	})

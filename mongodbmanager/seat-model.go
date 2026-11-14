@@ -20,16 +20,13 @@ const (
 )
 
 type Seat struct {
-	SubscriptionID        string     `bson:"subscriptionID" json:"subscriptionID" validate:"required"`
-	UID                   string     `bson:"uid" json:"uid"`
-	EMail                 string     `bson:"email" json:"email" validate:"required"`
-	EMailVerified         *bool      `bson:"emailVerified" json:"emailVerified"`
-	Roles                 []Role     `bson:"roles" json:"roles" validate:"required"`
-	Status                SeatStatus `bson:"status,omitempty" json:"status,omitempty"`
-	InvitationTokenHash   string     `bson:"invitationTokenHash,omitempty" json:"-"`
-	InvitationExpiresAt   *time.Time `bson:"invitationExpiresAt,omitempty" json:"invitationExpiresAt,omitempty"`
-	AuthentikUserPK       int64      `bson:"authentikUserPk,omitempty" json:"-"`
-	OpenCloudDriveID      string     `bson:"openCloudDriveId,omitempty" json:"-"`
-	OpenCloudUserID       string     `bson:"openCloudUserId,omitempty" json:"-"`
-	OpenCloudStorageBytes int64      `bson:"openCloudStorageBytes,omitempty" json:"-"`
+	SubscriptionID      string     `bson:"subscriptionID" json:"subscriptionID" validate:"required"`
+	UID                 string     `bson:"uid" json:"uid"`
+	EMail               string     `bson:"email" json:"email" validate:"required"`
+	EMailVerified       *bool      `bson:"emailVerified" json:"emailVerified"`
+	Roles               []Role     `bson:"roles" json:"roles" validate:"required"`
+	Status              SeatStatus `bson:"status,omitempty" json:"status,omitempty"`
+	InvitationTokenHash string     `bson:"invitationTokenHash,omitempty" json:"-"`
+	InvitationExpiresAt *time.Time `bson:"invitationExpiresAt,omitempty" json:"invitationExpiresAt,omitempty"`
+	AuthentikUserPK     int64      `bson:"authentikUserPk,omitempty" json:"-"`
 }

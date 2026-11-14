@@ -315,6 +315,20 @@ func (api *Api) removeStripeUser(c context.Context, customerID string) error {
 }
 
 func (api *Api) removeSubscriptionSeats(c context.Context, subscriptionID string) error {
+	members, err := api.paymentHandler.MongoDBConnection.GetOpenCloudMembers(c, subscriptionID)
+	if err != nil {
+		return err
+	}
+	for _, member := range members {
+		if member.Status == mongodbmanager.OpenCloudMemberPending {
+			err = api.paymentHandler.MongoDBConnection.DeletePendingOpenCloudMember(c, member.SubscriptionID, member.EMail)
+		} else {
+			err = api.paymentHandler.RemoveOpenCloudMember(c, member)
+		}
+		if err != nil {
+			return err
+		}
+	}
 	seats, err := api.paymentHandler.MongoDBConnection.GetAllSeats(c, subscriptionID)
 	if err != nil {
 		return err

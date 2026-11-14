@@ -85,18 +85,18 @@ func (api *Api) handleAuthentikWebhook(c *gin.Context) {
 	}
 	if api.webhookHandler.OpenCloudConnection != nil {
 		if strings.TrimSpace(event.Username) == "" {
-			api.log.Warn("Authentik OpenCloud event has no username; skipping seat activation", zap.Int64("authentik_user_pk", event.UserPK))
+			api.log.Warn("Authentik OpenCloud event has no username; skipping member activation", zap.Int64("authentik_user_pk", event.UserPK))
 		} else {
-			activated, activationErr := api.paymentHandler.ActivateOpenCloudSeats(c.Request.Context(), event.UserPK, event.Username)
+			activated, activationErr := api.paymentHandler.ActivateOpenCloudMembers(c.Request.Context(), event.UserPK, event.Username)
 			switch {
 			case errors.Is(activationErr, opencloudmanager.ErrNotFound):
-				api.log.Info("OpenCloud user not provisioned yet; a later login event can activate seats", zap.String("username", event.Username))
+				api.log.Info("OpenCloud user not provisioned yet; a later login event can activate members", zap.String("username", event.Username))
 			case activationErr != nil:
-				api.log.Error("Could not activate OpenCloud seats", zap.String("username", event.Username), zap.Error(activationErr))
-				c.AbortWithStatusJSON(http.StatusBadGateway, gin.H{"message": "Could not activate OpenCloud seats"})
+				api.log.Error("Could not activate OpenCloud members", zap.String("username", event.Username), zap.Error(activationErr))
+				c.AbortWithStatusJSON(http.StatusBadGateway, gin.H{"message": "Could not activate OpenCloud members"})
 				return
 			default:
-				api.log.Info("Processed OpenCloud login event", zap.String("username", event.Username), zap.Int("activated_seats", activated))
+				api.log.Info("Processed OpenCloud login event", zap.String("username", event.Username), zap.Int("activated_members", activated))
 			}
 		}
 	}

@@ -80,6 +80,10 @@ func (client *Client) SetSpaceQuota(ctx context.Context, driveID string, quotaBy
 	if quotaBytes <= 0 {
 		return nil, ErrInvalidQuota
 	}
+	return client.setDriveQuota(ctx, driveID, quotaBytes)
+}
+
+func (client *Client) setDriveQuota(ctx context.Context, driveID string, quotaBytes int64) (*Space, error) {
 	input := struct {
 		Quota struct {
 			Total int64 `json:"total"`
@@ -126,14 +130,14 @@ func (client *Client) GetUserDrive(ctx context.Context, userID string) (*Space, 
 }
 
 func (client *Client) SetUserDriveQuota(ctx context.Context, userID string, quotaBytes int64) (*Space, error) {
-	if quotaBytes <= 0 {
-		return nil, ErrInvalidQuota
+	if quotaBytes < 0 {
+		return nil, errors.New("OpenCloud personal quota cannot be negative")
 	}
 	space, err := client.GetUserDrive(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
-	return client.SetSpaceQuota(ctx, space.ID, quotaBytes)
+	return client.setDriveQuota(ctx, space.ID, quotaBytes)
 }
 
 func spaceUsage(space *Space) *SpaceUsage {
@@ -147,7 +151,7 @@ func spaceUsage(space *Space) *SpaceUsage {
 	return usage
 }
 
-func (client *Client) DisableSpace(ctx context.Context, driveID string) error {
+func (client *Client) DeleteSpace(ctx context.Context, driveID string) error {
 	if strings.TrimSpace(driveID) == "" {
 		return errors.New("OpenCloud drive ID is required")
 	}

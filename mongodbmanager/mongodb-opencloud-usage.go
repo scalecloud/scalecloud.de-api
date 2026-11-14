@@ -89,14 +89,19 @@ func (mongoDBConnection *MongoDBConnection) ensureOpenCloudRegistryIndexes(ctx c
 }
 
 func (mongoDBConnection *MongoDBConnection) GetOpenCloudProjectSpaces(ctx context.Context) ([]OpenCloudSpaceReference, error) {
-	filter := bson.M{
-		"roles":            bson.M{"$in": []string{string(RoleOwner)}},
+	var owners []OpenCloudMember
+	if err := mongoDBConnection.findDocuments(ctx, databaseOpenCloud, collectionOpenCloudMembers, bson.M{
+		"roles":            bson.M{"$in": []string{string(OpenCloudRoleOwner)}},
 		"openCloudDriveId": bson.M{"$exists": true, "$ne": ""},
-	}
-	opts := options.Find().SetProjection(bson.M{"_id": 0, "subscriptionID": 1, "openCloudDriveId": 1})
-	var references []OpenCloudSpaceReference
-	if err := mongoDBConnection.findDocuments(ctx, databaseSubscription, collectionSeats, filter, &references, opts); err != nil {
+	}, &owners, options.Find()); err != nil {
 		return nil, err
+	}
+	references := make([]OpenCloudSpaceReference, 0, len(owners))
+	for _, owner := range owners {
+		references = append(references, OpenCloudSpaceReference{
+			SubscriptionID: owner.SubscriptionID,
+			DriveID:        owner.OpenCloudDriveID,
+		})
 	}
 	var allocatedSpaces []OpenCloudResourceRegistry
 	if err := mongoDBConnection.findDocuments(ctx, databaseOpenCloud, collectionOpenCloudRegistry, bson.M{

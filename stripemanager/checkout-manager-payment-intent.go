@@ -14,10 +14,10 @@ import (
 )
 
 func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Context, tokenDetails authmanager.TokenDetails, checkoutCreateSubscriptionRequest CheckoutCreateSubscriptionRequest) (CheckoutCreateSubscriptionReply, error) {
-	stripe.Key = paymentHandler.StripeConnection.Key
-	if checkoutCreateSubscriptionRequest.Quantity > 999 {
-		return CheckoutCreateSubscriptionReply{}, errors.New("quantity can not be higher than 999")
+	if checkoutCreateSubscriptionRequest.Quantity < 1 || checkoutCreateSubscriptionRequest.Quantity > 999 {
+		return CheckoutCreateSubscriptionReply{}, errors.New("quantity must be between 1 and 999")
 	}
+	stripe.Key = paymentHandler.StripeConnection.Key
 	price, err := paymentHandler.StripeConnection.GetPrice(c, checkoutCreateSubscriptionRequest.ProductID)
 	if err != nil {
 		return CheckoutCreateSubscriptionReply{}, err
@@ -60,7 +60,7 @@ func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Conte
 	switch sub.Status {
 	case stripe.SubscriptionStatusActive, stripe.SubscriptionStatusTrialing:
 		paymentHandler.Log.Info("Subscription is valid.")
-		if err := createSeat(c, sub, tokenDetails, paymentHandler); err != nil {
+		if err := createSeat(c, sub, tokenDetails, paymentHandler, ProductType(product.Metadata["productType"]), product.Metadata); err != nil {
 			paymentHandler.Log.Error("Could not provision subscription owner", zap.Error(err))
 			_, cancelErr := subscription.Cancel(sub.ID, nil)
 			if cancelErr != nil {
@@ -87,7 +87,21 @@ func (paymentHandler *PaymentHandler) CreateCheckoutSubscription(c context.Conte
 	return checkoutSubscriptionModel, nil
 }
 
-func createSeat(c context.Context, sub *stripe.Subscription, tokenDetails authmanager.TokenDetails, paymentHandler *PaymentHandler) error {
+func createSeat(c context.Context, sub *stripe.Subscription, tokenDetails authmanager.TokenDetails, paymentHandler *PaymentHandler, productType ProductType, productMetadata map[string]string) error {
+	if sub == nil || sub.ID == "" {
+		return errors.New("subscription is required to provision its owner")
+	}
+	var initialStorageBytes int64
+	if productType == ProductOpenCloud {
+		if sub.Items == nil || len(sub.Items.Data) == 0 {
+			return errors.New("OpenCloud subscription storage quantity is missing")
+		}
+		var err error
+		initialStorageBytes, err = openCloudInitialOwnerStorageBytes(sub.Items.Data[0].Quantity, productMetadata)
+		if err != nil {
+			return err
+		}
+	}
 	emailVerified := tokenDetails.EmailVerified
 	seat := mongodbmanager.Seat{
 		SubscriptionID: sub.ID,
@@ -98,8 +112,8 @@ func createSeat(c context.Context, sub *stripe.Subscription, tokenDetails authma
 		Roles: []mongodbmanager.Role{
 			mongodbmanager.RoleOwner,
 			mongodbmanager.RoleAdministrator,
-			mongodbmanager.RoleUser,
 			mongodbmanager.RoleBilling,
+			mongodbmanager.RoleUser,
 		},
 	}
 	user, err := paymentHandler.AuthentikConnection.FindUserByEmail(c, seat.EMail)
@@ -112,17 +126,51 @@ func createSeat(c context.Context, sub *stripe.Subscription, tokenDetails authma
 	if !user.IsActive {
 		return errors.New("owner Authentik account is inactive")
 	}
-	seat.AuthentikUserPK = user.PK
 	if err := paymentHandler.AuthentikConnection.AddUserPKToSubscription(c, sub.ID, user.PK); err != nil {
 		return err
 	}
-	if err := paymentHandler.MongoDBConnection.CreateSeat(c, seat); err != nil {
+	var createErr error
+	if productType == ProductOpenCloud {
+		createErr = paymentHandler.MongoDBConnection.CreateOpenCloudMember(c, mongodbmanager.OpenCloudMember{
+			SubscriptionID: sub.ID,
+			UID:            tokenDetails.UID,
+			EMail:          tokenDetails.EMail,
+			EMailVerified:  &emailVerified,
+			Roles: []mongodbmanager.OpenCloudRole{
+				mongodbmanager.OpenCloudRoleOwner,
+				mongodbmanager.OpenCloudRoleAdministrator,
+				mongodbmanager.OpenCloudRoleBilling,
+			},
+			Status:                mongodbmanager.OpenCloudMemberActive,
+			AuthentikUserPK:       user.PK,
+			OpenCloudStorageBytes: initialStorageBytes,
+		})
+	} else {
+		seat.AuthentikUserPK = user.PK
+		createErr = paymentHandler.MongoDBConnection.CreateSeat(c, seat)
+	}
+	if createErr != nil {
 		if removeErr := paymentHandler.AuthentikConnection.RemoveUserFromSubscription(c, sub.ID, user.PK); removeErr != nil {
 			paymentHandler.Log.Error("Could not roll back owner group membership after seat creation failed", zap.Error(removeErr))
 		}
-		return err
+		return createErr
 	}
 	return nil
+}
+
+func openCloudInitialOwnerStorageBytes(quantity int64, productMetadata map[string]string) (int64, error) {
+	if quantity < 1 {
+		return 0, errors.New("OpenCloud subscription quantity must be at least one")
+	}
+	storageAmount, err := parsePositiveInt64(productMetadata["storageAmount"])
+	if err != nil {
+		return 0, errors.New("OpenCloud storage amount is not configured")
+	}
+	unitBytes, err := storageQuotaBytes(storageAmount, productMetadata["storageUnit"])
+	if err != nil {
+		return 0, err
+	}
+	return openCloudQuantityBytes(quantity, unitBytes)
 }
 
 func (paymentHandler *PaymentHandler) GetCheckoutProduct(c context.Context, tokenDetails authmanager.TokenDetails, checkoutProductRequest CheckoutProductRequest) (CheckoutProductReply, error) {

@@ -40,28 +40,28 @@ func TestOpenCloudDailyUsageUpsertsOneRecordPerDriveAndDay(t *testing.T) {
 	}
 }
 
-func TestOpenCloudStorageUsedBytesIncludesSeatsAndManagedSpaces(t *testing.T) {
+func TestOpenCloudStorageUsedBytesIncludesMembersAndManagedSpaces(t *testing.T) {
 	connection, ctx := newTestMongoDBConnection(t)
 	if err := connection.ensureOpenCloudUsageCollections(ctx); err != nil {
 		t.Fatalf("ensure OpenCloud registry collection: %v", err)
 	}
 	subscriptionID := "allocation-test-" + bson.NewObjectID().Hex()
-	seatCollection := connection.Client.Database(databaseSubscription).Collection(collectionSeats)
+	memberCollection := connection.Client.Database(databaseOpenCloud).Collection(collectionOpenCloudMembers)
 	registryCollection := connection.Client.Database(databaseOpenCloud).Collection(collectionOpenCloudRegistry)
 	t.Cleanup(func() {
 		cleanupContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_, _ = seatCollection.DeleteMany(cleanupContext, bson.M{"subscriptionID": subscriptionID})
+		_, _ = memberCollection.DeleteMany(cleanupContext, bson.M{"subscriptionID": subscriptionID})
 		_, _ = registryCollection.DeleteMany(cleanupContext, bson.M{"subscriptionID": subscriptionID})
 	})
 
-	seats := []any{
-		Seat{SubscriptionID: subscriptionID, EMail: "owner@example.com", Roles: []Role{RoleOwner}, OpenCloudStorageBytes: 2_000_000_000_000},
-		Seat{SubscriptionID: subscriptionID, EMail: "person@example.com", Roles: []Role{RoleUser}, Status: SeatStatusPending, OpenCloudStorageBytes: 1_000_000_000_000},
+	members := []any{
+		OpenCloudMember{SubscriptionID: subscriptionID, EMail: "owner@example.com", Roles: []OpenCloudRole{OpenCloudRoleOwner}, OpenCloudStorageBytes: 2_000_000_000_000},
+		OpenCloudMember{SubscriptionID: subscriptionID, EMail: "person@example.com", Roles: []OpenCloudRole{OpenCloudRoleBilling}, Status: OpenCloudMemberPending, OpenCloudStorageBytes: 1_000_000_000_000},
 	}
-	for _, seat := range seats {
-		if _, err := seatCollection.InsertOne(ctx, seat); err != nil {
-			t.Fatalf("insert test seat: %v", err)
+	for _, member := range members {
+		if _, err := memberCollection.InsertOne(ctx, member); err != nil {
+			t.Fatalf("insert test member: %v", err)
 		}
 	}
 	if err := connection.UpsertOpenCloudResource(ctx, OpenCloudResourceRegistry{
@@ -95,22 +95,22 @@ func TestGetOpenCloudProjectSpacesIncludesManagedSpaces(t *testing.T) {
 		t.Fatalf("ensure OpenCloud registry collection: %v", err)
 	}
 	subscriptionID := "space-discovery-test-" + bson.NewObjectID().Hex()
-	seatCollection := connection.Client.Database(databaseSubscription).Collection(collectionSeats)
+	memberCollection := connection.Client.Database(databaseOpenCloud).Collection(collectionOpenCloudMembers)
 	registryCollection := connection.Client.Database(databaseOpenCloud).Collection(collectionOpenCloudRegistry)
 	t.Cleanup(func() {
 		cleanupContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		_, _ = seatCollection.DeleteMany(cleanupContext, bson.M{"subscriptionID": subscriptionID})
+		_, _ = memberCollection.DeleteMany(cleanupContext, bson.M{"subscriptionID": subscriptionID})
 		_, _ = registryCollection.DeleteMany(cleanupContext, bson.M{"subscriptionID": subscriptionID})
 	})
 
-	if _, err := seatCollection.InsertOne(ctx, Seat{
+	if _, err := memberCollection.InsertOne(ctx, OpenCloudMember{
 		SubscriptionID:   subscriptionID,
 		EMail:            "owner@example.com",
-		Roles:            []Role{RoleOwner},
+		Roles:            []OpenCloudRole{OpenCloudRoleOwner},
 		OpenCloudDriveID: "legacy-drive",
 	}); err != nil {
-		t.Fatalf("insert owner seat: %v", err)
+		t.Fatalf("insert owner member: %v", err)
 	}
 	if err := connection.UpsertOpenCloudResource(ctx, OpenCloudResourceRegistry{
 		SubscriptionID: subscriptionID,

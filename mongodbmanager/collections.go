@@ -17,6 +17,7 @@ const (
 	databaseOpenCloud           = "opencloud"
 	collectionOpenCloudHistory  = "usage-history"
 	collectionOpenCloudRegistry = "resource-registry"
+	collectionOpenCloudMembers  = "subscription-members"
 
 	databaseNewsletters   = "newsletters"
 	collectionSubscribers = "subscribers"
@@ -27,6 +28,6 @@ var databases = map[string][]string{
 	databaseProduct:      {collectionTrial},
 	databaseStripe:       {collectionUsers},
 	databaseAuthentik:    {collectionAuthentikEvents},
-	databaseOpenCloud:    {collectionOpenCloudHistory, collectionOpenCloudRegistry},
+	databaseOpenCloud:    {collectionOpenCloudHistory, collectionOpenCloudRegistry, collectionOpenCloudMembers},
 	databaseNewsletters:  {collectionSubscribers},
 }

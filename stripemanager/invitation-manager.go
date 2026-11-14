@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"math"
 	"net/url"
 	"strconv"
@@ -17,7 +18,6 @@ import (
 	"github.com/scalecloud/scalecloud.de-api/authmanager"
 	"github.com/scalecloud/scalecloud.de-api/emailmanager"
 	"github.com/scalecloud/scalecloud.de-api/mongodbmanager"
-	"github.com/scalecloud/scalecloud.de-api/opencloudmanager"
 	"github.com/stripe/stripe-go/v87"
 	"go.uber.org/zap"
 )
@@ -62,7 +62,8 @@ type invitationCreateStore interface {
 }
 
 type invitationCreateOpenCloudStore interface {
-	CreatePendingOpenCloudSeatWithinCapacity(context.Context, mongodbmanager.Seat, int64, int64) error
+	CreatePendingOpenCloudMemberWithinCapacity(context.Context, mongodbmanager.OpenCloudMember, int64) error
+	DeletePendingOpenCloudMemberByInvitationTokenHash(context.Context, string) error
 }
 
 type invitationCreateStripe interface {
@@ -94,7 +95,11 @@ func (paymentHandler *PaymentHandler) CreateSeatInvitation(ctx context.Context, 
 	}, subscriptionID, email, roles, maxSeats)
 }
 
-func (paymentHandler *PaymentHandler) CreateOpenCloudSeatInvitation(ctx context.Context, subscriptionID, email, inviterEmail string, roles []mongodbmanager.Role, maxSeats, storageBytes, maxStorageBytes int64) (AddSeatReply, error) {
+func (paymentHandler *PaymentHandler) CreateOpenCloudMemberInvitation(ctx context.Context, subscriptionID, email, inviterEmail string, roles []mongodbmanager.OpenCloudRole, storageBytes, maxStorageBytes int64) (AddSeatReply, error) {
+	genericRoles := make([]mongodbmanager.Role, len(roles))
+	for i, role := range roles {
+		genericRoles[i] = mongodbmanager.Role(role)
+	}
 	return createSeatInvitationWithStorage(ctx, invitationCreateDependencies{
 		store:        paymentHandler.MongoDBConnection,
 		stripe:       paymentHandler.StripeConnection,
@@ -102,15 +107,19 @@ func (paymentHandler *PaymentHandler) CreateOpenCloudSeatInvitation(ctx context.
 		claimURL:     paymentHandler.InvitationClaimURL,
 		inviterEmail: inviterEmail,
 		logger:       paymentHandler.Log,
-	}, subscriptionID, email, roles, maxSeats, storageBytes, maxStorageBytes)
+	}, subscriptionID, email, genericRoles, storageBytes, maxStorageBytes)
 }
 
 func createSeatInvitation(ctx context.Context, dependencies invitationCreateDependencies, subscriptionID, email string, roles []mongodbmanager.Role, maxSeats int64) (AddSeatReply, error) {
-	return createSeatInvitationWithStorage(ctx, dependencies, subscriptionID, email, roles, maxSeats, 0, 0)
+	return createSeatInvitationWithCapacity(ctx, dependencies, subscriptionID, email, roles, maxSeats, 0, 0, false)
 }
 
-func createSeatInvitationWithStorage(ctx context.Context, dependencies invitationCreateDependencies, subscriptionID, email string, roles []mongodbmanager.Role, maxSeats, storageBytes, maxStorageBytes int64) (AddSeatReply, error) {
-	if storageBytes < 0 || (storageBytes > 0 && maxStorageBytes < storageBytes) {
+func createSeatInvitationWithStorage(ctx context.Context, dependencies invitationCreateDependencies, subscriptionID, email string, roles []mongodbmanager.Role, storageBytes, maxStorageBytes int64) (AddSeatReply, error) {
+	return createSeatInvitationWithCapacity(ctx, dependencies, subscriptionID, email, roles, 0, storageBytes, maxStorageBytes, true)
+}
+
+func createSeatInvitationWithCapacity(ctx context.Context, dependencies invitationCreateDependencies, subscriptionID, email string, roles []mongodbmanager.Role, maxSeats, storageBytes, maxStorageBytes int64, openCloud bool) (AddSeatReply, error) {
+	if storageBytes < 0 || (openCloud && maxStorageBytes < storageBytes) || (!openCloud && storageBytes != 0) {
 		return AddSeatReply{}, mongodbmanager.ErrOpenCloudStorageCapacityReached
 	}
 	token, tokenHash, err := createSeatInvitationToken()
@@ -119,21 +128,28 @@ func createSeatInvitationWithStorage(ctx context.Context, dependencies invitatio
 	}
 	expiresAt := time.Now().UTC().Add(seatInvitationLifetime)
 	seat := mongodbmanager.Seat{
-		SubscriptionID:        subscriptionID,
-		EMail:                 normalizeInvitationEmail(email),
-		Roles:                 roles,
-		Status:                mongodbmanager.SeatStatusPending,
-		InvitationTokenHash:   tokenHash,
-		InvitationExpiresAt:   &expiresAt,
-		OpenCloudStorageBytes: storageBytes,
+		SubscriptionID:      subscriptionID,
+		EMail:               normalizeInvitationEmail(email),
+		Roles:               roles,
+		Status:              mongodbmanager.SeatStatusPending,
+		InvitationTokenHash: tokenHash,
+		InvitationExpiresAt: &expiresAt,
 	}
 	var reservationErr error
-	if storageBytes > 0 {
+	if openCloud {
 		storageStore, ok := dependencies.store.(invitationCreateOpenCloudStore)
 		if !ok {
 			return AddSeatReply{}, errors.New("OpenCloud storage reservation is unavailable")
 		}
-		reservationErr = storageStore.CreatePendingOpenCloudSeatWithinCapacity(ctx, seat, maxSeats, maxStorageBytes)
+		reservationErr = storageStore.CreatePendingOpenCloudMemberWithinCapacity(ctx, mongodbmanager.OpenCloudMember{
+			SubscriptionID:        seat.SubscriptionID,
+			EMail:                 seat.EMail,
+			Roles:                 openCloudRoles(roles),
+			Status:                mongodbmanager.OpenCloudMemberPending,
+			InvitationTokenHash:   tokenHash,
+			InvitationExpiresAt:   seat.InvitationExpiresAt,
+			OpenCloudStorageBytes: storageBytes,
+		}, maxStorageBytes)
 	} else {
 		reservationErr = dependencies.store.CreatePendingSeatWithinCapacity(ctx, seat, maxSeats)
 	}
@@ -183,7 +199,14 @@ func createSeatInvitationWithStorage(ctx context.Context, dependencies invitatio
 		})
 	}
 	if err != nil {
-		if cleanupErr := dependencies.store.DeletePendingSeatByInvitationTokenHash(ctx, tokenHash); cleanupErr != nil {
+		var cleanupErr error
+		if openCloud {
+			storageStore := dependencies.store.(invitationCreateOpenCloudStore)
+			cleanupErr = storageStore.DeletePendingOpenCloudMemberByInvitationTokenHash(ctx, tokenHash)
+		} else {
+			cleanupErr = dependencies.store.DeletePendingSeatByInvitationTokenHash(ctx, tokenHash)
+		}
+		if cleanupErr != nil {
 			dependencies.logger.Error("Could not remove pending seat after invitation email failed", zap.Error(cleanupErr))
 		}
 		return AddSeatReply{}, err
@@ -200,6 +223,27 @@ func (paymentHandler *PaymentHandler) PreviewSeatInvitation(ctx context.Context,
 	if err != nil {
 		return SeatInvitationPreviewReply{}, ErrInvitationUnavailable
 	}
+	if seat.SubscriptionID == "" {
+		member, err := paymentHandler.MongoDBConnection.GetPendingOpenCloudMemberByInvitationTokenHash(ctx, hashSeatInvitationToken(token), time.Now().UTC())
+		if err != nil || member.SubscriptionID == "" {
+			return SeatInvitationPreviewReply{}, ErrInvitationUnavailable
+		}
+		productName, storageAmount, storageUnit, err := getSeatProductDetails(ctx, paymentHandler.StripeConnection, member.SubscriptionID)
+		if err != nil {
+			if errors.Is(err, ErrInvitationSubscription) {
+				return SeatInvitationPreviewReply{}, ErrInvitationUnavailable
+			}
+			return SeatInvitationPreviewReply{}, err
+		}
+		return SeatInvitationPreviewReply{
+			ProductName:   productName,
+			StorageAmount: storageAmount,
+			StorageUnit:   storageUnit,
+			EMail:         member.EMail,
+			Roles:         genericRoles(member.Roles),
+			ExpiresAt:     member.InvitationExpiresAt.Unix(),
+		}, nil
+	}
 	productName, storageAmount, storageUnit, err := getSeatProductDetails(ctx, paymentHandler.StripeConnection, seat.SubscriptionID)
 	if err != nil {
 		if errors.Is(err, ErrInvitationSubscription) {
@@ -212,12 +256,32 @@ func (paymentHandler *PaymentHandler) PreviewSeatInvitation(ctx context.Context,
 		StorageAmount: storageAmount,
 		StorageUnit:   storageUnit,
 		EMail:         seat.EMail,
-		Roles:         seat.Roles,
+		Roles:         append([]mongodbmanager.Role{}, seat.Roles...),
 		ExpiresAt:     seat.InvitationExpiresAt.Unix(),
 	}, nil
 }
 
 func (paymentHandler *PaymentHandler) ClaimSeatInvitation(ctx context.Context, token string, tokenDetails authmanager.TokenDetails) (SeatInvitationClaimReply, error) {
+	if !tokenDetails.EmailVerified {
+		return SeatInvitationClaimReply{}, ErrInvitationEmailUnverified
+	}
+	if len(token) < 40 || len(token) > 128 {
+		return SeatInvitationClaimReply{}, ErrInvitationUnavailable
+	}
+	if tokenDetails.UID == "" || tokenDetails.EMail == "" {
+		return SeatInvitationClaimReply{}, ErrInvitationUnavailable
+	}
+	member, err := paymentHandler.MongoDBConnection.GetOpenCloudMemberByInvitationTokenHash(ctx, hashSeatInvitationToken(token))
+	if err != nil {
+		return SeatInvitationClaimReply{}, err
+	}
+	if member.SubscriptionID != "" {
+		return claimOpenCloudMemberInvitation(ctx, token, tokenDetails, invitationClaimDependencies{
+			authentik: paymentHandler.AuthentikConnection,
+			stripe:    paymentHandler.StripeConnection,
+			logger:    paymentHandler.Log,
+		}, paymentHandler.MongoDBConnection)
+	}
 	return claimSeatInvitation(ctx, token, tokenDetails, invitationClaimDependencies{
 		store:     paymentHandler.MongoDBConnection,
 		authentik: paymentHandler.AuthentikConnection,
@@ -305,9 +369,108 @@ func claimSeatInvitation(ctx context.Context, token string, tokenDetails authman
 		ProductName:    productName,
 		StorageAmount:  storageAmount,
 		StorageUnit:    storageUnit,
-		Roles:          seat.Roles,
+		Roles:          append([]mongodbmanager.Role{}, seat.Roles...),
 		Success:        true,
 	}, nil
+}
+
+func claimOpenCloudMemberInvitation(ctx context.Context, token string, tokenDetails authmanager.TokenDetails, dependencies invitationClaimDependencies, store *mongodbmanager.MongoDBConnection) (SeatInvitationClaimReply, error) {
+	if !tokenDetails.EmailVerified {
+		return SeatInvitationClaimReply{}, ErrInvitationEmailUnverified
+	}
+	if tokenDetails.UID == "" || tokenDetails.EMail == "" {
+		return SeatInvitationClaimReply{}, ErrInvitationUnavailable
+	}
+	email := normalizeInvitationEmail(tokenDetails.EMail)
+	tokenHash := hashSeatInvitationToken(token)
+	member, err := store.GetOpenCloudMemberByInvitationTokenHash(ctx, tokenHash)
+	if err != nil || member.SubscriptionID == "" {
+		return SeatInvitationClaimReply{}, ErrInvitationUnavailable
+	}
+	if normalizeInvitationEmail(member.EMail) != email {
+		return SeatInvitationClaimReply{}, ErrInvitationEmailMismatch
+	}
+	productName, storageAmount, storageUnit, err := getSeatProductDetails(ctx, dependencies.stripe, member.SubscriptionID)
+	if err != nil {
+		if errors.Is(err, ErrInvitationSubscription) {
+			return SeatInvitationClaimReply{}, ErrInvitationUnavailable
+		}
+		return SeatInvitationClaimReply{}, err
+	}
+	switch member.Status {
+	case mongodbmanager.OpenCloudMemberPending:
+		if member.InvitationExpiresAt == nil || !member.InvitationExpiresAt.After(time.Now().UTC()) {
+			return SeatInvitationClaimReply{}, ErrInvitationUnavailable
+		}
+		user, err := dependencies.authentik.FindUserByEmail(ctx, email)
+		if err != nil {
+			return SeatInvitationClaimReply{}, err
+		}
+		if user.PK == 0 {
+			return SeatInvitationClaimReply{}, ErrInvitationUnavailable
+		}
+		if !user.IsActive {
+			return SeatInvitationClaimReply{}, errors.New("authentik user is inactive")
+		}
+		member, err = store.BeginOpenCloudMemberClaim(ctx, tokenHash, email, tokenDetails.UID, user.PK, time.Now().UTC())
+		if err != nil {
+			claimingMember, lookupErr := store.GetOpenCloudMemberByInvitationTokenHash(ctx, tokenHash)
+			if lookupErr != nil || claimingMember.Status != mongodbmanager.OpenCloudMemberClaiming || claimingMember.UID != tokenDetails.UID {
+				return SeatInvitationClaimReply{}, ErrInvitationUnavailable
+			}
+			member = claimingMember
+		}
+	case mongodbmanager.OpenCloudMemberClaiming:
+		if member.UID != tokenDetails.UID || member.AuthentikUserPK == 0 {
+			return SeatInvitationClaimReply{}, ErrInvitationUnavailable
+		}
+	default:
+		return SeatInvitationClaimReply{}, ErrInvitationUnavailable
+	}
+
+	if err := dependencies.authentik.AddUserPKToSubscription(ctx, member.SubscriptionID, member.AuthentikUserPK); err != nil {
+		if rollbackErr := dependencies.authentik.RemoveUserFromSubscription(ctx, member.SubscriptionID, member.AuthentikUserPK); rollbackErr != nil {
+			dependencies.logger.Error("Could not roll back Authentik membership after OpenCloud invite claim failed", zap.Error(rollbackErr))
+		}
+		return SeatInvitationClaimReply{}, err
+	}
+	if err := store.CompleteOpenCloudMemberClaim(ctx, tokenHash, member.UID); err != nil {
+		claimedMember, lookupErr := store.GetOpenCloudMember(ctx, member.SubscriptionID, member.UID)
+		if lookupErr == nil && claimedMember.Status == mongodbmanager.OpenCloudMemberActive && claimedMember.AuthentikUserPK == member.AuthentikUserPK {
+			member = claimedMember
+		} else {
+			if rollbackErr := dependencies.authentik.RemoveUserFromSubscription(ctx, member.SubscriptionID, member.AuthentikUserPK); rollbackErr != nil {
+				dependencies.logger.Error("Could not roll back Authentik membership after OpenCloud member activation failed", zap.Error(rollbackErr))
+			}
+			return SeatInvitationClaimReply{}, err
+		}
+	} else {
+		member.Status = mongodbmanager.OpenCloudMemberActive
+	}
+	return SeatInvitationClaimReply{
+		SubscriptionID: member.SubscriptionID,
+		ProductName:    productName,
+		StorageAmount:  storageAmount,
+		StorageUnit:    storageUnit,
+		Roles:          genericRoles(member.Roles),
+		Success:        true,
+	}, nil
+}
+
+func genericRoles(roles []mongodbmanager.OpenCloudRole) []mongodbmanager.Role {
+	converted := make([]mongodbmanager.Role, len(roles))
+	for i, role := range roles {
+		converted[i] = mongodbmanager.Role(role)
+	}
+	return converted
+}
+
+func openCloudRoles(roles []mongodbmanager.Role) []mongodbmanager.OpenCloudRole {
+	converted := make([]mongodbmanager.OpenCloudRole, len(roles))
+	for i, role := range roles {
+		converted[i] = mongodbmanager.OpenCloudRole(role)
+	}
+	return converted
 }
 
 func (paymentHandler *PaymentHandler) RemoveSeatFromSubscriptionGroup(ctx context.Context, seat mongodbmanager.Seat) error {
@@ -324,18 +487,59 @@ func (paymentHandler *PaymentHandler) RemoveSeatFromSubscriptionGroup(ctx contex
 	if err := paymentHandler.AuthentikConnection.RemoveUserFromSubscription(ctx, seat.SubscriptionID, userPK); err != nil {
 		return err
 	}
-	if paymentHandler.OpenCloudConnection == nil || seat.OpenCloudUserID == "" {
-		return nil
+	return nil
+}
+
+func (paymentHandler *PaymentHandler) RemoveOpenCloudMember(ctx context.Context, member mongodbmanager.OpenCloudMember) error {
+	var oldQuota, newQuota int64
+	if member.OpenCloudUserID != "" {
+		var err error
+		oldQuota, err = paymentHandler.MongoDBConnection.GetOpenCloudUserStorageBytes(ctx, member.OpenCloudUserID)
+		if err != nil {
+			return err
+		}
+		newQuota, err = openCloudQuotaAfterRemovingAllocation(oldQuota, member.OpenCloudStorageBytes)
+		if err != nil {
+			return err
+		}
+		if _, err := paymentHandler.OpenCloudConnection.SetUserDriveQuota(ctx, member.OpenCloudUserID, newQuota); err != nil {
+			return err
+		}
 	}
-	owner, err := paymentHandler.MongoDBConnection.GetOwnerSeat(ctx, seat.SubscriptionID)
-	if err != nil || owner.OpenCloudDriveID == "" {
+	if member.AuthentikUserPK != 0 {
+		if err := paymentHandler.AuthentikConnection.RemoveUserFromSubscription(ctx, member.SubscriptionID, member.AuthentikUserPK); err != nil {
+			if restoreErr := paymentHandler.AuthentikConnection.AddUserPKToSubscription(ctx, member.SubscriptionID, member.AuthentikUserPK); restoreErr != nil {
+				paymentHandler.Log.Error("Could not restore Authentik membership after OpenCloud member removal failed", zap.Error(restoreErr))
+			}
+			if member.OpenCloudUserID != "" {
+				if _, rollbackErr := paymentHandler.OpenCloudConnection.SetUserDriveQuota(ctx, member.OpenCloudUserID, oldQuota); rollbackErr != nil {
+					return errors.Join(err, fmt.Errorf("restore OpenCloud personal quota: %w", rollbackErr))
+				}
+			}
+			return err
+		}
+	}
+	if err := paymentHandler.MongoDBConnection.DeleteOpenCloudMember(ctx, member); err != nil {
+		if member.AuthentikUserPK != 0 {
+			if restoreErr := paymentHandler.AuthentikConnection.AddUserPKToSubscription(ctx, member.SubscriptionID, member.AuthentikUserPK); restoreErr != nil {
+				paymentHandler.Log.Error("Could not restore Authentik membership after OpenCloud member deletion failed", zap.Error(restoreErr))
+			}
+		}
+		if member.OpenCloudUserID != "" {
+			if _, rollbackErr := paymentHandler.OpenCloudConnection.SetUserDriveQuota(ctx, member.OpenCloudUserID, oldQuota); rollbackErr != nil {
+				return errors.Join(err, fmt.Errorf("restore OpenCloud personal quota: %w", rollbackErr))
+			}
+		}
 		return err
 	}
-	err = paymentHandler.OpenCloudConnection.RemoveUser(ctx, owner.OpenCloudDriveID, seat.OpenCloudUserID)
-	if errors.Is(err, opencloudmanager.ErrNotMember) {
-		return nil
+	return nil
+}
+
+func openCloudQuotaAfterRemovingAllocation(currentBytes, allocationBytes int64) (int64, error) {
+	if currentBytes < 0 || allocationBytes < 0 || allocationBytes > currentBytes {
+		return 0, errors.New("invalid aggregate OpenCloud user allocation")
 	}
-	return err
+	return currentBytes - allocationBytes, nil
 }
 
 func (paymentHandler *PaymentHandler) AddSeatToSubscriptionGroup(ctx context.Context, seat mongodbmanager.Seat) error {

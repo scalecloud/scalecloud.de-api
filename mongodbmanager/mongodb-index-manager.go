@@ -31,6 +31,10 @@ func (mongoDBConnection *MongoDBConnection) EnsureIndexes(ctx context.Context) e
 	if err != nil {
 		return err
 	}
+	err = mongoDBConnection.ensureOpenCloudMemberIndexes(ctx)
+	if err != nil {
+		return err
+	}
 	mongoDBConnection.Log.Info("all required indexes are present")
 	return nil
 }

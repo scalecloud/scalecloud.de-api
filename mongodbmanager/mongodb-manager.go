@@ -99,7 +99,7 @@ func (mongoDBConnection *MongoDBConnection) ensureOpenCloudUsageCollections(ctx 
 	for _, name := range existing {
 		existingCollections[name] = struct{}{}
 	}
-	for _, name := range []string{collectionOpenCloudHistory, collectionOpenCloudRegistry} {
+	for _, name := range []string{collectionOpenCloudHistory, collectionOpenCloudRegistry, collectionOpenCloudMembers} {
 		if _, ok := existingCollections[name]; ok {
 			continue
 		}

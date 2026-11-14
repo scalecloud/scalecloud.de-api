@@ -44,7 +44,7 @@ type OpenCloudOwnerAllocation struct {
 type OpenCloudUserAllocation struct {
 	UID             string                          `json:"uid" validate:"required"`
 	Email           string                          `json:"email" validate:"required"`
-	Roles           []mongodbmanager.Role           `json:"roles" validate:"required"`
+	Roles           []mongodbmanager.OpenCloudRole  `json:"roles" validate:"required"`
 	OpenCloudLinked bool                            `json:"openCloudLinked"`
 	StorageQuantity int64                           `json:"storageQuantity" validate:"gte=0"`
 	UsedQuantity    float64                         `json:"usedQuantity"`
@@ -76,26 +76,27 @@ type OpenCloudAllocationUsagePoint struct {
 }
 
 type OpenCloudInviteUserRequest struct {
-	SubscriptionID  string `json:"subscriptionID" binding:"required" validate:"required"`
-	Email           string `json:"email" binding:"required,email" validate:"required,email"`
-	StorageQuantity int64  `json:"storageQuantity" binding:"required,min=1" validate:"gte=1"`
+	SubscriptionID  string                         `json:"subscriptionID" binding:"required" validate:"required"`
+	Email           string                         `json:"email" binding:"required,email" validate:"required,email"`
+	StorageQuantity int64                          `json:"storageQuantity" binding:"required,min=0" validate:"gte=0"`
+	Roles           []mongodbmanager.OpenCloudRole `json:"roles"`
 }
 
 type OpenCloudUpdateOwnerStorageRequest struct {
 	SubscriptionID  string `json:"subscriptionID" binding:"required" validate:"required"`
-	StorageQuantity int64  `json:"storageQuantity" binding:"required,min=1" validate:"gte=1"`
+	StorageQuantity int64  `json:"storageQuantity" binding:"required,min=0" validate:"gte=0"`
 }
 
 type OpenCloudUpdateUserStorageRequest struct {
 	SubscriptionID  string `json:"subscriptionID" binding:"required" validate:"required"`
 	UID             string `json:"uid" binding:"required" validate:"required"`
-	StorageQuantity int64  `json:"storageQuantity" binding:"required,min=1" validate:"gte=1"`
+	StorageQuantity int64  `json:"storageQuantity" binding:"required,min=0" validate:"gte=0"`
 }
 
 type OpenCloudUpdateUserRolesRequest struct {
-	SubscriptionID string                `json:"subscriptionID" binding:"required" validate:"required"`
-	UID            string                `json:"uid" binding:"required" validate:"required"`
-	Roles          []mongodbmanager.Role `json:"roles" binding:"required,min=1" validate:"required,min=1"`
+	SubscriptionID string                         `json:"subscriptionID" binding:"required" validate:"required"`
+	UID            string                         `json:"uid" binding:"required" validate:"required"`
+	Roles          []mongodbmanager.OpenCloudRole `json:"roles"`
 }
 
 type OpenCloudCreateManagedSpaceRequest struct {
@@ -113,13 +114,23 @@ type OpenCloudUpdateSpaceStorageRequest struct {
 type OpenCloudAddSpaceMemberRequest struct {
 	SubscriptionID string `json:"subscriptionID" binding:"required" validate:"required"`
 	SpaceID        string `json:"spaceID" binding:"required" validate:"required"`
-	UID            string `json:"uid" binding:"required" validate:"required"`
+	Email          string `json:"email" binding:"required,email" validate:"required,email"`
 }
 
 type OpenCloudRemoveSpaceMemberRequest struct {
 	SubscriptionID string `json:"subscriptionID" binding:"required" validate:"required"`
 	SpaceID        string `json:"spaceID" binding:"required" validate:"required"`
 	PermissionID   string `json:"permissionID" binding:"required" validate:"required"`
+}
+
+type OpenCloudDeleteSpaceRequest struct {
+	SubscriptionID string `json:"subscriptionID" binding:"required" validate:"required"`
+	SpaceID        string `json:"spaceID" binding:"required" validate:"required"`
+}
+
+type OpenCloudRemoveUserRequest struct {
+	SubscriptionID string `json:"subscriptionID" binding:"required" validate:"required"`
+	UID            string `json:"uid" binding:"required" validate:"required"`
 }
 
 type OpenCloudAllocationMutationReply struct {
@@ -144,27 +155,37 @@ func (paymentHandler *PaymentHandler) GetOpenCloudAllocationOverview(ctx context
 	if paymentHandler.OpenCloudConnection == nil {
 		return OpenCloudAllocationOverviewReply{}, ErrOpenCloudUnavailable
 	}
-	if err := paymentHandler.MongoDBConnection.HasPermission(ctx, tokenDetails, request.SubscriptionID, []mongodbmanager.Role{mongodbmanager.RoleAdministrator}); err != nil {
+	if err := paymentHandler.MongoDBConnection.HasOpenCloudPermission(ctx, tokenDetails, request.SubscriptionID, []mongodbmanager.OpenCloudRole{mongodbmanager.OpenCloudRoleAdministrator}); err != nil {
 		return OpenCloudAllocationOverviewReply{}, err
 	}
 	capacity, err := paymentHandler.openCloudSubscriptionCapacity(ctx, request.SubscriptionID)
 	if err != nil {
 		return OpenCloudAllocationOverviewReply{}, err
 	}
-	owner, err := paymentHandler.MongoDBConnection.GetOwnerSeat(ctx, request.SubscriptionID)
+	owner, err := paymentHandler.MongoDBConnection.GetOpenCloudOwner(ctx, request.SubscriptionID)
 	if err != nil {
 		return OpenCloudAllocationOverviewReply{}, err
 	}
 	if owner.SubscriptionID == "" {
-		return OpenCloudAllocationOverviewReply{}, errors.New("subscription owner seat not found")
+		return OpenCloudAllocationOverviewReply{}, errors.New("subscription owner member not found")
 	}
-	seats, err := paymentHandler.MongoDBConnection.GetAllSeats(ctx, request.SubscriptionID)
+	members, err := paymentHandler.MongoDBConnection.GetOpenCloudMembers(ctx, request.SubscriptionID)
 	if err != nil {
 		return OpenCloudAllocationOverviewReply{}, err
 	}
 	resources, err := paymentHandler.MongoDBConnection.GetOpenCloudResourcesBySubscription(ctx, request.SubscriptionID)
 	if err != nil {
 		return OpenCloudAllocationOverviewReply{}, err
+	}
+	openCloudUserByID := make(map[string]opencloudmanager.User)
+	if len(resources) > 0 {
+		openCloudUsers, err := paymentHandler.OpenCloudConnection.ListUsers(ctx)
+		if err != nil {
+			return OpenCloudAllocationOverviewReply{}, err
+		}
+		for _, user := range openCloudUsers {
+			openCloudUserByID[user.ID] = user
+		}
 	}
 
 	reply := OpenCloudAllocationOverviewReply{
@@ -179,11 +200,11 @@ func (paymentHandler *PaymentHandler) GetOpenCloudAllocationOverview(ctx context
 			StorageQuantity: owner.OpenCloudStorageBytes / capacity.unitBytes,
 			DailyUsage:      []OpenCloudAllocationUsagePoint{},
 		},
-		Users:  make([]OpenCloudUserAllocation, 0, len(seats)),
+		Users:  make([]OpenCloudUserAllocation, 0, len(members)),
 		Spaces: make([]OpenCloudManagedSpace, 0),
 	}
-	uidByOpenCloudUserID := make(map[string]string, len(seats)+1)
-	emailByOpenCloudUserID := make(map[string]string, len(seats)+1)
+	uidByOpenCloudUserID := make(map[string]string, len(members)+1)
+	emailByOpenCloudUserID := make(map[string]string, len(members)+1)
 	if owner.OpenCloudUserID != "" {
 		uid := owner.UID
 		if uid == "" {
@@ -192,16 +213,16 @@ func (paymentHandler *PaymentHandler) GetOpenCloudAllocationOverview(ctx context
 		uidByOpenCloudUserID[owner.OpenCloudUserID] = uid
 		emailByOpenCloudUserID[owner.OpenCloudUserID] = owner.EMail
 	}
-	for _, seat := range seats {
-		if seat.OpenCloudUserID == "" || (seat.Status != "" && seat.Status != mongodbmanager.SeatStatusActive) {
+	for _, member := range members {
+		if member.OpenCloudUserID == "" || (member.Status != "" && member.Status != mongodbmanager.OpenCloudMemberActive) {
 			continue
 		}
-		uid := seat.UID
+		uid := member.UID
 		if uid == "" {
-			uid = seat.EMail
+			uid = member.EMail
 		}
-		uidByOpenCloudUserID[seat.OpenCloudUserID] = uid
-		emailByOpenCloudUserID[seat.OpenCloudUserID] = seat.EMail
+		uidByOpenCloudUserID[member.OpenCloudUserID] = uid
+		emailByOpenCloudUserID[member.OpenCloudUserID] = member.EMail
 	}
 	if owner.OpenCloudUserID != "" {
 		reply.Owner.UsedQuantity, reply.Owner.DailyUsage, err = paymentHandler.openCloudDailyUsage(ctx, owner.OpenCloudUserID, capacity.unitBytes)
@@ -209,27 +230,27 @@ func (paymentHandler *PaymentHandler) GetOpenCloudAllocationOverview(ctx context
 			return OpenCloudAllocationOverviewReply{}, err
 		}
 	}
-	for _, seat := range seats {
-		if mongodbmanager.ContainsRole(seat, []mongodbmanager.Role{mongodbmanager.RoleOwner}) {
+	for _, member := range members {
+		if mongodbmanager.ContainsOpenCloudRole(member, []mongodbmanager.OpenCloudRole{mongodbmanager.OpenCloudRoleOwner}) {
 			continue
 		}
-		if seat.Status != "" && seat.Status != mongodbmanager.SeatStatusActive && seat.Status != mongodbmanager.SeatStatusPending && seat.Status != mongodbmanager.SeatStatusClaiming {
+		if member.Status != "" && member.Status != mongodbmanager.OpenCloudMemberActive && member.Status != mongodbmanager.OpenCloudMemberPending && member.Status != mongodbmanager.OpenCloudMemberClaiming {
 			continue
 		}
-		uid := seat.UID
+		uid := member.UID
 		if uid == "" {
-			uid = seat.EMail
+			uid = member.EMail
 		}
 		user := OpenCloudUserAllocation{
 			UID:             uid,
-			Email:           seat.EMail,
-			Roles:           seat.Roles,
-			OpenCloudLinked: seat.OpenCloudUserID != "" && seat.Status == mongodbmanager.SeatStatusActive,
-			StorageQuantity: seat.OpenCloudStorageBytes / capacity.unitBytes,
+			Email:           member.EMail,
+			Roles:           append([]mongodbmanager.OpenCloudRole{}, member.Roles...),
+			OpenCloudLinked: member.OpenCloudUserID != "" && member.Status == mongodbmanager.OpenCloudMemberActive,
+			StorageQuantity: member.OpenCloudStorageBytes / capacity.unitBytes,
 			DailyUsage:      []OpenCloudAllocationUsagePoint{},
 		}
-		if seat.OpenCloudUserID != "" {
-			user.UsedQuantity, user.DailyUsage, err = paymentHandler.openCloudDailyUsage(ctx, seat.OpenCloudUserID, capacity.unitBytes)
+		if member.OpenCloudUserID != "" {
+			user.UsedQuantity, user.DailyUsage, err = paymentHandler.openCloudDailyUsage(ctx, member.OpenCloudUserID, capacity.unitBytes)
 			if err != nil {
 				return OpenCloudAllocationOverviewReply{}, err
 			}
@@ -266,6 +287,14 @@ func (paymentHandler *PaymentHandler) GetOpenCloudAllocationOverview(ctx context
 			if member.UserID != "" {
 				spaceMember.UID = uidByOpenCloudUserID[member.UserID]
 				spaceMember.Email = emailByOpenCloudUserID[member.UserID]
+				if openCloudUser, ok := openCloudUserByID[member.UserID]; ok {
+					if spaceMember.Email == "" {
+						spaceMember.Email = openCloudUser.Mail
+					}
+					if spaceMember.DisplayName == "" {
+						spaceMember.DisplayName = openCloudUser.DisplayName
+					}
+				}
 			}
 			space.Members = append(space.Members, spaceMember)
 		}
@@ -303,7 +332,7 @@ func (paymentHandler *PaymentHandler) InviteOpenCloudUser(ctx context.Context, t
 	if paymentHandler.OpenCloudConnection == nil {
 		return AddSeatReply{}, ErrOpenCloudUnavailable
 	}
-	if err := paymentHandler.MongoDBConnection.HasPermission(ctx, tokenDetails, request.SubscriptionID, []mongodbmanager.Role{mongodbmanager.RoleAdministrator}); err != nil {
+	if err := paymentHandler.MongoDBConnection.HasOpenCloudPermission(ctx, tokenDetails, request.SubscriptionID, []mongodbmanager.OpenCloudRole{mongodbmanager.OpenCloudRoleAdministrator}); err != nil {
 		return AddSeatReply{}, err
 	}
 	parsedEmail, err := mail.ParseAddress(request.Email)
@@ -314,17 +343,19 @@ func (paymentHandler *PaymentHandler) InviteOpenCloudUser(ctx context.Context, t
 	if err != nil {
 		return AddSeatReply{}, err
 	}
+	if err := validateOpenCloudInvitation(request.StorageQuantity, request.Roles); err != nil {
+		return AddSeatReply{}, err
+	}
 	storageBytes, err := openCloudQuantityBytes(request.StorageQuantity, capacity.unitBytes)
 	if err != nil {
 		return AddSeatReply{}, err
 	}
-	return paymentHandler.CreateOpenCloudSeatInvitation(
+	return paymentHandler.CreateOpenCloudMemberInvitation(
 		ctx,
 		request.SubscriptionID,
 		normalizeInvitationEmail(parsedEmail.Address),
 		tokenDetails.EMail,
-		[]mongodbmanager.Role{mongodbmanager.RoleUser},
-		capacity.quantity,
+		request.Roles,
 		storageBytes,
 		capacity.totalBytes,
 	)
@@ -334,7 +365,7 @@ func (paymentHandler *PaymentHandler) UpdateOpenCloudOwnerStorage(ctx context.Co
 	if paymentHandler.OpenCloudConnection == nil {
 		return OpenCloudAllocationMutationReply{}, ErrOpenCloudUnavailable
 	}
-	if err := paymentHandler.MongoDBConnection.HasPermission(ctx, tokenDetails, request.SubscriptionID, []mongodbmanager.Role{mongodbmanager.RoleAdministrator}); err != nil {
+	if err := paymentHandler.MongoDBConnection.HasOpenCloudPermission(ctx, tokenDetails, request.SubscriptionID, []mongodbmanager.OpenCloudRole{mongodbmanager.OpenCloudRoleAdministrator}); err != nil {
 		return OpenCloudAllocationMutationReply{}, err
 	}
 	capacity, err := paymentHandler.openCloudSubscriptionCapacity(ctx, request.SubscriptionID)
@@ -346,12 +377,12 @@ func (paymentHandler *PaymentHandler) UpdateOpenCloudOwnerStorage(ctx context.Co
 		return OpenCloudAllocationMutationReply{}, err
 	}
 	err = paymentHandler.MongoDBConnection.WithOpenCloudAllocationLock(ctx, request.SubscriptionID, func() error {
-		owner, err := paymentHandler.MongoDBConnection.GetOwnerSeat(ctx, request.SubscriptionID)
+		owner, err := paymentHandler.MongoDBConnection.GetOpenCloudOwner(ctx, request.SubscriptionID)
 		if err != nil {
 			return err
 		}
 		if owner.SubscriptionID == "" {
-			return errors.New("subscription owner seat not found")
+			return errors.New("subscription owner member not found")
 		}
 		usedBytes, err := paymentHandler.MongoDBConnection.GetOpenCloudStorageUsedBytes(ctx, request.SubscriptionID)
 		if err != nil {
@@ -387,7 +418,7 @@ func (paymentHandler *PaymentHandler) UpdateOpenCloudUserStorage(ctx context.Con
 	if paymentHandler.OpenCloudConnection == nil {
 		return OpenCloudAllocationMutationReply{}, ErrOpenCloudUnavailable
 	}
-	if err := paymentHandler.MongoDBConnection.HasPermission(ctx, tokenDetails, request.SubscriptionID, []mongodbmanager.Role{mongodbmanager.RoleAdministrator}); err != nil {
+	if err := paymentHandler.MongoDBConnection.HasOpenCloudPermission(ctx, tokenDetails, request.SubscriptionID, []mongodbmanager.OpenCloudRole{mongodbmanager.OpenCloudRoleAdministrator}); err != nil {
 		return OpenCloudAllocationMutationReply{}, err
 	}
 	capacity, err := paymentHandler.openCloudSubscriptionCapacity(ctx, request.SubscriptionID)
@@ -399,34 +430,34 @@ func (paymentHandler *PaymentHandler) UpdateOpenCloudUserStorage(ctx context.Con
 		return OpenCloudAllocationMutationReply{}, err
 	}
 	err = paymentHandler.MongoDBConnection.WithOpenCloudAllocationLock(ctx, request.SubscriptionID, func() error {
-		seat, err := paymentHandler.getOpenCloudSeat(ctx, request.SubscriptionID, request.UID)
+		member, err := paymentHandler.getOpenCloudMember(ctx, request.SubscriptionID, request.UID)
 		if err != nil {
 			return err
 		}
-		if mongodbmanager.ContainsRole(seat, []mongodbmanager.Role{mongodbmanager.RoleOwner}) {
+		if mongodbmanager.ContainsOpenCloudRole(member, []mongodbmanager.OpenCloudRole{mongodbmanager.OpenCloudRoleOwner}) {
 			return errors.New("use owner storage allocation for the subscription owner")
 		}
 		usedBytes, err := paymentHandler.MongoDBConnection.GetOpenCloudStorageUsedBytes(ctx, request.SubscriptionID)
 		if err != nil {
 			return err
 		}
-		if err := validateOpenCloudReplacement(capacity.totalBytes, usedBytes, seat.OpenCloudStorageBytes, newBytes); err != nil {
+		if err := validateOpenCloudReplacement(capacity.totalBytes, usedBytes, member.OpenCloudStorageBytes, newBytes); err != nil {
 			return err
 		}
-		newUserBytes, err := paymentHandler.openCloudUserQuotaAfterReplacement(ctx, seat, newBytes)
+		newUserBytes, err := paymentHandler.openCloudUserQuotaAfterReplacement(ctx, member, newBytes)
 		if err != nil {
 			return err
 		}
 		identity := request.UID
-		if seat.UID == "" {
-			identity = seat.EMail
+		if member.UID == "" {
+			identity = member.EMail
 		}
-		if err := paymentHandler.MongoDBConnection.SetOpenCloudSeatStorageBytes(ctx, request.SubscriptionID, identity, newBytes); err != nil {
+		if err := paymentHandler.MongoDBConnection.SetOpenCloudMemberStorageBytes(ctx, request.SubscriptionID, identity, newBytes); err != nil {
 			return err
 		}
-		if seat.OpenCloudUserID != "" {
-			if _, err := paymentHandler.OpenCloudConnection.SetUserDriveQuota(ctx, seat.OpenCloudUserID, newUserBytes); err != nil {
-				if rollbackErr := paymentHandler.MongoDBConnection.SetOpenCloudSeatStorageBytes(ctx, request.SubscriptionID, identity, seat.OpenCloudStorageBytes); rollbackErr != nil {
+		if member.OpenCloudUserID != "" {
+			if _, err := paymentHandler.OpenCloudConnection.SetUserDriveQuota(ctx, member.OpenCloudUserID, newUserBytes); err != nil {
+				if rollbackErr := paymentHandler.MongoDBConnection.SetOpenCloudMemberStorageBytes(ctx, request.SubscriptionID, identity, member.OpenCloudStorageBytes); rollbackErr != nil {
 					return fmt.Errorf("apply OpenCloud personal quota: %v; restore stored allocation: %w", err, rollbackErr)
 				}
 				return err
@@ -444,35 +475,45 @@ func (paymentHandler *PaymentHandler) UpdateOpenCloudUserRoles(ctx context.Conte
 	if paymentHandler.OpenCloudConnection == nil {
 		return OpenCloudAllocationMutationReply{}, ErrOpenCloudUnavailable
 	}
-	if err := paymentHandler.MongoDBConnection.HasPermission(ctx, tokenDetails, request.SubscriptionID, []mongodbmanager.Role{mongodbmanager.RoleAdministrator}); err != nil {
+	if err := paymentHandler.MongoDBConnection.HasOpenCloudPermission(ctx, tokenDetails, request.SubscriptionID, []mongodbmanager.OpenCloudRole{mongodbmanager.OpenCloudRoleAdministrator}); err != nil {
 		return OpenCloudAllocationMutationReply{}, err
 	}
-	seat, err := paymentHandler.getOpenCloudSeat(ctx, request.SubscriptionID, request.UID)
+	member, err := paymentHandler.getOpenCloudMember(ctx, request.SubscriptionID, request.UID)
 	if err != nil {
 		return OpenCloudAllocationMutationReply{}, err
 	}
-	if mongodbmanager.ContainsRole(seat, []mongodbmanager.Role{mongodbmanager.RoleOwner}) {
+	if mongodbmanager.ContainsOpenCloudRole(member, []mongodbmanager.OpenCloudRole{mongodbmanager.OpenCloudRoleOwner}) {
 		return OpenCloudAllocationMutationReply{}, errors.New("subscription owner roles cannot be changed here")
 	}
 	if err := validateOpenCloudUserRoles(request.Roles); err != nil {
 		return OpenCloudAllocationMutationReply{}, err
 	}
-	if err := paymentHandler.MongoDBConnection.UpdateSeatRoles(ctx, request.SubscriptionID, request.UID, request.Roles); err != nil {
+	if err := paymentHandler.MongoDBConnection.UpdateOpenCloudMemberRoles(ctx, request.SubscriptionID, request.UID, request.Roles); err != nil {
 		return OpenCloudAllocationMutationReply{}, err
 	}
 	return OpenCloudAllocationMutationReply{SubscriptionID: request.SubscriptionID, Success: true}, nil
 }
 
-func validateOpenCloudUserRoles(roles []mongodbmanager.Role) error {
-	if len(roles) == 0 {
-		return errors.New("at least one user role is required")
-	}
+func validateOpenCloudUserRoles(roles []mongodbmanager.OpenCloudRole) error {
 	for _, role := range roles {
 		switch role {
-		case mongodbmanager.RoleAdministrator, mongodbmanager.RoleUser, mongodbmanager.RoleBilling:
+		case mongodbmanager.OpenCloudRoleAdministrator, mongodbmanager.OpenCloudRoleBilling:
 		default:
 			return fmt.Errorf("invalid role for OpenCloud user: %q", role)
 		}
+	}
+	return nil
+}
+
+func validateOpenCloudInvitation(storageQuantity int64, roles []mongodbmanager.OpenCloudRole) error {
+	if storageQuantity < 0 {
+		return errors.New("OpenCloud storage quantity cannot be negative")
+	}
+	if err := validateOpenCloudUserRoles(roles); err != nil {
+		return err
+	}
+	if storageQuantity == 0 && len(roles) == 0 {
+		return errors.New("an OpenCloud invitation needs storage or an admin/billing role")
 	}
 	return nil
 }
@@ -481,7 +522,7 @@ func (paymentHandler *PaymentHandler) CreateOpenCloudManagedSpace(ctx context.Co
 	if paymentHandler.OpenCloudConnection == nil {
 		return OpenCloudManagedSpaceReply{}, ErrOpenCloudUnavailable
 	}
-	if err := paymentHandler.MongoDBConnection.HasPermission(ctx, tokenDetails, request.SubscriptionID, []mongodbmanager.Role{mongodbmanager.RoleAdministrator}); err != nil {
+	if err := paymentHandler.MongoDBConnection.HasOpenCloudPermission(ctx, tokenDetails, request.SubscriptionID, []mongodbmanager.OpenCloudRole{mongodbmanager.OpenCloudRoleAdministrator}); err != nil {
 		return OpenCloudManagedSpaceReply{}, err
 	}
 	name := strings.TrimSpace(request.Name)
@@ -524,7 +565,7 @@ func (paymentHandler *PaymentHandler) CreateOpenCloudManagedSpace(ctx context.Co
 			LastSeenAt:        time.Now().UTC(),
 		}
 		if err := paymentHandler.MongoDBConnection.UpsertOpenCloudResource(ctx, resource); err != nil {
-			if cleanupErr := paymentHandler.OpenCloudConnection.DisableSpace(ctx, createdSpace.ID); cleanupErr != nil {
+			if cleanupErr := paymentHandler.OpenCloudConnection.DeleteSpace(ctx, createdSpace.ID); cleanupErr != nil {
 				paymentHandler.Log.Error("Could not clean up OpenCloud space after storage registration failed", zap.Error(cleanupErr))
 			}
 			return err
@@ -541,7 +582,7 @@ func (paymentHandler *PaymentHandler) UpdateOpenCloudSpaceStorage(ctx context.Co
 	if paymentHandler.OpenCloudConnection == nil {
 		return OpenCloudAllocationMutationReply{}, ErrOpenCloudUnavailable
 	}
-	if err := paymentHandler.MongoDBConnection.HasPermission(ctx, tokenDetails, request.SubscriptionID, []mongodbmanager.Role{mongodbmanager.RoleAdministrator}); err != nil {
+	if err := paymentHandler.MongoDBConnection.HasOpenCloudPermission(ctx, tokenDetails, request.SubscriptionID, []mongodbmanager.OpenCloudRole{mongodbmanager.OpenCloudRoleAdministrator}); err != nil {
 		return OpenCloudAllocationMutationReply{}, err
 	}
 	capacity, err := paymentHandler.openCloudSubscriptionCapacity(ctx, request.SubscriptionID)
@@ -563,13 +604,6 @@ func (paymentHandler *PaymentHandler) UpdateOpenCloudSpaceStorage(ctx context.Co
 		}
 		if err := validateOpenCloudReplacement(capacity.totalBytes, usedBytes, allocation.StorageQuotaBytes, newBytes); err != nil {
 			return err
-		}
-		usage, err := paymentHandler.OpenCloudConnection.GetSpaceUsage(ctx, request.SpaceID)
-		if err != nil {
-			return err
-		}
-		if usage.Used != nil && *usage.Used > newBytes {
-			return errors.New("OpenCloud space is using more storage than the requested quota")
 		}
 		oldQuotaBytes := allocation.StorageQuotaBytes
 		if _, err := paymentHandler.OpenCloudConnection.SetSpaceQuota(ctx, request.SpaceID, newBytes); err != nil {
@@ -595,30 +629,45 @@ func (paymentHandler *PaymentHandler) AddOpenCloudSpaceMember(ctx context.Contex
 	if paymentHandler.OpenCloudConnection == nil {
 		return OpenCloudAllocationMutationReply{}, ErrOpenCloudUnavailable
 	}
-	if err := paymentHandler.MongoDBConnection.HasPermission(ctx, tokenDetails, request.SubscriptionID, []mongodbmanager.Role{mongodbmanager.RoleAdministrator}); err != nil {
+	if err := paymentHandler.MongoDBConnection.HasOpenCloudPermission(ctx, tokenDetails, request.SubscriptionID, []mongodbmanager.OpenCloudRole{mongodbmanager.OpenCloudRoleAdministrator}); err != nil {
 		return OpenCloudAllocationMutationReply{}, err
 	}
 	if _, err := paymentHandler.MongoDBConnection.GetOpenCloudSpaceAllocation(ctx, request.SubscriptionID, request.SpaceID); err != nil {
 		return OpenCloudAllocationMutationReply{}, err
 	}
-	seat, err := paymentHandler.getOpenCloudSeat(ctx, request.SubscriptionID, request.UID)
+	parsedEmail, err := mail.ParseAddress(request.Email)
+	if err != nil || !strings.EqualFold(parsedEmail.Address, request.Email) {
+		return OpenCloudAllocationMutationReply{}, errors.New("E-Mail is invalid")
+	}
+	users, err := paymentHandler.OpenCloudConnection.ListUsers(ctx)
 	if err != nil {
 		return OpenCloudAllocationMutationReply{}, err
 	}
-	if seat.SubscriptionID == "" || (seat.Status != "" && seat.Status != mongodbmanager.SeatStatusActive) || seat.OpenCloudUserID == "" {
-		return OpenCloudAllocationMutationReply{}, errors.New("an active linked subscription member is required")
+	user, err := findOpenCloudUserByEmail(users, parsedEmail.Address)
+	if err != nil {
+		return OpenCloudAllocationMutationReply{}, err
 	}
-	if _, err := paymentHandler.OpenCloudConnection.EnsureMember(ctx, request.SpaceID, seat.OpenCloudUserID, opencloudmanager.SpaceRoleEditor); err != nil {
+	if _, err := paymentHandler.OpenCloudConnection.EnsureMember(ctx, request.SpaceID, user.ID, opencloudmanager.SpaceRoleEditor); err != nil {
 		return OpenCloudAllocationMutationReply{}, err
 	}
 	return OpenCloudAllocationMutationReply{SubscriptionID: request.SubscriptionID, Success: true}, nil
+}
+
+func findOpenCloudUserByEmail(users []opencloudmanager.User, email string) (opencloudmanager.User, error) {
+	email = normalizeInvitationEmail(email)
+	for _, user := range users {
+		if user.ID != "" && strings.EqualFold(strings.TrimSpace(user.Mail), email) {
+			return user, nil
+		}
+	}
+	return opencloudmanager.User{}, errors.New("OpenCloud user not found for email")
 }
 
 func (paymentHandler *PaymentHandler) RemoveOpenCloudSpaceMember(ctx context.Context, tokenDetails authmanager.TokenDetails, request OpenCloudRemoveSpaceMemberRequest) (OpenCloudAllocationMutationReply, error) {
 	if paymentHandler.OpenCloudConnection == nil {
 		return OpenCloudAllocationMutationReply{}, ErrOpenCloudUnavailable
 	}
-	if err := paymentHandler.MongoDBConnection.HasPermission(ctx, tokenDetails, request.SubscriptionID, []mongodbmanager.Role{mongodbmanager.RoleAdministrator}); err != nil {
+	if err := paymentHandler.MongoDBConnection.HasOpenCloudPermission(ctx, tokenDetails, request.SubscriptionID, []mongodbmanager.OpenCloudRole{mongodbmanager.OpenCloudRoleAdministrator}); err != nil {
 		return OpenCloudAllocationMutationReply{}, err
 	}
 	if _, err := paymentHandler.MongoDBConnection.GetOpenCloudSpaceAllocation(ctx, request.SubscriptionID, request.SpaceID); err != nil {
@@ -639,47 +688,85 @@ func (paymentHandler *PaymentHandler) RemoveOpenCloudSpaceMember(ctx context.Con
 	return OpenCloudAllocationMutationReply{}, errors.New("OpenCloud member not found in space")
 }
 
-func (paymentHandler *PaymentHandler) openCloudUserQuotaAfterReplacement(ctx context.Context, seat mongodbmanager.Seat, newBytes int64) (int64, error) {
-	if seat.OpenCloudUserID == "" {
-		return 0, nil
+func (paymentHandler *PaymentHandler) DeleteOpenCloudManagedSpace(ctx context.Context, tokenDetails authmanager.TokenDetails, request OpenCloudDeleteSpaceRequest) (OpenCloudAllocationMutationReply, error) {
+	if paymentHandler.OpenCloudConnection == nil {
+		return OpenCloudAllocationMutationReply{}, ErrOpenCloudUnavailable
 	}
-	currentBytes, err := paymentHandler.MongoDBConnection.GetOpenCloudUserStorageBytes(ctx, seat.OpenCloudUserID)
+	if err := paymentHandler.MongoDBConnection.HasOpenCloudPermission(ctx, tokenDetails, request.SubscriptionID, []mongodbmanager.OpenCloudRole{mongodbmanager.OpenCloudRoleAdministrator}); err != nil {
+		return OpenCloudAllocationMutationReply{}, err
+	}
+	err := paymentHandler.MongoDBConnection.WithOpenCloudAllocationLock(ctx, request.SubscriptionID, func() error {
+		if _, err := paymentHandler.MongoDBConnection.GetOpenCloudSpaceAllocation(ctx, request.SubscriptionID, request.SpaceID); err != nil {
+			return err
+		}
+		if err := paymentHandler.OpenCloudConnection.DeleteSpace(ctx, request.SpaceID); err != nil && !errors.Is(err, opencloudmanager.ErrNotFound) {
+			return err
+		}
+		return paymentHandler.MongoDBConnection.DeleteOpenCloudResource(ctx, request.SubscriptionID, request.SpaceID)
+	})
 	if err != nil {
-		return 0, err
+		return OpenCloudAllocationMutationReply{}, err
 	}
-	if currentBytes < seat.OpenCloudStorageBytes || newBytes > math.MaxInt64-(currentBytes-seat.OpenCloudStorageBytes) {
-		return 0, errors.New("invalid aggregate OpenCloud user allocation")
-	}
-	quotaBytes := currentBytes - seat.OpenCloudStorageBytes + newBytes
-	usage, err := paymentHandler.OpenCloudConnection.GetUserDriveUsage(ctx, seat.OpenCloudUserID)
-	if err != nil {
-		return 0, err
-	}
-	if usage.Used != nil && *usage.Used > quotaBytes {
-		return 0, errors.New("OpenCloud personal drive is using more storage than the requested quota")
-	}
-	return quotaBytes, nil
+	return OpenCloudAllocationMutationReply{SubscriptionID: request.SubscriptionID, Success: true}, nil
 }
 
-func (paymentHandler *PaymentHandler) getOpenCloudSeat(ctx context.Context, subscriptionID, uidOrEmail string) (mongodbmanager.Seat, error) {
-	if strings.Contains(uidOrEmail, "@") {
-		seat, err := paymentHandler.MongoDBConnection.GetSeatByEmail(ctx, subscriptionID, normalizeInvitationEmail(uidOrEmail))
-		if err != nil {
-			return mongodbmanager.Seat{}, err
-		}
-		if seat.SubscriptionID == "" {
-			return mongodbmanager.Seat{}, errors.New("subscription seat not found")
-		}
-		return seat, nil
+func (paymentHandler *PaymentHandler) RemoveOpenCloudUser(ctx context.Context, tokenDetails authmanager.TokenDetails, request OpenCloudRemoveUserRequest) (OpenCloudAllocationMutationReply, error) {
+	if paymentHandler.OpenCloudConnection == nil {
+		return OpenCloudAllocationMutationReply{}, ErrOpenCloudUnavailable
 	}
-	seat, err := paymentHandler.MongoDBConnection.GetSeat(ctx, subscriptionID, uidOrEmail)
+	if err := paymentHandler.MongoDBConnection.HasOpenCloudPermission(ctx, tokenDetails, request.SubscriptionID, []mongodbmanager.OpenCloudRole{mongodbmanager.OpenCloudRoleAdministrator}); err != nil {
+		return OpenCloudAllocationMutationReply{}, err
+	}
+	member, err := paymentHandler.getOpenCloudMember(ctx, request.SubscriptionID, request.UID)
 	if err != nil {
-		return mongodbmanager.Seat{}, err
+		return OpenCloudAllocationMutationReply{}, err
 	}
-	if seat.SubscriptionID == "" {
-		return mongodbmanager.Seat{}, errors.New("subscription seat not found")
+	if mongodbmanager.ContainsOpenCloudRole(member, []mongodbmanager.OpenCloudRole{mongodbmanager.OpenCloudRoleOwner}) {
+		return OpenCloudAllocationMutationReply{}, errors.New("cannot remove subscription owner")
 	}
-	return seat, nil
+	if member.Status == mongodbmanager.OpenCloudMemberPending {
+		if err := paymentHandler.MongoDBConnection.DeletePendingOpenCloudMember(ctx, member.SubscriptionID, member.EMail); err != nil {
+			return OpenCloudAllocationMutationReply{}, err
+		}
+	} else if err := paymentHandler.RemoveOpenCloudMember(ctx, member); err != nil {
+		return OpenCloudAllocationMutationReply{}, err
+	}
+	return OpenCloudAllocationMutationReply{SubscriptionID: request.SubscriptionID, Success: true}, nil
+}
+
+func (paymentHandler *PaymentHandler) openCloudUserQuotaAfterReplacement(ctx context.Context, member mongodbmanager.OpenCloudMember, newBytes int64) (int64, error) {
+	if member.OpenCloudUserID == "" {
+		return 0, nil
+	}
+	currentBytes, err := paymentHandler.MongoDBConnection.GetOpenCloudUserStorageBytes(ctx, member.OpenCloudUserID)
+	if err != nil {
+		return 0, err
+	}
+	if currentBytes < member.OpenCloudStorageBytes || newBytes > math.MaxInt64-(currentBytes-member.OpenCloudStorageBytes) {
+		return 0, errors.New("invalid aggregate OpenCloud user allocation")
+	}
+	return currentBytes - member.OpenCloudStorageBytes + newBytes, nil
+}
+
+func (paymentHandler *PaymentHandler) getOpenCloudMember(ctx context.Context, subscriptionID, uidOrEmail string) (mongodbmanager.OpenCloudMember, error) {
+	if strings.Contains(uidOrEmail, "@") {
+		member, err := paymentHandler.MongoDBConnection.GetOpenCloudMemberByEmail(ctx, subscriptionID, normalizeInvitationEmail(uidOrEmail))
+		if err != nil {
+			return mongodbmanager.OpenCloudMember{}, err
+		}
+		if member.SubscriptionID == "" {
+			return mongodbmanager.OpenCloudMember{}, errors.New("subscription member not found")
+		}
+		return member, nil
+	}
+	member, err := paymentHandler.MongoDBConnection.GetOpenCloudMember(ctx, subscriptionID, uidOrEmail)
+	if err != nil {
+		return mongodbmanager.OpenCloudMember{}, err
+	}
+	if member.SubscriptionID == "" {
+		return mongodbmanager.OpenCloudMember{}, errors.New("subscription member not found")
+	}
+	return member, nil
 }
 
 func (paymentHandler *PaymentHandler) openCloudSubscriptionCapacity(ctx context.Context, subscriptionID string) (openCloudSubscriptionCapacity, error) {
@@ -728,14 +815,14 @@ func parsePositiveInt64(value string) (int64, error) {
 }
 
 func openCloudQuantityBytes(quantity, unitBytes int64) (int64, error) {
-	if quantity < 1 || unitBytes < 1 || quantity > math.MaxInt64/unitBytes {
+	if quantity < 0 || unitBytes < 1 || quantity > math.MaxInt64/unitBytes {
 		return 0, errors.New("OpenCloud storage quantity is invalid")
 	}
 	return quantity * unitBytes, nil
 }
 
 func validateOpenCloudReplacement(capacityBytes, usedBytes, replacedBytes, newBytes int64) error {
-	if capacityBytes < 1 || usedBytes < replacedBytes || newBytes < 1 || usedBytes-replacedBytes > capacityBytes || newBytes > capacityBytes-(usedBytes-replacedBytes) {
+	if capacityBytes < 1 || usedBytes < replacedBytes || newBytes < 0 || usedBytes-replacedBytes > capacityBytes || newBytes > capacityBytes-(usedBytes-replacedBytes) {
 		return mongodbmanager.ErrOpenCloudStorageCapacityReached
 	}
 	return nil
